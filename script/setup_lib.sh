@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 SCRIPT_DIR=$(cd $(dirname $0);echo $PWD)
 cd ${SCRIPT_DIR}/..
 ROOT_DIR=$(echo $PWD)
@@ -13,6 +14,3 @@ fi
 if [ ! -d "${ROOT_DIR}/indexr-server/lib" ]; then
     ln -s ${LIBDIR} ${ROOT_DIR}/indexr-server/lib
 fi
-
-mkdir -p ${ROOT_DIR}/distribution/lib
-cp -f ${LIBDIR}/* ${ROOT_DIR}/distribution/lib/

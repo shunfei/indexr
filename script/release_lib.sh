@@ -4,6 +4,7 @@ cd ${SCRIPT_DIR}/..
 ROOT_DIR=$(echo $PWD)
 source ${ROOT_DIR}/script/env.sh
 
-cd ${ROOT_DIR}
+RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 
-mvn clean install -DskipTests=true -pl indexr-segment -am
+mkdir -p ${RELEASE_PATH}/lib
+cp -f ${LIBDIR}/* ${RELEASE_PATH}/lib/
