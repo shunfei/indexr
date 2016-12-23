@@ -1,0 +1,34 @@
+cmake_minimum_required( VERSION 2.6 )
+INCLUDE("${PROJECT_SOURCE_DIR}/win/mysql_manifest.cmake")
+SET(CMAKE_CXX_FLAGS_DEBUG 
+    "${CMAKE_CXX_FLAGS_DEBUG} -DSAFEMALLOC -DSAFE_MUTEX -DUSE_SYMDIR /Zi")
+SET(CMAKE_C_FLAGS_DEBUG 
+    "${CMAKE_C_FLAGS_DEBUG} -DSAFEMALLOC -DSAFE_MUTEX -DUSE_SYMDIR /Zi")
+SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /MAP /MAPINFO:EXPORTS") 
+add_definitions(-DHAVE_ROW_BASED_REPLICATION -DMYSQL_SERVER 
+                -D_CONSOLE -DHAVE_DLOPEN -D__BH_ENTERPRISE__ -DEMBEDDED_LIBRARY)
+if(WIN32)
+	add_definitions("-D_WINDOWS -D__WIN__ -D_CRT_SECURE_NO_DEPRECATE")
+endif(WIN32)
+
+include_directories( "{BOOST_DIR}/" )
+
+add_executable( pipecat pipecat.cpp )
+SET_TARGET_PROPERTIES( pipecat PROPERTIES COMPILE_FLAGS "-EHsc" )
+
+TARGET_LINK_LIBRARIES( pipecat
+                      optimized "{BOOST_DIR}/lib/libboost_program_options-{BOOST_VERSION}.lib"
+                      optimized "{BOOST_DIR}/lib/libboost_thread-{BOOST_VERSION}.lib"
+                      optimized "{BOOST_DIR}/lib/libboost_date_time-{BOOST_VERSION}.lib"
+                      optimized "{BOOST_DIR}/lib/libboost_regex-{BOOST_VERSION}.lib"
+                      optimized "{BOOST_DIR}/lib/libboost_filesystem-{BOOST_VERSION}.lib"
+											optimized "{BOOST_DIR}/lib/libboost_system-{BOOST_VERSION}.lib"
+											debug "{BOOST_DIR}/lib/libboost_system-{BOOST_DBG_VERSION}.lib"
+                      debug "{BOOST_DIR}/lib/libboost_program_options-{BOOST_DBG_VERSION}.lib"
+                      debug "{BOOST_DIR}/lib/libboost_thread-{BOOST_DBG_VERSION}.lib"
+                      debug "{BOOST_DIR}/lib/libboost_date_time-{BOOST_DBG_VERSION}.lib"
+                      debug "{BOOST_DIR}/lib/libboost_regex-{BOOST_DBG_VERSION}.lib"
+                      debug "{BOOST_DIR}/lib/libboost_filesystem-{BOOST_DBG_VERSION}.lib"
+											wsock32)
+
+# vim: ft=cmake

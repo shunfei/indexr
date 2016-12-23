@@ -1,0 +1,34 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+*.dylib
+.DS_Store
+.idea
+*.iml
+*.class
+.classpath
+.project
+.svn
+*.log
+CMakeLists.txt
+
+# Folders
+_obj
+_test
+target/
+distribution
+lib
+jars
+logs
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.exe
+*.test
+*.prof
+
+# Ignore compiled java
+indexr-segment/src/main/java/io/indexr/compress/bh/*Library.java

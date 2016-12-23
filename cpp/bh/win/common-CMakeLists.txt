@@ -1,0 +1,45 @@
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+
+INCLUDE_DIRECTORIES("{SOURCE_DIR}"
+                    "{MYSQL_DIR}/sql"
+                    "{MYSQL_DIR}/regex"
+                    "{MYSQL_DIR}/include"
+                    "{MYSQL_DIR}/extra/yassl/include"
+                    "{MYSQL_DIR}/extra/yassl/taocrypt/include"
+				            "{SOURCE_DIR}/{EDITION}"
+                    "{BOOST_DIR}")
+
+file( GLOB COMMON_SRCS "{SOURCE_DIR}/common/*.cpp" )
+file( GLOB COMMON_HDRS "{SOURCE_DIR}/common/*.h" )
+ADD_LIBRARY(bh-common
+						${COMMON_SRCS}
+						${COMMON_HDRS})
+add_dependencies( bh-common GenError )
+
+set( WITH_EMBEDDED {withEmbedded} )
+
+if ( WITH_EMBEDDED )
+ADD_LIBRARY(bh-common-embedded
+						${COMMON_SRCS}
+						${COMMON_HDRS})
+add_dependencies( bh-common-embedded GenError )
+
+set_target_properties(bh-common-embedded PROPERTIES COMPILE_DEFINITIONS EMBEDDED_LIBRARY)
+endif()
+
+set( WITH_DATAPROCESSOR {withDataprocessor} )
+
+if ( WITH_DATAPROCESSOR )
+ADD_LIBRARY(bh-common-pure
+						${COMMON_SRCS}
+						${COMMON_HDRS})
+add_dependencies( bh-common-pure GenError )
+
+set_target_properties(bh-common-pure PROPERTIES COMPILE_DEFINITIONS PURE_LIBRARY)
+endif()
+
+# vim: ft=cmake

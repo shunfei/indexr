@@ -1,0 +1,54 @@
+{
+    "schema":{
+        "columns":
+        [
+            {"name": "time", "dataType": "long"},
+            {"name": "d1", "dataType": "string"},
+            {"name": "m1", "dataType": "int"},
+            {"name": "m2", "dataType": "long"},
+            {"name": "m3", "dataType": "float"},
+            {"name": "m4", "dataType": "double"}
+        ]
+    },
+    "realtime":{
+        "dims": [
+            "time",
+            "d1"
+        ],
+        "metrics": [
+            {"name": "m1", "agg": "last"},
+            {"name": "m2", "agg": "sum"},
+            {"name": "m3", "agg": "sum"},
+            {"name": "m4", "agg": "sum"}
+        ],
+        "name.alias": {},
+        "tag.setting": {
+            "tag.field": "_tag_",
+            "accept.tags": ["a"],
+            "accept.none": false
+        },
+        "ignoreStrategy": "no_ignore",
+        "grouping": true,
+        "save.period.minutes": 20,
+        "upload.period.minutes": 60,
+        "max.row.memory": 500000,
+        "max.row.realtime": 10000000,
+        "ingest": true,
+        "compress": true,
+        "fetcher": {
+            "type": "kafka-0.8",
+            "topic": "test_topic",
+            "properties": {
+                "zookeeper.connect": "sf41:2181,sf51:2181",
+                "zookeeper.connection.timeout.ms": "15000",
+                "zookeeper.session.timeout.ms": "40000",
+                "zookeeper.sync.time.ms": "5000",
+                "fetch.message.max.bytes": "1048586",
+                "auto.offset.reset": "largest",
+                "auto.commit.enable": "true",
+                "auto.commit.interval.ms": "5000",
+                "group.id": "indexr_table_test"
+            }
+        }
+    }
+}

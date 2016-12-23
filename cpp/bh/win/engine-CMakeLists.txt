@@ -1,0 +1,62 @@
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+
+INCLUDE_DIRECTORIES("{SOURCE_DIR}"
+                    "{SOURCE_DIR}/engine"
+                    "{SOURCE_DIR}/types"
+                    "{MYSQL_DIR}/sql"
+                    "{MYSQL_DIR}/regex"
+                    "{MYSQL_DIR}/include"
+                    "{MYSQL_DIR}/extra/yassl/include"
+                    "{MYSQL_DIR}/extra/yassl/taocrypt/include"
+				            "{SOURCE_DIR}/{EDITION}"
+                    "{BOOST_DIR}")
+
+file( GLOB ENGINE_HDRS "{SOURCE_DIR}/engine/*.h" )
+file( GLOB TYPES_HDRS "{SOURCE_DIR}/types/*.h" )
+file( GLOB ENGINE_SRCS "{SOURCE_DIR}/engine/*.cpp" )
+file( GLOB TYPES_SRCS "{SOURCE_DIR}/types/*.cpp" )
+ADD_LIBRARY(bh-engine
+            "{SOURCE_DIR}/util/SystemInformation.cpp"
+						${ENGINE_HDRS}
+						${ENGINE_SRCS}
+						${TYPES_HDRS}
+						${TYPES_SRCS}
+            )
+
+add_dependencies( bh-engine GenError )
+
+set( WITH_EMBEDDED {withEmbedded} )
+
+if ( WITH_EMBEDDED )
+ADD_LIBRARY(bh-engine-embedded
+            "{SOURCE_DIR}/util/SystemInformation.cpp"
+						${ENGINE_HDRS}
+						${ENGINE_SRCS}
+						${TYPES_HDRS}
+						${TYPES_SRCS}
+            )
+add_dependencies( bh-engine-embedded GenError )
+
+set_target_properties(bh-engine-embedded PROPERTIES COMPILE_DEFINITIONS EMBEDDED_LIBRARY)
+endif()
+
+set( WITH_DATAPROCESSOR {withDataprocessor} )
+
+if ( WITH_DATAPROCESSOR )
+ADD_LIBRARY(bh-engine-pure
+            "{SOURCE_DIR}/util/SystemInformation.cpp"
+						${ENGINE_HDRS}
+						${ENGINE_SRCS}
+						${TYPES_HDRS}
+						${TYPES_SRCS}
+            )
+add_dependencies( bh-engine-pure GenError )
+
+set_target_properties(bh-engine-pure PROPERTIES COMPILE_DEFINITIONS PURE_LIBRARY)
+endif()
+
+# vim: ft=cmake

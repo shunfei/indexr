@@ -1,0 +1,57 @@
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+
+INCLUDE_DIRECTORIES("{SOURCE_DIR}"
+                    "{MYSQL_DIR}/sql"
+                    "{MYSQL_DIR}/regex"
+                    "{MYSQL_DIR}/include"
+                    "{MYSQL_DIR}/extra/yassl/include"
+				            "{SOURCE_DIR}/{EDITION}"
+                    "{BOOST_DIR}")
+
+file( GLOB LOADER_SRCS "{SOURCE_DIR}/loader/*.cpp" )
+file( GLOB LOADER_SRCS_EDITION_EXPORTER "{SOURCE_DIR}/{EDITION}/edition/exporter/*.cpp" )
+file( GLOB LOADER_SRCS_EDITION "{SOURCE_DIR}/{EDITION}/edition/loader/*.cpp" )
+file( GLOB LOADER_HDRS "{SOURCE_DIR}/loader/*.h" )
+file( GLOB LOADER_HDRS_EDITION_EXPORTER "{SOURCE_DIR}/{EDITION}/edition/exporter/*.h" )
+file( GLOB LOADER_HDRS_EDITION "{SOURCE_DIR}/{EDITION}/edition/loader/*.h" )
+file( GLOB LOADER_SRCS_EXPORTER "{SOURCE_DIR}/exporter/*.cpp" )
+file( GLOB LOADER_HDRS_EXPORTER "{SOURCE_DIR}/exporter/*.h" )
+
+SET( PRJ_FILES 
+						${LOADER_SRCS}
+						${LOADER_SRCS_EDITION}
+						${LOADER_SRCS_EXPORTER}
+						${LOADER_SRCS_EDITION_EXPORTER}
+						${LOADER_HDRS}
+						${LOADER_HDRS_EDITION}
+						${LOADER_HDRS_EXPORTER}
+						${LOADER_HDRS_EDITION_EXPORTER})
+ADD_LIBRARY(bh-loader-lib ${PRJ_FILES})
+add_dependencies( bh-loader-lib GenError )
+
+set( WITH_EMBEDDED {withEmbedded} )
+
+if ( WITH_EMBEDDED )
+ADD_LIBRARY(bh-loader-lib-embedded ${PRJ_FILES})
+add_dependencies( bh-loader-lib-embedded GenError )
+
+set_target_properties(bh-loader-lib-embedded PROPERTIES COMPILE_DEFINITIONS EMBEDDED_LIBRARY)
+endif()
+
+set( WITH_DATAPROCESSOR {withDataprocessor} )
+
+if ( WITH_DATAPROCESSOR )
+
+set( PRJ_FILES_PURE ${PRJ_FILES} )
+list( REMOVE_ITEM PRJ_FILES_PURE {SOURCE_DIR}/loader/BHLoaderApp.cpp )
+ADD_LIBRARY(bh-loader-lib-pure ${PRJ_FILES_PURE})
+add_dependencies( bh-loader-lib-pure GenError )
+
+set_target_properties(bh-loader-lib-pure PROPERTIES COMPILE_DEFINITIONS PURE_LIBRARY)
+endif()
+
+# vim: ft=cmake

@@ -1,0 +1,77 @@
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG -DSAFEMALLOC -DSAFE_MUTEX {IB_CPPEXTRAFLAG}")
+
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} {IB_CPPEXTRAFLAG}")
+
+INCLUDE_DIRECTORIES("{SOURCE_DIR}"
+                    "{MYSQL_DIR}/sql"
+                    "{MYSQL_DIR}/regex"
+                    "{MYSQL_DIR}/include"
+                    "{MYSQL_DIR}/extra/yassl/include"
+                    "{MYSQL_DIR}/extra/yassl/taocrypt/include"
+				            "{SOURCE_DIR}/{EDITION}"
+                    "{BOOST_DIR}")
+
+file( GLOB CORE_SRCS "{SOURCE_DIR}/core/*.cpp" )
+file( GLOB CORE_SRCS_EDITION "{SOURCE_DIR}/{EDITION}/edition/core/*.cpp" )
+file( GLOB CORE_SRCS_EDITION_COMMON "{SOURCE_DIR}/{EDITION}/edition/common/*.cpp" )
+file( GLOB CORE_SRCS_EDITION_TYPES "{SOURCE_DIR}/{EDITION}/edition/types/*.cpp" )
+file( GLOB CORE_HDRS "{SOURCE_DIR}/core/*.h" )
+file( GLOB CORE_HDRS_EDITION "{SOURCE_DIR}/{EDITION}/edition/core/*.h" )
+file( GLOB CORE_HDRS_EDITION_COMMON "{SOURCE_DIR}/{EDITION}/edition/common/*.h" )
+file( GLOB CORE_HDRS_EDITION_TYPES "{SOURCE_DIR}/{EDITION}/edition/types/*.h" )
+ADD_LIBRARY(bh-core
+            "{SOURCE_DIR}/{EDITION}/edition/local.cpp"
+            "{SOURCE_DIR}/util/BHString.cpp"
+						${CORE_SRCS}
+						${CORE_SRCS_EDITION}
+						${CORE_SRCS_EDITION_COMMON}
+						${CORE_SRCS_EDITION_TYPES}
+						${CORE_HDRS}
+						${CORE_HDRS_EDITION}
+						${CORE_HDRS_EDITION_COMMON}
+						${CORE_HDRS_EDITION_TYPES})
+add_dependencies( bh-core GenError )
+
+set( WITH_EMBEDDED {withEmbedded} )
+
+if ( WITH_EMBEDDED )
+ADD_LIBRARY(bh-core-embedded
+            "{SOURCE_DIR}/{EDITION}/edition/local.cpp"
+            "{SOURCE_DIR}/util/BHString.cpp"
+						${CORE_SRCS}
+						${CORE_SRCS_EDITION}
+						${CORE_SRCS_EDITION_COMMON}
+						${CORE_SRCS_EDITION_TYPES}
+						${CORE_HDRS}
+						${CORE_HDRS_EDITION}
+						${CORE_HDRS_EDITION_COMMON}
+						${CORE_HDRS_EDITION_TYPES})
+
+add_dependencies( bh-core-embedded GenError )
+
+set_target_properties(bh-core-embedded PROPERTIES COMPILE_DEFINITIONS EMBEDDED_LIBRARY)
+endif()
+
+set( WITH_DATAPROCESSOR {withDataprocessor} )
+
+if ( WITH_DATAPROCESSOR )
+ADD_LIBRARY(bh-core-pure
+            "{SOURCE_DIR}/{EDITION}/edition/local.cpp"
+            "{SOURCE_DIR}/util/BHString.cpp"
+						${CORE_SRCS}
+						${CORE_SRCS_EDITION}
+						${CORE_SRCS_EDITION_COMMON}
+						${CORE_SRCS_EDITION_TYPES}
+						${CORE_HDRS}
+						${CORE_HDRS_EDITION}
+						${CORE_HDRS_EDITION_COMMON}
+						${CORE_HDRS_EDITION_TYPES})
+
+add_dependencies( bh-core-pure GenError )
+
+set_target_properties(bh-core-pure PROPERTIES COMPILE_DEFINITIONS PURE_LIBRARY)
+endif()
+
+# vim: ft=cmake

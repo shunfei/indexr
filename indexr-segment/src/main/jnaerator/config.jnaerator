@@ -1,0 +1,4 @@
+-package io.indexr.compress.bh
+-library bhcompress
+-runtime JNA
+src/main/cpp/bh/compress/JavaCompress.h
