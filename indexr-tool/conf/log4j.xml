@@ -24,7 +24,7 @@
     </logger>
 
     <root>
-        <priority value="info"/>
+        <priority value="warn"/>
         <!-- <appender-ref ref="default"/> -->
         <appender-ref ref="console"/>
     </root>
