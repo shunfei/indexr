@@ -308,4 +308,3 @@ hive (default)> drop table test_indexr;
 ```
 查询是标准的 SQL，参考 https://drill.apache.org/docs/
 
-注意：目前 IndexR 通过 Drill 查询还不支持 join 的索引，特别慢和耗费资源，不要使用！ 但是不影响 Hive 表的查询。
