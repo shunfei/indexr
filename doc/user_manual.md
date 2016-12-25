@@ -19,9 +19,9 @@ IndexR 的表目前需要两次定义，创建 Hive 表和创建 IndexR 表。�
 打开 Hive 的命令行界面
 
 ```
-[flow@localhost:~]$ cd /usr/local/hive
-[flow@localhost:/usr/local/hive]$ bin/hive
-hive (default)> CREATE EXTERNAL TABLE `test_indexr`(
+$> cd /usr/local/hive
+$> bin/hive
+hive (default)> CREATE TABLE `test_indexr`(
   `date` int,
   `user_id` bigint,
   `user_name` string,
@@ -43,7 +43,6 @@ hive (default)> select user_id, user_name, sum(cost) from test_indexr group by u
 
 上面的命令创建了 `test_indexr` 表，然后插入了一条记录，并且尝试查询内容。它是标准的 Hive 语法，使用了 IndexR 的文件格式。有几个注意事项：
 
-* 一般情况下请使用 EXTERNAL 表。
 * 填写正确的 FORMAT 以及 SERDE：
 
 	```
@@ -60,8 +59,8 @@ hive (default)> select user_id, user_name, sum(cost) from test_indexr group by u
 上面创建的 `test_indexr` 表就是一个普通的 Hive 表，你可以对它进行任何 Hive 操作，包括导入数据，删除某一分区的数据等等，注意在数据操作完成之后，IndexR 不一定会注意到数据的修改，需要通知 IndexR 数据的更改，使用 `indexr-tool` 工具：
 
 ```
-[flow@localhost:~]$ cd /usr/local/indexr-tool
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd notifysu -t test_indexr
+$> cd /usr/local/indexr-tool
+$> bin/tools.sh -cmd notifysu -t test_indexr
 ```
 
 #### 2.1.2 创建 IndexR 表。
@@ -69,8 +68,8 @@ hive (default)> select user_id, user_name, sum(cost) from test_indexr group by u
 使用 `indexr-tool` 工具
 
 ```
-[flow@localhost:~]$ cd /usr/local/indexr-tool
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd settb -t test_indexr -c test_inexr_schema.json
+$> cd /usr/local/indexr-tool
+$> bin/tools.sh -cmd settb -t test_indexr -c test_inexr_schema.json
 ```
 
 查看命令 `bin/tools.sh -h` 可以看到各个参数的意义。`test_inexr_schema.json` 的文件内容如下：
@@ -145,8 +144,8 @@ hive (default)> select user_id, user_name, sum(cost) from test_indexr group by u
 执行完命令之后，可以去 Drill 查看表定义是否成功。进入 Drill console，如 
 
 ```
-[flow@localhost:~]$ cd /usr/local/drill
-[flow@localhost:/usr/local/drill]$ bin/drill-conf
+$> cd /usr/local/drill
+$> bin/drill-conf
 0: jdbc:drill:> use indexr;
 0: jdbc:drill:> show tables;
 0: jdbc:drill:> select * from test_indexr limit 10;
@@ -170,7 +169,7 @@ hive (default)> select user_id, user_name, sum(cost) from test_indexr group by u
 首先需要了解当前有几个 IndexR 的可用节点
 
 ```
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd listnode
+$> bin/tools.sh -cmd listnode
 hostA
 hostB
 hostC
@@ -181,9 +180,9 @@ hostD
 然后选定一些节点做为表 `test_indexr` 的实时节点，如 `hostA,hostC`:
 
 ```
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd addrtt -t test_indexr -host hostA,hostC
+$> bin/tools.sh -cmd addrtt -t test_indexr -host hostA,hostC
 OK
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd rttnode -t test_indexr
+$> bin/tools.sh -cmd rttnode -t test_indexr
 hostC
 hostA
 ```
@@ -197,7 +196,7 @@ hostA
 实时数据从 kafka 导入到 IndexR 的实时节点之后，会被分段（segment）周期性的上传到 HDFS 的 `/indexr/segment/test_indexr/rt` 目录。实时数据只要从 kafka 读出并写入 IndexR 的实时节点，就立刻可以在 Drill 中被查询到。但是并不能被 Hive 查询，因为 `rt` 目录不是一个合法的分区目录，所有要配置一个周期性任务，比如每天凌晨把数据从 `rt` 目录转移进相应的分区目录。如在导入实时数据之后，`test_indexr` 表的目录结构可能是：
 
 ```
-[flow@localhost:/usr/local/hadoop]$ bin/hdfs dfs -ls -R /indexr/segment/test_indexr
+$> bin/hdfs dfs -ls -R /indexr/segment/test_indexr
 -rw-r--r--   2 dc supergroup          0 2016-08-30 18:31 /indexr/segment/test_indexr/__UPDATE__
 drwxr-xr-x   - dc supergroup          0 2016-08-30 18:29 /indexr/segment/test_indexr/dt=20160701
 -rw-r--r--   2 dc supergroup        938 2016-08-30 18:29 /indexr/segment/test_indexr/dt=20160701/000000_0
@@ -208,7 +207,7 @@ drwxr-xr-x   - dc supergroup          0 2016-08-30 18:29 /indexr/segment/test_in
 执行
 
 ```
-[flow@localhost:/usr/local/indexr-tool]$ bin/rt2his.sh -hivecnn "jdbc:hive2://localhost:10000/default;auth=noSasl" -hiveuser dc -hivepwd dc -table test_indexr -segpc \`date\`
+$> bin/rt2his.sh -hivecnn "jdbc:hive2://localhost:10000/default;auth=noSasl" -hiveuser dc -hivepwd dc -table test_indexr -segpc \`date\`
 ```
 
 `rt2his.sh` 的执行流程是：
@@ -232,7 +231,7 @@ insert into table `test_indexr` partition (dt = '20160802') select `date`, `user
 再查看表的数据目录结构，可以看到数据已经从 `rt` 目录转移入它对应的分区，这时候可以从 Hive 中查询到，并且可以方便的对分区的数据进行管理了：
 
 ```
-[flow@localhost:/usr/local/hadoop]$ bin/hdfs dfs -ls -R /indexr/segment/test_indexr
+$> bin/hdfs dfs -ls -R /indexr/segment/test_indexr
 -rw-r--r--   2 dc supergroup          0 2016-08-30 18:31 /indexr/segment/test_indexr/__UPDATE__
 drwxr-xr-x   - dc supergroup          0 2016-08-30 18:29 /indexr/segment/test_indexr/dt=20160701
 -rw-r--r--   2 dc supergroup        938 2016-08-30 18:29 /indexr/segment/test_indexr/dt=20160701/000000_0
@@ -252,7 +251,7 @@ drwxr-xr-x   - dc supergroup          0 2016-08-30 18:29 /indexr/segment/test_in
 删除 IndexR 表不会删除任何数据，实时导入进程会停止，并且之后把表重新加回来，数据不会丢失。
 	
 ```
-[flow@localhost:/usr/local/indexr-tool]$ bin/tools.sh -cmd rmtable -t test_indexr
+$> bin/tools.sh -cmd rmtable -t test_indexr
 ```
 * 删除 Hive 表
 
@@ -301,8 +300,8 @@ hive (default)> drop table test_indexr;
 ## 4 查询
 	
 ```
-[flow@localhost:~]$ cd /usr/local/drill
-[flow@localhost:/usr/local/drill]$ bin/drill-conf
+$> cd /usr/local/drill
+$> bin/drill-conf
 0: jdbc:drill:> use indexr;
 
 ```
