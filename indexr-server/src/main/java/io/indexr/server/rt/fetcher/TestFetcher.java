@@ -109,7 +109,6 @@ public class TestFetcher implements Fetcher {
         sb.append('}');
 
         byte[] data = sb.toString().getBytes("utf-8");
-        //byte[] data = "{\"_tag_\": \"a\", \"campaign_id\":102.3}".getBytes("utf-8");
         return utf8JsonRowCreator.create(data);
     }
 

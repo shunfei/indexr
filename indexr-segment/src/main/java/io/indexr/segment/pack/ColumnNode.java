@@ -109,7 +109,7 @@ public class ColumnNode {
             case ColumnType.FLOAT:
             case ColumnType.DOUBLE:
                 return new ColumnNode(
-                        Double.doubleToRawLongBits(Double.MIN_VALUE),
+                        Double.doubleToRawLongBits(Double.MAX_VALUE),
                         Double.doubleToRawLongBits(Double.MIN_VALUE));
             default:
                 return new ColumnNode(0, 0);
