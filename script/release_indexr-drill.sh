@@ -19,6 +19,7 @@ function cp_jar {
 cp_jar ${ROOT_DIR}/indexr-common/target/indexr-common-${VERSION}.jar
 cp_jar ${ROOT_DIR}/indexr-segment/target/indexr-segment-${VERSION}.jar
 cp_jar ${ROOT_DIR}/indexr-server/target/indexr-server-${VERSION}.jar
+cp_jar ${ROOT_DIR}/indexr-query-opt/target/indexr-query-opt-${VERSION}.jar
 
 # copy depenencies
 cp_jar ${MAVEN_PATH}/org/apache/kafka/kafka_2.10/0.8.2.0/kafka_2.10-0.8.2.0.jar
