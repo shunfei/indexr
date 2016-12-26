@@ -6,6 +6,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -80,10 +81,12 @@ public class ZkHelper {
                 }
             }
 
-            for (String child : localVersion.keySet()) {
-                if (!nameToObj.containsKey(child)) {
-                    localVersion.remove(child);
-                    localCache.remove(child);
+            Iterator<String> itr = localVersion.keySet().iterator();
+            while (itr.hasNext()) {
+                String key = itr.next();
+                if (!nameToObj.containsKey(key)) {
+                    itr.remove();
+                    localCache.remove(key);
                 }
             }
             return nameToObj;
