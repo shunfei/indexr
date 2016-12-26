@@ -4,6 +4,7 @@ cd ${SCRIPT_DIR}/..
 ROOT_DIR=$(echo $PWD)
 source ${ROOT_DIR}/script/env.sh
 
+LIBDIR=${ROOT_DIR}/lib
 RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 
 mkdir -p ${RELEASE_PATH}/lib
