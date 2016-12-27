@@ -21,7 +21,7 @@ IndexR 的表目前需要两次定义，创建 Hive 表和创建 IndexR 表。�
 ```
 $> cd /usr/local/hive
 $> bin/hive
-hive (default)> CREATE TABLE `test_indexr`(
+hive (default)> CREATE EXTERNAL TABLE `test_indexr`(
   `date` int,
   `user_id` bigint,
   `user_name` string,
