@@ -6,8 +6,6 @@ IndexR is a distributed, relational database storage system based on HDFS, which
 
 **Wiki** - [https://github.com/shunfei/indexr/wiki](https://github.com/shunfei/indexr/wiki)
 
-**中文使用指南** - [https://github.com/shunfei/indexr/blob/master/doc/user_manual.md](https://github.com/shunfei/indexr/blob/master/doc/user_manual.md)
-
 Please feel free to file any issues.
 
 ## License
