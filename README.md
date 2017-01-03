@@ -2,7 +2,7 @@
 
 ![IndexR Logo](images/indexr-logo-150x150.png)
 
-IndexR is a distributed, relational database storage system based on HDFS, which focus on fast analyse, both for massive static(historical) data and rapidly ingesting realtime data. IndexR is designed for OLAP.
+IndexR is a distributed, columnar storage system based on HDFS, which focus on fast analyse, both for massive static(historical) data and rapidly ingesting realtime data. IndexR is designed for OLAP.
 
 **Wiki** - [https://github.com/shunfei/indexr/wiki](https://github.com/shunfei/indexr/wiki)
 
