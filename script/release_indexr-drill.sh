@@ -12,6 +12,10 @@ mkdir -p ${RELEASE_PATH}/indexr-drill/jars/3rdparty
 sh ${ROOT_DIR}/script/compile_indexr-server.sh
 
 function cp_jar {
+    if [ ! -f $1 ]; then
+        echo "$1 not exists!"
+        exit 1
+    fi
     cp -f $1 ${RELEASE_PATH}/indexr-drill/jars/3rdparty/
 }
 

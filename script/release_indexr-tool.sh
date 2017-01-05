@@ -23,6 +23,10 @@ cp -f ${ROOT_DIR}/indexr-server/target/indexr-server-${VERSION}-jar-with-depende
 
 
 function cp_jar {
+    if [ ! -f $1 ]; then
+        echo "$1 not exists!"
+        exit 1
+    fi
     cp -f $1 ${RELEASE_PATH}/indexr-tool/jars/hadoop
 }
 

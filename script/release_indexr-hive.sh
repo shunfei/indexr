@@ -15,6 +15,10 @@ rm -rf ${RELEASE_PATH}/indexr-hive/aux
 mkdir -p ${RELEASE_PATH}/indexr-hive/aux
 
 function cp_jar {
+    if [ ! -f $1 ]; then
+        echo "$1 not exists!"
+        exit 1
+    fi
     cp -f $1 ${RELEASE_PATH}/indexr-hive/aux/
 }
 
