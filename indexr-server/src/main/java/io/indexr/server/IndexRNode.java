@@ -33,6 +33,7 @@ public class IndexRNode implements Closeable {
     private IndexRConfig config;
     private Server httpServer;
     private Future printStat;
+    private Future declareNode;
 
     public IndexRNode(String host) throws Exception {
         RealtimeConfig.loadSubtypes();
@@ -48,7 +49,13 @@ public class IndexRNode implements Closeable {
         String path = IndexRConfig.zkHostDeclarePath(host);
         ZkHelper.createIfNotExist(zkClient, path, CreateMode.EPHEMERAL);
 
-        printStat = GlobalExecSrv.EXECUTOR_SERVICE.scheduleAtFixedRate(PackDurationStat::print, 1, 1, TimeUnit.MINUTES);
+        printStat = GlobalExecSrv.EXECUTOR_SERVICE.scheduleAtFixedRate(
+                PackDurationStat::print,
+                1, 1, TimeUnit.MINUTES);
+        // Redeclare node to zk after a period of time.
+        declareNode = GlobalExecSrv.EXECUTOR_SERVICE.scheduleAtFixedRate(
+                () -> Try.on(() -> ZkHelper.createIfNotExist(zkClient, path, CreateMode.EPHEMERAL), 1, logger, "Failed to declare indexr node in ZK"),
+                0, 10, TimeUnit.MINUTES);
     }
 
     public IndexRNode() throws Exception {
@@ -84,6 +91,10 @@ public class IndexRNode implements Closeable {
         if (printStat != null) {
             printStat.cancel(true);
             printStat = null;
+        }
+        if (declareNode != null) {
+            declareNode.cancel(true);
+            declareNode = null;
         }
     }
 
