@@ -7,7 +7,7 @@ import java.io.InputStream;
 
 /**
  * A stream of bits that can be read.
- * <p/>
+ * 
  * <p>Because they come from an underlying byte stream, the total number of bits is always a
  * multiple of 8. The bits are read in big endian.
  */

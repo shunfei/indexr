@@ -7,8 +7,8 @@ import io.indexr.util.MemoryUtil;
 
 /**
  * Wrapper of brighthouse compression.
- * This class is closely linked to c++ code & native data structure, don't touch it unless you know what you are doing.
- * <p/>
+ * This class is closely linked to cpp code and native data structure, don't touch it unless you know what you are doing.
+ * 
  * Note that all values here are in unsigned form, including max_val.
  */
 public class BHCompressor {

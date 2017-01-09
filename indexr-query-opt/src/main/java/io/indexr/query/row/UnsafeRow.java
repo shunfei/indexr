@@ -22,20 +22,20 @@ import io.indexr.query.types.DataType;
 
 /**
  * An Unsafe implementation of Row which is backed by raw memory instead of Java objects.
- * <p/>
+ * 
  * Each tuple has three parts: [null bit set] [values] [variable length portion]
- * <p/>
+ * 
  * The bit set is used for null tracking and is aligned to 8-byte word boundaries.  It stores
  * one bit per field.
- * <p/>
+ * 
  * In the `values` region, we store one 8-byte word per field. For fields that hold fixed-length
  * primitive types, such as long, double, or int, we store the value directly in the word. For
  * fields with non-primitive or variable-length values, we store a relative offset (w.r.t. the
  * base address of the row) that points to the beginning of the variable-length field, and length
  * (they are combined into a long).
- * <p/>
+ * 
  * Instances of `UnsafeRow` act as pointers to row data stored in this format.
- * <p/>
+ * 
  * FIXME This class currently brokes aggregation logic, for string type value will not be compared.
  */
 public final class UnsafeRow extends MutableRow implements Externalizable {
@@ -463,7 +463,7 @@ public final class UnsafeRow extends MutableRow implements Externalizable {
 
     /**
      * Write the bytes of var-length field into ByteBuffer
-     * <p/>
+     * 
      * Note: only work with HeapByteBuffer
      */
     public void writeFieldTo(int ordinal, ByteBuffer buffer) {

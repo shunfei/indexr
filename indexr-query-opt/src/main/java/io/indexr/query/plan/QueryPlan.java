@@ -234,7 +234,7 @@ public abstract class QueryPlan<PlanType extends QueryPlan<PlanType>> extends Tr
 
     /**
      * A prefix string used when printing the plan.
-     * <p/>
+     * 
      * We use "!" to indicate an invalid plan, and "'" to indicate an unresolved plan.
      */
     protected String statePrefix() {

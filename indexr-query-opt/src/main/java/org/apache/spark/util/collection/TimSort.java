@@ -40,17 +40,17 @@ import java.util.Comparator;
 /**
  * A port of the Android TimSort class, which utilizes a "stable, adaptive, iterative mergesort."
  * See the method comment on sort() for more details.
- * <p/>
+ * 
  * This has been kept in Java with the original style in order to match very closely with the
  * Android source code, and thus be easy to verify correctness. The class is package private. We put
  * a simple Scala wrapper {@link org.apache.spark.util.collection.Sorter}, which is available to
  * package org.apache.spark.
- * <p/>
+ * 
  * The purpose of the port is to generalize the interface to the sort to accept input data formats
  * besides simple arrays where every element is sorted individually. For instance, the AppendOnlyMap
  * uses this to sort an Array with alternating elements of the form [key, value, key, value].
  * This generalization comes with minimal overhead -- see SortDataFormat for more information.
- * <p/>
+ * 
  * We allow key reuse to prevent creating many key objects -- see SortDataFormat.
  *
  * @see org.apache.spark.util.collection.SortDataFormat
@@ -62,13 +62,13 @@ public final class TimSort<K, Buffer> {
      * This is the minimum sized sequence that will be merged.  Shorter
      * sequences will be lengthened by calling binarySort.  If the entire
      * array is less than this length, no merges will be performed.
-     * <p/>
+     * 
      * This constant should be a power of two.  It was 64 in Tim Peter's C
      * implementation, but 32 was empirically determined to work better in
      * this implementation.  In the unlikely event that you set this constant
      * to be a number that's not a power of two, you'll need to change the
      * minRunLength computation.
-     * <p/>
+     * 
      * If you decrease this constant, you must change the stackLen
      * computation in the TimSort constructor, or you risk an
      * ArrayOutOfBounds exception.  See listsort.txt for a discussion
@@ -91,24 +91,24 @@ public final class TimSort<K, Buffer> {
      * runs O(n log n) time (worst case).  In the worst case, this sort requires
      * temporary storage space for n/2 object references; in the best case,
      * it requires only a small constant amount of space.
-     * <p/>
+     * 
      * This implementation was adapted from Tim Peters's list sort for
      * Python, which is described in detail here:
-     * <p/>
+     * 
      * http://svn.python.org/projects/python/trunk/Objects/listsort.txt
-     * <p/>
+     * 
      * Tim's C code may be found here:
-     * <p/>
+     * 
      * http://svn.python.org/projects/python/trunk/Objects/listobject.c
-     * <p/>
+     * 
      * The underlying techniques are described in this paper (and may have
      * even earlier origins):
-     * <p/>
+     * 
      * "Optimistic Sorting and Information Theoretic Complexity"
      * Peter McIlroy
      * SODA (Fourth Annual ACM-SIAM Symposium on Discrete Algorithms),
      * pp 467-474, Austin, Texas, 25-27 January 1993.
-     * <p/>
+     * 
      * While the API to this class consists solely of static methods, it is
      * (privately) instantiable; a TimSort instance holds the state of an ongoing
      * sort, assuming the input array is large enough to warrant the full-blown
@@ -168,7 +168,7 @@ public final class TimSort<K, Buffer> {
      * insertion sort.  This is the best method for sorting small numbers
      * of elements.  It requires O(n log n) compares, but O(n^2) data
      * movement (worst case).
-     * <p/>
+     * 
      * If the initial part of the specified range is already sorted,
      * this method can take advantage of it: the method assumes that the
      * elements from index {@code lo}, inclusive, to {@code start},
@@ -239,15 +239,15 @@ public final class TimSort<K, Buffer> {
      * Returns the length of the run beginning at the specified position in
      * the specified array and reverses the run if it is descending (ensuring
      * that the run will always be ascending when the method returns).
-     * <p/>
+     * 
      * A run is the longest ascending sequence with:
-     * <p/>
+     * 
      * a[lo] <= a[lo + 1] <= a[lo + 2] <= ...
-     * <p/>
+     * 
      * or the longest descending sequence with:
-     * <p/>
+     * 
      * a[lo] >  a[lo + 1] >  a[lo + 2] >  ...
-     * <p/>
+     * 
      * For its intended use in a stable mergesort, the strictness of the
      * definition of "descending" is needed so that the call can safely
      * reverse a descending sequence without violating stability.
@@ -302,14 +302,14 @@ public final class TimSort<K, Buffer> {
      * Returns the minimum acceptable run length for an array of the specified
      * length. Natural runs shorter than this will be extended with
      * {@link #binarySort}.
-     * <p/>
+     * 
      * Roughly speaking, the computation is:
-     * <p/>
+     * 
      * If n < MIN_MERGE, return n (it's too small to bother with fancy stuff).
      * Else if n is an exact power of 2, return MIN_MERGE/2.
      * Else return an int k, MIN_MERGE/2 <= k <= MIN_MERGE, such that n/k
      * is close to, but strictly less than, an exact power of 2.
-     * <p/>
+     * 
      * For the rationale, see listsort.txt.
      *
      * @param n the length of the array to be sorted
@@ -358,7 +358,7 @@ public final class TimSort<K, Buffer> {
         /**
          * Maximum initial size of tmp array, which is used for merging.  The array
          * can grow to accommodate demand.
-         * <p/>
+         * 
          * Unlike Tim's original C version, we do not allocate this much storage
          * when sorting smaller arrays.  This change was required for performance.
          */
@@ -378,9 +378,9 @@ public final class TimSort<K, Buffer> {
          * A stack of pending runs yet to be merged.  Run i starts at
          * address base[i] and extends for len[i] elements.  It's always
          * true (so long as the indices are in bounds) that:
-         * <p/>
+         * 
          * runBase[i] + runLen[i] == runBase[i + 1]
-         * <p/>
+         * 
          * so we could cut the storage for this, but it's a minor amount,
          * and keeping all the info explicit simplifies the code.
          */
@@ -435,10 +435,10 @@ public final class TimSort<K, Buffer> {
         /**
          * Examines the stack of runs waiting to be merged and merges adjacent runs
          * until the stack invariants are reestablished:
-         * <p/>
+         * 
          * 1. runLen[i - 3] > runLen[i - 2] + runLen[i - 1]
          * 2. runLen[i - 2] > runLen[i - 1]
-         * <p/>
+         * 
          * This method is called each time a new run is pushed onto the stack,
          * so the invariants are guaranteed to hold for i < stackSize upon
          * entry to the method.
@@ -683,7 +683,7 @@ public final class TimSort<K, Buffer> {
          * element of the first run must be greater than the first element of the
          * second run (a[base1] > a[base2]), and the last element of the first run
          * (a[base1 + len1-1]) must be greater than all elements of the second run.
-         * <p/>
+         * 
          * For performance, this method should be called only when len1 <= len2;
          * its twin, mergeHi should be called if len1 >= len2.  (Either method
          * may be called if len1 == len2.)

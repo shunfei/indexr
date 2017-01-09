@@ -10,7 +10,7 @@ import io.indexr.segment.SegmentSchema;
 
 /**
  * A row datasource.
- * <p/>
+ * 
  * A fetcher can be closed and open({@link #ensure(SegmentSchema)}) over and over.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

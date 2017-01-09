@@ -21,11 +21,11 @@ public interface Column {
 
     /**
      * Fetch a pack by its <i>packId</i>.
-     * <p/>
+     * 
      * You should not hold the pack for a long time, i.e. more than several munites.
      * Because it could be freed by underlying system after some cache time. After that any operation
      * with it becomes dangerous, could even crash the process.
-     * <p/>
+     * 
      * This operation is mean to be heavy costly, don't call it unless you really need to fetch raw data.
      * {@link #dpn(int)} should provide enough infomation.
      */

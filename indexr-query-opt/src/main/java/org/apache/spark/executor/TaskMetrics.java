@@ -23,12 +23,12 @@ import java.io.Serializable;
 /**
  * :: DeveloperApi ::
  * Metrics tracked during the execution of a task.
- * <p/>
+ * 
  * This class is used to house metrics both for in-progress and completed tasks. In executors,
  * both the task thread and the heartbeat thread write to the TaskMetrics. The heartbeat thread
  * reads it to send in-progress metrics, and the task thread reads it to send metrics along with
  * the completed task.
- * <p/>
+ * 
  * So, when adding new fields, take into consideration that the whole object can be serialized for
  * shipping off at any time to consumers of the SparkListener interface.
  */

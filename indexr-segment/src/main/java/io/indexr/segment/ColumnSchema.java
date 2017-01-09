@@ -12,8 +12,8 @@ import io.indexr.util.JsonUtil;
 public class ColumnSchema {
     @JsonIgnore
     public final String name;
-    /** @see {@link ColumnType} */
     @JsonIgnore
+    /** @see {@link ColumnType} */
     public final byte dataType;
     @JsonIgnore
     public final String dataTypeName;

@@ -6,7 +6,7 @@ import io.indexr.io.ByteSlice;
 
 /**
  * Longs that can represented by less bits, i.e 0~63 bits. Only max value in [0, NLong.MAX_VALUE) is supported.
- * <p/>
+ * 
  * offset:    the offset of bits in the source.
  * width:     the actual bits to store value.
  * gap:       bits between the values.

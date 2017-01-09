@@ -3,7 +3,7 @@ package org.apache.spark.util;
 public class Utils {
     /**
      * NaN-safe version of [[java.lang.DOUBLE.compare()]] which allows NaN values to be compared
-     * according to semantics where NaN == NaN and NaN > any non-NaN double.
+     * according to semantics where NaN == NaN and NaN bigger than any non-NaN double.
      */
     public static int nanSafeCompareDoubles(double x, double y) {
         boolean xIsNan = java.lang.Double.isNaN(x);

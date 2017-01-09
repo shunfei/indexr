@@ -10,7 +10,7 @@ import io.indexr.io.BitOutputStream;
 
 /**
  * Arithmetic coding.
- * <p/>
+ * 
  * <p> This code is based on <a href="https://github.com/nayuki/Arithmetic-Coding">Nayuki's
  * great code</a> .
  */

@@ -7,7 +7,7 @@ import java.io.OutputStream;
 
 /**
  * A stream where bits can be written to.
- * <p/>
+ * 
  * <p>Because they are written to an underlying byte stream, the end of the stream is padded with
  * 0's up to a multiple of 8 bits. The bits are written in big endian.
  */
@@ -39,7 +39,7 @@ public class BitWrappedOutputStream implements BitOutputStream {
 
     /**
      * Done writting to this stream.
-     * <p/>
+     * 
      * <p>If called when this bit stream is not at a byte boundary, then the minimum number of "0"
      * bits (between 0 and 7 of them) are written as padding to reach the next byte boundary.
      */

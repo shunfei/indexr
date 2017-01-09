@@ -42,7 +42,7 @@ import io.indexr.query.util.SortPrefixUtils;
 
 /**
  * A class for performing external sorting on key-value records. Both key and value are UnsafeRows.
- * <p/>
+ * 
  * Note that this class allows optionally passing in a {@link BytesToBytesMap} directly in order
  * to perform in-place sorting of records in the map.
  */

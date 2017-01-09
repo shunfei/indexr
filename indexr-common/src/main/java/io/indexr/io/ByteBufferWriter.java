@@ -14,7 +14,7 @@ public interface ByteBufferWriter extends Closeable {
     /**
      * Write exactly <i>size</i>s bytes from <i>src</i> into this writer.
      * The position of the writer is implementation specific and cannot be decided by client.
-     * <p/>
+     * 
      * Alfter return, position down there should move forward <i>size</i>s bytes.
      */
     void write(ByteBuffer src, int size) throws IOException;

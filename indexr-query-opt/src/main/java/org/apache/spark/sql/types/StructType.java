@@ -24,27 +24,27 @@ import static io.indexr.util.Trick.on;
  * Example:
  * {{{
  * import org.apache.spark.sql._
- * <p/>
+ * 
  * val struct =
  * StructType(
  * StructField("a", IntegerType, true) ::
  * StructField("b", LongType, false) ::
  * StructField("c", BooleanType, false) :: Nil)
- * <p/>
+ * 
  * // Extract a single StructField.
  * val singleField = struct("b")
  * // singleField: StructField = StructField(b,LongType,false)
- * <p/>
+ * 
  * // This struct does not have a field called "d". null will be returned.
  * val nonExisting = struct("d")
  * // nonExisting: StructField = null
- * <p/>
+ * 
  * // Extract multiple StructFields. Field names are provided in a set.
  * // A StructType object will be returned.
  * val twoFields = struct(Set("b", "c"))
  * // twoFields: StructType =
  * //   StructType(List(StructField(b,LongType,false), StructField(c,BooleanType,false)))
- * <p/>
+ * 
  * // Any names without matching fields will be ignored.
  * // For the case shown below, "d" will be ignored and
  * // it is treated as struct(Set("b", "c")).
@@ -52,21 +52,21 @@ import static io.indexr.util.Trick.on;
  * // ignoreNonExisting: StructType =
  * //   StructType(List(StructField(b,LongType,false), StructField(c,BooleanType,false)))
  * }}}
- * <p/>
+ * 
  * A [[org.apache.spark.sql.Row]] object is used as a value of the StructType.
  * Example:
  * {{{
  * import org.apache.spark.sql._
- * <p/>
+ * 
  * val innerStruct =
  * StructType(
  * StructField("f1", IntegerType, true) ::
  * StructField("f2", LongType, false) ::
  * StructField("f3", BooleanType, false) :: Nil)
- * <p/>
+ * 
  * val struct = StructType(
  * StructField("a", innerStruct, true) :: Nil)
- * <p/>
+ * 
  * // Create a Row with the schema defined by struct
  * val row = Row(Row(1, 2, true))
  * // row: Row = [[1,2,true]]

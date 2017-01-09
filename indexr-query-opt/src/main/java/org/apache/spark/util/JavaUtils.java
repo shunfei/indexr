@@ -268,7 +268,7 @@ public class JavaUtils {
     /**
      * Convert a passed byte string (e.g. 50b, 100k, or 250m) to bytes for
      * internal use.
-     * <p/>
+     * 
      * If no suffix is provided, the passed number is assumed to be in bytes.
      */
     public static long byteStringAsBytes(String str) {
@@ -278,7 +278,7 @@ public class JavaUtils {
     /**
      * Convert a passed byte string (e.g. 50b, 100k, or 250m) to kibibytes for
      * internal use.
-     * <p/>
+     * 
      * If no suffix is provided, the passed number is assumed to be in kibibytes.
      */
     public static long byteStringAsKb(String str) {
@@ -288,7 +288,7 @@ public class JavaUtils {
     /**
      * Convert a passed byte string (e.g. 50b, 100k, or 250m) to mebibytes for
      * internal use.
-     * <p/>
+     * 
      * If no suffix is provided, the passed number is assumed to be in mebibytes.
      */
     public static long byteStringAsMb(String str) {
@@ -298,7 +298,7 @@ public class JavaUtils {
     /**
      * Convert a passed byte string (e.g. 50b, 100k, or 250m) to gibibytes for
      * internal use.
-     * <p/>
+     * 
      * If no suffix is provided, the passed number is assumed to be in gibibytes.
      */
     public static long byteStringAsGb(String str) {

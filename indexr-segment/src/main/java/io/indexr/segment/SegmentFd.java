@@ -10,7 +10,7 @@ import io.indexr.segment.pack.PackMemCache;
  * {@link #info()} provides {@link InfoSegment}, and {@link #open(IndexMemCache, PackMemCache)} opens the real {@link Segment}.
  * Because open a segment is a relative heavy operation, it is a good idea to filter out those not
  * related segments by info segments.
- * <p/>
+ * 
  * A {@link SegmentFd} is a light weight java object, it is fine to create many of them and throw away.
  * JVM will clean them up just like normal java object.
  * But The segment return by {@link #open(IndexMemCache, PackMemCache)} is resource related, user should call {@link Segment#close()}

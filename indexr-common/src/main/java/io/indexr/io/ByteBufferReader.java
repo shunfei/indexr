@@ -18,7 +18,7 @@ import io.indexr.util.IOUtil;
 public interface ByteBufferReader extends Closeable {
     /**
      * Read exactly <i>size</i>s bytes from this ByteBufferReader from <i>offset</i> position into <i>dst</i>.
-     * <p/>
+     * 
      * Whether this function may or may not change the position of datasource is implementation specific.
      */
     void read(long offset, ByteBuffer dst, int size) throws IOException;

@@ -34,9 +34,9 @@ import static org.apache.spark.unsafe.Platform.LONG_ARRAY_OFFSET;
 
 /**
  * A row with strings stored in UTF-8 format.
- * <p/>
+ * 
  * This class is <b>NOT</b> multi-thread safe.
- * <p/>
+ * 
  * Data structure:
  * If grouping:
  * <pre>
@@ -44,19 +44,19 @@ import static org.apache.spark.unsafe.Platform.LONG_ARRAY_OFFSET;
  *         dim values               dim raw values        metric values
  *                                                       (metric values are all numbers)
  * </pre>
- * <p/>
+ * 
  * no grouping:
  * <pre>
  *      |........................|.................|
  *           values                   raw values
  * </pre>
- * <p/>
+ * 
  * The value, if number type, represents the uniform value;
  * if string type, higher 32 bits represents the offset of raw value, lower 32 bits represents the len.
- * <p/>
+ * 
  * The rows is sorted by dims if exists. And if grouping is true, those rows with the same dims will be
  * merged into one.
- * <p/>
+ * 
  * Node: An UTF8Row should call {@link #free()} to free it memory after done with, otherwise will lead to memory leak.
  */
 public class UTF8Row implements Row, Serializable {
@@ -683,7 +683,7 @@ public class UTF8Row implements Row, Serializable {
         throw new IllegalStateException("Should not call this method!");
     }
 
-    /**
+    /*
      * This compare method does not actually sort the rows by the real values, but by raw bytes.
      * It only guarrantee the consistent of comparation. i.e. a >= b, b >= c -> a >= c.
      */

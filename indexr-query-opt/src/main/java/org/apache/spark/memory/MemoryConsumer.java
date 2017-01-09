@@ -24,7 +24,7 @@ import java.io.IOException;
 
 /**
  * An memory consumer of TaskMemoryManager, which support spilling.
- * <p/>
+ * 
  * Note: this only supports allocation / spilling of Tungsten memory.
  */
 public abstract class MemoryConsumer {
@@ -51,7 +51,7 @@ public abstract class MemoryConsumer {
 
     /**
      * Force spill during building.
-     * <p/>
+     * 
      * For testing.
      */
     public void spill() throws IOException {
@@ -61,11 +61,11 @@ public abstract class MemoryConsumer {
     /**
      * Spill some data to disk to release memory, which will be called by TaskMemoryManager
      * when there is not enough memory for the task.
-     * <p/>
+     * 
      * This should be implemented by subclass.
-     * <p/>
+     * 
      * Note: In order to avoid possible deadlock, should not call acquireMemory() from spill().
-     * <p/>
+     * 
      * Note: today, this only frees Tungsten-managed pages.
      *
      * @param size    the amount of memory should be released
@@ -102,7 +102,7 @@ public abstract class MemoryConsumer {
 
     /**
      * Allocate a memory block with at least `required` bytes.
-     * <p/>
+     * 
      * Throws IOException if there is not enough memory.
      */
     protected MemoryBlock allocatePage(long required) {

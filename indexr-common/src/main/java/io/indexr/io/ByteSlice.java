@@ -11,7 +11,7 @@ import io.indexr.util.MemoryUtil;
 
 /**
  * A wrapper of {@link ByteBuffer}.
- * <p/>
+ * 
  * The main reason of this class is to remove the position, mark and limit features of {@link ByteBuffer}.
  * i.e. the position is always <b>0</b>, the limit is always <b>equals</b> to capacity, and the mark is always <b>unused(-1)</b>.
  * You can think it is a pure byte array with slice ability!
@@ -160,7 +160,7 @@ public class ByteSlice implements Freeable {
     /**
      * Transform {@link ByteSlice} into {@link ByteBuffer}.
      * They will share the same underlying content. Modify anyone will affect to the other.
-     * <p/>
+     * 
      * The position is always <b>0</b>, the limit is always <b>equals</b> to capacity, and the mark is always <b>unused(-1)</b>.
      */
     public ByteBuffer toByteBuffer() {
@@ -195,7 +195,7 @@ public class ByteSlice implements Freeable {
 
     /**
      * This method is mean to free the allocated memory this instance held, especially the DirectByteBuffer.
-     * <p/>
+     * 
      * Altough the GC will automatically free the memory before the instance is reclaimed,
      * call free() before a ByteSlice dropped is a good manner which can really help save memory.
      */
@@ -214,7 +214,7 @@ public class ByteSlice implements Freeable {
 
     /**
      * Create ByteSlice from memory address and size.
-     * <p/>
+     * 
      * After calling this method, this ByteSlice will take full control of this memory. e.g. You should not
      * reclaim it, update it from outside. Otherwise errors will throw.
      */
@@ -224,7 +224,7 @@ public class ByteSlice implements Freeable {
 
     /**
      * Create ByteSlice from memory address and size.
-     * <p/>
+     * 
      * After calling this method, this ByteSlice will take full control of this memory. e.g. You should not
      * reclaim it, update it from outside. Otherwise errors will throw.
      */

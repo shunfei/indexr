@@ -19,7 +19,7 @@ import io.indexr.data.Sizable;
  * We assume this cache is the only long standing reference in the system.
  * We will manually clean up the underlying memory after an item is expired, so an item taken from
  * this cache must have done with its processing before expired in this cache.
- * <p/>
+ * 
  * This assumption should not be a big problem since an item from this cache should only be used by
  * query process and scanning a pack should be fast enough. But in extremely case when a released item
  * is still accessed, it could crash the process right away!

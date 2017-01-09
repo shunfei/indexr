@@ -4,7 +4,7 @@ import java.util.Comparator;
 
 /**
  * A simple wrapper over the Java implementation [[TimSort]].
- * <p/>
+ * 
  * The Java implementation is package private, and hence it cannot be called outside package
  * org.apache.spark.util.collection. This is a simple wrapper of it that is available to spark.
  */

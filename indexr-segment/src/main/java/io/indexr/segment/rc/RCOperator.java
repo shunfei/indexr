@@ -19,7 +19,7 @@ import io.indexr.segment.pack.DataPack;
 
 /**
  * A rough set filter operator.
- * <p/>
+ * 
  * User must call {@link #materialize(List)} before calling {@link #roughCheckOnColumn(InfoSegment)},
  * {@link #roughCheckOnPack(Segment)}, {@link #roughCheckOnPack(Segment, int)} and {@link #exactCheckOnRow(DataPack[])}.
  * e.g.
@@ -85,30 +85,30 @@ public interface RCOperator {
 
     BitSet exactCheckOnRow(DataPack[] rowPacks);
 
-    /**
+    /*
      * Apply not to this node.
-     * <p/>
+     * 
      * e.g. "not (a >= b)" -> "a < b"
      */
     RCOperator applyNot();
 
-    /**
+    /*
      * Switch operator direction between operands.
-     * <p/>
+     * 
      * e.g. "a >= b" -> "a <= b"
      */
     default RCOperator switchDirection() {return this;}
 
-    /**
+    /*
      * Optimize current node.
-     * <p/>
+     * 
      * e.g. "a = 1 or a = 2 or a = 3" -> "a in (1, 2, 3)"
      */
     default RCOperator doOptimize() {return this;}
 
     /**
      * Optimize the whole tree. Call this method on root node after constructed a rc operator tree.
-     * <p/>
+     * 
      * Generally child classes should not override this method.
      */
     default RCOperator optimize() {

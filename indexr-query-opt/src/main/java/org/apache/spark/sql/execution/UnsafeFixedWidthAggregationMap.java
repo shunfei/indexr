@@ -33,7 +33,7 @@ import io.indexr.query.row.UnsafeRow;
 
 /**
  * Unsafe-based HashMap for performing aggregations where the aggregated values are fixed-width.
- * <p/>
+ * 
  * This map supports a maximum of 2 billion keys.
  */
 public final class UnsafeFixedWidthAggregationMap {
@@ -157,7 +157,7 @@ public final class UnsafeFixedWidthAggregationMap {
      * Returns an iterator over the keys and values in this map. This uses destructive iterator of
      * BytesToBytesMap. So it is illegal to call any other method on this map after `iterator()` has
      * been called.
-     * <p/>
+     * 
      * For efficiency, each call returns the same object.
      */
     public KVIterator<UnsafeRow, UnsafeRow> iterator() {
@@ -234,7 +234,7 @@ public final class UnsafeFixedWidthAggregationMap {
 
     /**
      * Sorts the map's records in place, spill them to disk, and returns an [[UnsafeKVExternalSorter]]
-     * <p/>
+     * 
      * Note that the map will be reset for inserting new records, and the returned sorter can NOT be used
      * to insert records.
      */

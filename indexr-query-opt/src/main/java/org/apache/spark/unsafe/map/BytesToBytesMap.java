@@ -42,19 +42,19 @@ import javax.annotation.Nullable;
 
 /**
  * An append-only hash map where keys and values are contiguous regions of bytes.
- * <p/>
+ * 
  * This is backed by a power-of-2-sized hash table, using quadratic probing with triangular numbers,
  * which is guaranteed to exhaust the space.
- * <p/>
+ * 
  * The map can support up to 2^29 keys. If the key cardinality is higher than this, you should
  * probably be using sorting instead of hashing for better cache locality.
- * <p/>
+ * 
  * The key and values under the hood are stored together, in the following format:
  * Bytes 0 to 4: len(k) (key length in bytes) + len(v) (value length in bytes) + 4
  * Bytes 4 to 8: len(k)
  * Bytes 8 to 8 + len(k): key data
  * Bytes 8 + len(k) to 8 + len(k) + len(v): value data
- * <p/>
+ * 
  * This means that the first four bytes store the entire record (key + value) length. This format
  * is consistent with {@link org.apache.spark.util.collection.unsafe.sort.UnsafeExternalSorter},
  * so we can pass records from this map directly into the sorter to sort records in place.
@@ -101,7 +101,7 @@ public final class BytesToBytesMap extends MemoryConsumer {
 
     /**
      * A single array to store the key and value.
-     * <p/>
+     * 
      * Position {@code 2 * i} in the array is used to track a pointer to the key at index {@code i},
      * while position {@code 2 * i + 1} in the array holds key's full 32-bit hashcode.
      */
@@ -385,9 +385,9 @@ public final class BytesToBytesMap extends MemoryConsumer {
 
     /**
      * Returns an iterator for iterating over the entries of this map.
-     * <p/>
+     * 
      * For efficiency, all calls to `next()` will return the same {@link Location} object.
-     * <p/>
+     * 
      * If any other lookups or operations are performed on this map while iterating over it, including
      * `lookup()`, the behavior of the returned iterator is undefined.
      */
@@ -399,9 +399,9 @@ public final class BytesToBytesMap extends MemoryConsumer {
      * Returns a destructive iterator for iterating over the entries of this map. It frees each page
      * as it moves onto next one. Notice: it is illegal to call any method on the map after
      * `destructiveIterator()` has been called.
-     * <p/>
+     * 
      * For efficiency, all calls to `next()` will return the same {@link Location} object.
-     * <p/>
+     * 
      * If any other lookups or operations are performed on this map while iterating over it, including
      * `lookup()`, the behavior of the returned iterator is undefined.
      */
@@ -412,7 +412,7 @@ public final class BytesToBytesMap extends MemoryConsumer {
     /**
      * Looks up a key, and return a {@link Location} handle that can be used to test existence
      * and read/write values.
-     * <p/>
+     * 
      * This function always return the same {@link Location} instance to avoid object allocation.
      */
     public Location lookup(Object keyBase, long keyOffset, int keyLength) {
@@ -422,7 +422,7 @@ public final class BytesToBytesMap extends MemoryConsumer {
 
     /**
      * Looks up a key, and saves the result in provided `loc`.
-     * <p/>
+     * 
      * This is a thread-safe version of `lookup`, could be used by multiple threads.
      */
     public void safeLookup(Object keyBase, long keyOffset, int keyLength, Location loc) {
@@ -743,7 +743,7 @@ public final class BytesToBytesMap extends MemoryConsumer {
     /**
      * Free all allocated memory associated with this map, including the storage for keys and values
      * as well as the hash map array itself.
-     * <p/>
+     * 
      * This method is idempotent and can be called multiple times.
      */
     public void free() {

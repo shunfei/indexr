@@ -209,7 +209,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
 
         /**
          * Create a {@link IntegratedSegment} from an opening data source.
-         * <p/>
+         * 
          * It will be the creator's responsibility to close the data source.
          *
          * @param name       The name of segment.

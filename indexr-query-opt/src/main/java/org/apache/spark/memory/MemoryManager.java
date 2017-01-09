@@ -18,7 +18,7 @@ public class MemoryManager {
 
     /**
      * The default page size, in bytes.
-     * <p/>
+     * 
      * If user didn't explicitly set "spark.buffer.pageSize", we figure out the default value
      * by looking at the number of cores available to the process, and the total amount of memory,
      * and then divide it by a factor of safety.
