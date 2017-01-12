@@ -294,6 +294,9 @@ public class UTF8JsonDeserializer {
     }
 
     private static boolean basicNumberCheck(ByteBuffer buffer) {
+        if (buffer.remaining() == 0) {
+            return false;
+        }
         byte firstByte = buffer.get(0);
         return (firstByte >= '0' && firstByte <= '9') || firstByte == '+' || firstByte == '-' || firstByte == '.';
     }
