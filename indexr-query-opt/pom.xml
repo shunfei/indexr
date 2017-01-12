@@ -15,6 +15,32 @@
     </properties>
 
     <artifactId>indexr-query-opt</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>The query part of IndexR System</description>
+    <url>https://github.com/shunfei/indexr</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Flow Wei</name>
+            <email>flowbehappy@gmail.com</email>
+            <organization>Sunteng Tech</organization>
+            <organizationUrl>http://www.sunteng.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/shunfei/indexr.git</connection>
+        <developerConnection>scm:git:ssh://github.com:shunfei/indexr.git</developerConnection>
+        <url>http://github.com/shunfei/indexr/tree/master</url>
+    </scm>
+
     <dependencies>
         <dependency>
             <groupId>io.indexr</groupId>
@@ -42,6 +68,9 @@
                 <executions>
                     <execution>
                         <id>antlr</id>
+                        <configuration>
+                            <outputDirectory>src/main/java</outputDirectory>
+                        </configuration>
                         <goals>
                             <goal>antlr4</goal>
                         </goals>

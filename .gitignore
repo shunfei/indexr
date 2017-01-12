@@ -30,5 +30,7 @@ logs
 *.test
 *.prof
 
-# Ignore compiled java
+# Ignore generated files
 indexr-segment/src/main/java/io/indexr/compress/bh/*Library.java
+indexr-query-opt/src/main/java/io/indexr/query/parsers
+indexr-query-opt/src/main/java/*.tokens
