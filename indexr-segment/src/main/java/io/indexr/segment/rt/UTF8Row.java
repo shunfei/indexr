@@ -373,7 +373,6 @@ public class UTF8Row implements Row, Serializable {
             } else {
                 int valueSize = columnCount << 3;
                 Platform.copyMemory(valuesBuffer, LONG_ARRAY_OFFSET, null, rowDataAddr, valueSize);
-                Platform.copyMemory(rawValuesBuffer, BYTE_ARRAY_OFFSET, null, rowDataAddr + valueSize, curRowRawValueBytes);
 
                 int curRawDataOffset = valueSize;
                 for (int index = 0; index < columnCount; index++) {
@@ -385,6 +384,8 @@ public class UTF8Row implements Row, Serializable {
                         int newOffset = curRawDataOffset;
                         curRawDataOffset += len;
 
+                        // Copy raw data into row data.
+                        Platform.copyMemory(rawValuesBuffer, BYTE_ARRAY_OFFSET + offset, null, rowDataAddr + newOffset, len);
                         // The raw data is moved, we need to specify the new offset and len.
                         MemoryUtil.setLong(rowDataAddr + (index << 3), (((long) newOffset) << 32) | (long) len);
                     } else {
