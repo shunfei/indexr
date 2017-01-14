@@ -35,7 +35,7 @@ public class TestFetcher implements Fetcher {
     private SegmentSchema schema;
     private Random random = new Random();
 
-    private final UTF8JsonRowCreator utf8JsonRowCreator = new UTF8JsonRowCreator();
+    private final UTF8JsonRowCreator utf8JsonRowCreator = new UTF8JsonRowCreator(true);
     private volatile boolean closed = false;
 
     //private static long v = 0;

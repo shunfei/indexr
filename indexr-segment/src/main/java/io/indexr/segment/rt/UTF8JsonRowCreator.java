@@ -26,8 +26,12 @@ public class UTF8JsonRowCreator implements UTF8JsonDeserializer.Listener {
     private long ignoreCount = 0;
     private long failCount = 0;
 
+    public UTF8JsonRowCreator(boolean numberEmptyAsZero) {
+        this.utf8JsonDeserializer = new UTF8JsonDeserializer(numberEmptyAsZero);
+    }
+
     public UTF8JsonRowCreator() {
-        this.utf8JsonDeserializer = new UTF8JsonDeserializer();
+        this(false);
     }
 
     public UTF8JsonRowCreator setRowCreator(String name, UTF8Row.Creator creator) {
@@ -126,6 +130,7 @@ public class UTF8JsonRowCreator implements UTF8JsonDeserializer.Listener {
             for (UTF8Row row : curRows) {
                 row.free();
             }
+            curData = null;
             curRows = null;
             return Collections.emptyList();
         }

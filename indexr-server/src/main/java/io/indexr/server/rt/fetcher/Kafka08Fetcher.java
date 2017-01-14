@@ -40,6 +40,8 @@ public class Kafka08Fetcher implements Fetcher {
     public final String topic;
     @JsonProperty("topics")
     public final List<String> topics;
+    @JsonProperty("number.empty.as.zero")
+    public boolean numberEmptyAsZero;
     @JsonProperty("properties")
     public final Properties properties;
 
@@ -47,11 +49,12 @@ public class Kafka08Fetcher implements Fetcher {
     private Iterator<byte[]> eventItr;
     private volatile List<byte[]> remaining;
 
-    private final UTF8JsonRowCreator utf8JsonRowCreator = new UTF8JsonRowCreator();
+    private final UTF8JsonRowCreator utf8JsonRowCreator;
 
     @JsonCreator
     public Kafka08Fetcher(@JsonProperty("topic") String topic,
                           @JsonProperty("topics") List<String> topics,
+                          @JsonProperty("number.empty.as.zero") Boolean numberEmptyAsZero,
                           @JsonProperty("properties") Properties properties) {
         if (topics == null || topics.isEmpty()) {
             Preconditions.checkState(!Strings.isEmpty(topic), "topic or topics should be specified!");
@@ -59,7 +62,10 @@ public class Kafka08Fetcher implements Fetcher {
         }
         this.topic = topic;
         this.topics = topics;
+        this.numberEmptyAsZero = numberEmptyAsZero == null ? false : numberEmptyAsZero;
         this.properties = properties;
+
+        this.utf8JsonRowCreator = new UTF8JsonRowCreator(this.numberEmptyAsZero);
     }
 
     @Override

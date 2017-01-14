@@ -42,10 +42,17 @@ public class UTF8JsonDeserializer {
     public static final byte DOUBLE = 4;
     public static final byte STRING = 5;
 
+    private final boolean numberEmptyAsZero;
+
     private ByteBuffer valueBuffer;
 
-    public UTF8JsonDeserializer() {
+    public UTF8JsonDeserializer(boolean numberEmptyAsZero) {
+        this.numberEmptyAsZero = numberEmptyAsZero;
         this.valueBuffer = ByteBuffer.allocate(1 << 16);
+    }
+
+    public UTF8JsonDeserializer() {
+        this(false);
     }
 
     public boolean parse(byte[] data, Listener listener) {
@@ -294,15 +301,30 @@ public class UTF8JsonDeserializer {
     }
 
     private static boolean basicNumberCheck(ByteBuffer buffer) {
-        if (buffer.remaining() == 0) {
-            return false;
-        }
         byte firstByte = buffer.get(0);
         return (firstByte >= '0' && firstByte <= '9') || firstByte == '+' || firstByte == '-' || firstByte == '.';
     }
 
-    private static boolean onNumber(byte type, ByteBuffer buffer, Listener listener) {
+    private boolean onNumber(byte type, ByteBuffer buffer, Listener listener) {
         try {
+            boolean isEmpty = buffer.remaining() == 0;
+            if (isEmpty) {
+                if (!numberEmptyAsZero) {
+                    return false;
+                }
+                switch (type) {
+                    case INT:
+                        return listener.onIntValue(0);
+                    case LONG:
+                        return listener.onLongValue(0);
+                    case FLOAT:
+                        return listener.onFloatValue(0);
+                    case DOUBLE:
+                        return listener.onDoubleValue(0);
+                    default:
+                        throw new IllegalStateException("illegal type " + type);
+                }
+            }
             if (!basicNumberCheck(buffer)) {
                 return false;
             }

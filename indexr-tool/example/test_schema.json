@@ -38,6 +38,7 @@
         "fetcher": {
             "type": "kafka-0.8",
             "topic": "test_topic",
+            "number.empty.as.zero": false,
             "properties": {
                 "zookeeper.connect": "localhost:2181",
                 "zookeeper.connection.timeout.ms": "15000",
