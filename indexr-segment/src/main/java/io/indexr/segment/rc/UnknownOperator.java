@@ -28,6 +28,11 @@ public class UnknownOperator implements CmpOperator {
     }
 
     @Override
+    public String toString() {
+        return String.format("%s(%s)", this.getClass().getSimpleName(), content);
+    }
+
+    @Override
     public Collection<Attr> attr() {
         return Collections.emptySet();
     }
