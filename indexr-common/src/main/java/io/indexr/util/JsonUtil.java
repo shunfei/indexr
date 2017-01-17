@@ -21,6 +21,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * This class should only be used in config loading or debug.
+ * Don't use in high performance required scenario.
+ */
 public class JsonUtil {
     private static final Pattern ExtendFlag = Pattern.compile("\"@extend:.*?\"");
     public static final ObjectMapper jsonMapper = new ObjectMapper();
