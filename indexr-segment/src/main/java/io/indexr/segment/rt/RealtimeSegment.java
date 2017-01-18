@@ -444,38 +444,39 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
         logger.debug("Start save in-memory rows to disk. [segment: {}]", name);
         long lastTime = System.currentTimeMillis();
 
+        SegmentFd integratedSegment;
         Path dumpPath = path.resolve("dump");
-        DPSegment dpSegment = DPSegment.open(version, dumpPath, name, schema, OpenOption.Overwrite);
-        dpSegment.update().setCompress(compress);
-        boolean ok = true;
-        long rowCount = 0;
-        for (UTF8Row row : rowsInMemory.values()) {
-            if (Thread.interrupted()) {
-                ok = false;
-                break;
-            } else {
-                dpSegment.add(row);
-                rowCount++;
+        try (DPSegment dpSegment = DPSegment.open(version, dumpPath, name, schema, OpenOption.Overwrite)) {
+            dpSegment.update().setCompress(compress);
+            boolean ok = true;
+            long rowCount = 0;
+            for (UTF8Row row : rowsInMemory.values()) {
+                if (Thread.interrupted()) {
+                    ok = false;
+                    break;
+                } else {
+                    dpSegment.add(row);
+                    rowCount++;
+                }
             }
+            if (!ok) {
+                logger.warn("Fail saveToDisk. [segment: {}]", name);
+                IOUtils.closeQuietly(dpSegment);
+                return null;
+            }
+            dpSegment.seal();
+
+            Path integratedPath = path.resolve("integrated");
+            integratedSegment = IntegratedSegment.Fd.create(dpSegment, integratedPath, true);
+
+            Preconditions.checkState(dpSegment.rowCount() == rowCount());
         }
-        if (!ok) {
-            logger.warn("Fail saveToDisk. [segment: {}]", name);
-            IOUtils.closeQuietly(dpSegment);
-            return null;
-        }
-        dpSegment.seal();
 
-        Path integratedPath = path.resolve("integrated");
-        SegmentFd integratedSegment = IntegratedSegment.Fd.create(dpSegment, integratedPath, true);
-
-        dpSegment.close();
-
-        Preconditions.checkState(dpSegment.rowCount() == rowCount());
         long memory = rowsMemoryUsage;
         setSavedSegment(integratedSegment, rtResources);
 
         logger.debug("Save [{}] rows completed, took [{}], release memory [{}K]. [segment: {}]",
-                rowCount,
+                rowCount(),
                 String.format("%.2fs", (double) (System.currentTimeMillis() - lastTime) / 1000),
                 memory >>> 10,
                 name);
