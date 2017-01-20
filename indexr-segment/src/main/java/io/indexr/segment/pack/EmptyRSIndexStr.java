@@ -4,6 +4,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 
+import io.indexr.data.LikePattern;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.segment.PackRSIndex;
 import io.indexr.segment.PackRSIndexStr;
@@ -17,7 +18,7 @@ public class EmptyRSIndexStr implements RSIndexStr {
     }
 
     @Override
-    public byte isLike(int packId, UTF8String value) {
+    public byte isLike(int packId, LikePattern value) {
         return RSValue.Some;
     }
 
@@ -44,7 +45,7 @@ public class EmptyRSIndexStr implements RSIndexStr {
         }
 
         @Override
-        public byte isLike(UTF8String pattern) {
+        public byte isLike(LikePattern pattern) {
             return RSValue.Some;
         }
 

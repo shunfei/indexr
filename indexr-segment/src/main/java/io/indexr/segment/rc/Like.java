@@ -8,6 +8,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 import java.io.IOException;
 import java.util.BitSet;
 
+import io.indexr.data.LikePattern;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
@@ -18,17 +19,21 @@ import io.indexr.segment.pack.DataPack;
 import io.indexr.util.SQLLike;
 
 public class Like extends ColCmpVal {
+    private LikePattern pattern;
+
     @JsonCreator
     public Like(@JsonProperty("attr") Attr attr,
                 @JsonProperty("numValue") long numValue,
                 @JsonProperty("strValue") String strValue) {
         super(attr, numValue, strValue);
+        this.pattern = new LikePattern(super.strValue);
     }
 
     public Like(Attr attr,
                 long numValue,
                 UTF8String strValue) {
         super(attr, numValue, strValue);
+        this.pattern = new LikePattern(strValue);
     }
 
     @Override
@@ -51,7 +56,7 @@ public class Like extends ColCmpVal {
         if (ColumnType.isNumber(type)) {
             return RSValue.Some;
         } else {
-            return RoughCheck_R.likeCheckOnPack(column, packId, strValue);
+            return RoughCheck_R.likeCheckOnPack(column, packId, pattern);
         }
     }
 

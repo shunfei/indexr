@@ -4,6 +4,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 
+import io.indexr.data.LikePattern;
 import io.indexr.segment.pack.DataPack;
 import io.indexr.segment.pack.DataPackNode;
 
@@ -50,7 +51,7 @@ public class ConstColumn implements Column {
                 }
 
                 @Override
-                public byte isLike(int packId, UTF8String value) {
+                public byte isLike(int packId, LikePattern value) {
                     // TODO implementation.
                     return RSValue.Some;
                 }

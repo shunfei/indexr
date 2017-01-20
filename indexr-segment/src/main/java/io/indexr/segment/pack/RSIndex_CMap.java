@@ -6,6 +6,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import io.indexr.data.LikePattern;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.io.ByteSlice;
 import io.indexr.segment.PackRSIndex;
@@ -78,14 +79,15 @@ class RSIndex_CMap implements RSIndexStr {
     }
 
     @Override
-    public byte isLike(int packId, UTF8String pattern) {
+    public byte isLike(int packId, LikePattern pattern) {
         assert packId >= 0 && packId < packCount;
 
         // We can exclude cases like "ala%" and "a_l_a%"
 
-        int bytes = pattern.numBytes();
-        Object valueBase = pattern.getBaseObject();
-        long valueOffset = pattern.getBaseOffset();
+        UTF8String original = pattern.original;
+        int bytes = original.numBytes();
+        Object valueBase = original.getBaseObject();
+        long valueOffset = original.getBaseOffset();
         long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
         int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
 
@@ -203,10 +205,11 @@ class RSIndex_CMap implements RSIndexStr {
         }
 
         @Override
-        public byte isLike(UTF8String pattern) {
-            int bytes = pattern.numBytes();
-            Object valueBase = pattern.getBaseObject();
-            long valueOffset = pattern.getBaseOffset();
+        public byte isLike(LikePattern pattern) {
+            UTF8String original = pattern.original;
+            int bytes = original.numBytes();
+            Object valueBase = original.getBaseObject();
+            long valueOffset = original.getBaseOffset();
             int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
 
             for (int pos = 0; pos < indexSize; pos++) {

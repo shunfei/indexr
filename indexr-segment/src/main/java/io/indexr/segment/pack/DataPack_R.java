@@ -59,14 +59,16 @@ class DataPack_R {
 
     public static Pair<DataPack, DataPackNode> from(int version, List<UTF8String> strings, PackRSIndexStr index) {
         switch (version) {
-            case Version.VERSION_0_ID: {
+            case Version.VERSION_0_ID:
                 index = index != null ? index : new EmptyRSIndexStr.EmptyPackIndex();
                 return _from_v0(version, strings, index);
-            }
-            default: {
+            case Version.VERSION_1_ID:
+            case Version.VERSION_2_ID:
                 index = index != null ? index : new RSIndex_CMap.CMapPackIndex();
                 return _from_v1(version, strings, index);
-            }
+            default:
+                index = index != null ? index : new RSIndex_CMap_V2.CMapPackIndex();
+                return _from_v1(version, strings, index);
         }
     }
 

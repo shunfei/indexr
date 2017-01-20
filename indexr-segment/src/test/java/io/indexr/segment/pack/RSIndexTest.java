@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import io.indexr.data.LikePattern;
+import io.indexr.segment.PackRSIndexStr;
 import io.indexr.segment.RSValue;
 import io.indexr.util.Pair;
 
@@ -64,11 +66,22 @@ public class RSIndexTest {
     }
 
     private void cmap_test(int version) {
-        RSIndex_CMap.CMapPackIndex index = new RSIndex_CMap.CMapPackIndex();
-        String[] strs = {"aa", "aabbbccc", "134567", "##$@%@%223##", "", "硙硙年费=", "aabb2bcccaabb2bccc  hhaabb2bcccaabb2bcccaabb2bcccaabb2bcccaabb21111"};
+        PackRSIndexStr index;
+        switch (version) {
+            case Version.VERSION_0_ID:
+                return;
+            case Version.VERSION_1_ID:
+            case Version.VERSION_2_ID:
+                index = new RSIndex_CMap.CMapPackIndex();
+                break;
+            default:
+                index = new RSIndex_CMap_V2.CMapPackIndex();
+                break;
+        }
+        String[] strs = {"jgqfucaEFDbPnzED", "aa", "aabbbccc", "134567", "##$@%@%223##", "硙硙年费=", "aabb2bcccaabb2bccc  hhaabb2bcccaabb2bcccaabb2bcccaabb2bcccaabb21111"};
         String[] not_strs = {"aa1", "aabnb2bccc", "0134567", "##$@%@%223##_", "8",};
-        String[] like_strs = {"aabb%", "a_b_%", "134_67", "aa", "%$$^^", "硙硙"};
-        String[] not_like_strs = {"0aabb%", "0aa_b_%", "13467"};
+        String[] like_strs = {"aa", "aabb%", "a_b_%", "134_67", "aa", "%$$^^", "硙硙%"};
+        String[] not_like_strs = {"0aabb % ", "0aa_b_ % ", "13467"};
 
         Pair<DataPack, DataPackNode> p = DataPack_R.fromJavaString(version, Arrays.asList(strs), index);
         DataPackNode dpn = p.second;
@@ -81,11 +94,16 @@ public class RSIndexTest {
         }
 
         for (String s : like_strs) {
-            Assert.assertEquals(RSValue.Some, index.isLike(UTF8String.fromString(s)));
+            Assert.assertEquals(RSValue.Some, index.isLike(new LikePattern(UTF8String.fromString(s))));
         }
 
         for (String s : not_like_strs) {
-            Assert.assertEquals(RSValue.None, index.isLike(UTF8String.fromString(s)));
+            Assert.assertEquals(RSValue.None, index.isLike(new LikePattern(UTF8String.fromString(s))));
+        }
+
+        if (version >= Version.VERSION_4_ID) {
+            Assert.assertEquals(RSValue.None, index.isValue(UTF8String.fromString("")));
+            Assert.assertEquals(RSValue.None, index.isLike(new LikePattern(UTF8String.fromString(""))));
         }
     }
 }

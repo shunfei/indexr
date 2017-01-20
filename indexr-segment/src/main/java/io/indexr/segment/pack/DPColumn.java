@@ -206,8 +206,12 @@ public class DPColumn extends StorageColumn {
                     case Version.VERSION_0_ID:
                         packIndex = new EmptyRSIndexStr.EmptyPackIndex();
                         break;
-                    default:
+                    case Version.VERSION_1_ID:
+                    case Version.VERSION_2_ID:
                         packIndex = new RSIndex_CMap.CMapPackIndex();
+                        break;
+                    default:
+                        packIndex = new RSIndex_CMap_V2.CMapPackIndex();
                         break;
                 }
                 break;

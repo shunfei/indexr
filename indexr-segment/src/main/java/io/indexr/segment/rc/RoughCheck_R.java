@@ -4,6 +4,7 @@ import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 
+import io.indexr.data.LikePattern;
 import io.indexr.segment.Column;
 import io.indexr.segment.RSIndexStr;
 
@@ -17,7 +18,7 @@ public class RoughCheck_R {
         return index.isValue(packId, value);
     }
 
-    public static byte likeCheckOnPack(Column column, int packId, UTF8String value) throws IOException {
+    public static byte likeCheckOnPack(Column column, int packId, LikePattern value) throws IOException {
         RSIndexStr index = column.rsIndex();
         return index.isLike(packId, value);
     }

@@ -103,8 +103,12 @@ public abstract class StorageColumn implements Column, Freeable {
                         case Version.VERSION_0_ID:
                             index = new EmptyRSIndexStr();
                             break;
-                        default:
+                        case Version.VERSION_1_ID:
+                        case Version.VERSION_2_ID:
                             index = new RSIndex_CMap(buffer, packCount);
+                            break;
+                        default:
+                            index = new RSIndex_CMap_V2(buffer, packCount);
                             break;
                     }
                     break;
