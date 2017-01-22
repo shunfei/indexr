@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 CUR_DIR=$(cd $(dirname $0); echo $PWD)
 ROOT_DIR=$(cd ${CUR_DIR}/../;echo $PWD)
-VERSION=0.1.0
+VERSION=0.2.0
 
 source ${ROOT_DIR}/conf/env.sh
 
@@ -10,10 +10,10 @@ ${ROOT_DIR}/jars/hadoop/antlr4-annotations-4.3.jar,\
 ${ROOT_DIR}/jars/hadoop/antlr4-runtime-4.3.jar,\
 ${ROOT_DIR}/jars/hadoop/args4j-2.32.jar,\
 ${ROOT_DIR}/jars/hadoop/hppc-0.7.1.jar,\
-${ROOT_DIR}/jars/hadoop/indexr-common-0.1.0.jar,\
-${ROOT_DIR}/jars/hadoop/indexr-query-opt-0.1.0.jar,\
-${ROOT_DIR}/jars/hadoop/indexr-segment-0.1.0.jar,\
-${ROOT_DIR}/jars/hadoop/indexr-server-0.1.0.jar,\
+${ROOT_DIR}/jars/hadoop/indexr-common-${VERSION}.jar,\
+${ROOT_DIR}/jars/hadoop/indexr-query-opt-${VERSION}.jar,\
+${ROOT_DIR}/jars/hadoop/indexr-segment-${VERSION}.jar,\
+${ROOT_DIR}/jars/hadoop/indexr-server-${VERSION}.jar,\
 ${ROOT_DIR}/jars/hadoop/jackson-annotations-2.6.0.jar,\
 ${ROOT_DIR}/jars/hadoop/jackson-core-2.6.2.jar,\
 ${ROOT_DIR}/jars/hadoop/jackson-databind-2.6.2.jar,\
