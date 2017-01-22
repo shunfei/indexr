@@ -34,9 +34,9 @@ import static org.apache.spark.unsafe.Platform.LONG_ARRAY_OFFSET;
 
 /**
  * A row with strings stored in UTF-8 format.
- * 
+ *
  * This class is <b>NOT</b> multi-thread safe.
- * 
+ *
  * Data structure:
  * If grouping:
  * <pre>
@@ -44,19 +44,19 @@ import static org.apache.spark.unsafe.Platform.LONG_ARRAY_OFFSET;
  *         dim values               dim raw values        metric values
  *                                                       (metric values are all numbers)
  * </pre>
- * 
+ *
  * no grouping:
  * <pre>
  *      |........................|.................|
  *           values                   raw values
  * </pre>
- * 
+ *
  * The value, if number type, represents the uniform value;
  * if string type, higher 32 bits represents the offset of raw value, lower 32 bits represents the len.
- * 
+ *
  * The rows is sorted by dims if exists. And if grouping is true, those rows with the same dims will be
  * merged into one.
- * 
+ *
  * Node: An UTF8Row should call {@link #free()} to free it memory after done with, otherwise will lead to memory leak.
  */
 public class UTF8Row implements Row, Serializable {
@@ -690,53 +690,76 @@ public class UTF8Row implements Row, Serializable {
      */
     public static Comparator<UTF8Row> dimBytesComparator() {
         return (r1, r2) -> {
-            if (r1 == null || r2 == null) {
-                System.out.println();
+            if ((r1 == null || r2 == null)
+                    || (r1.rowDataAddr == 0 || r2.rowDataAddr == 0)) {
+                throw new IllegalStateException("illegal row compare");
             }
-            if (r1.rowDataAddr == 0 || r2.rowDataAddr == 0) {
-                throw new IllegalStateException("illegal row");
-            }
+            assert r1.creator.dimCount == r2.creator.dimCount;
+
             int len = Math.min(r1.dimDataSize, r2.dimDataSize);
             if (len == 0) {
                 return Long.compare(r1.code, r2.code);
             }
 
+            int dimCount = r1.creator.dimCount;
             long rowDataAddr1 = r1.rowDataAddr;
             long rowDataAddr2 = r2.rowDataAddr;
-            int wordLen = len & 0xFFFF_FFF8;
+
             int res;
-
             long word1, word2;
-            for (int i = 0; i < wordLen; i += 8) {
-                word1 = MemoryUtil.getLong(rowDataAddr1 + i);
-                word2 = MemoryUtil.getLong(rowDataAddr2 + i);
-                res = Long.compare(word1, word2);
+            for (int i = 0; i < dimCount; i++) {
+                word1 = MemoryUtil.getLong(rowDataAddr1 + (i << 3));
+                word2 = MemoryUtil.getLong(rowDataAddr2 + (i << 3));
+                if (r1.creator.indexTypes[i] == ColumnType.STRING) {
+                    int offset1 = (int) (word1 >>> 32);
+                    int len1 = (int) word1 & ColumnType.MAX_STRING_UTF8_SIZE_MASK;
+
+                    int offset2 = (int) (word2 >>> 32);
+                    int len2 = (int) word2 & ColumnType.MAX_STRING_UTF8_SIZE_MASK;
+
+                    res = compareBytes(rowDataAddr1 + offset1, len1, rowDataAddr2 + offset2, len2);
+                } else {
+                    res = Long.compare(word1, word2);
+                }
                 if (res != 0) {
                     return res;
                 }
-            }
-
-            if ((len & 0x07) != 0) {
-                long tail1 = 0;
-                long tail2 = 0;
-                for (int i = wordLen; i < len; i++) {
-                    tail1 = (tail1 << 8) | (MemoryUtil.getByte(rowDataAddr1 + i) & 0xFF);
-                    tail2 = (tail2 << 8) | (MemoryUtil.getByte(rowDataAddr2 + i) & 0xFF);
-                }
-                res = Long.compare(tail1, tail2);
-                if (res != 0) {
-                    return res;
-                }
-            }
-
-            res = r1.dimDataSize - r2.dimDataSize;
-            if (res != 0) {
-                return res;
             }
 
             // If we don't do grouping we should never let it return zero.
             return Long.compare(r1.code, r2.code);
         };
+    }
+
+    private static int compareBytes(long addr1, int len1, long addr2, int len2) {
+        int len = Math.min(len1, len2);
+        int res;
+
+        long word1, word2;
+        int wordLen = len & 0xFFFF_FFF8;
+        for (int i = 0; i < wordLen; i += 8) {
+            word1 = MemoryUtil.getLong(addr1 + i);
+            word2 = MemoryUtil.getLong(addr2 + i);
+            res = Long.compare(word1, word2);
+            if (res != 0) {
+                return res;
+            }
+        }
+
+        if ((len & 0x07) != 0) {
+            long tail1 = 0;
+            long tail2 = 0;
+            for (int i = wordLen; i < len; i++) {
+                tail1 = (tail1 << 8) | (MemoryUtil.getByte(addr1 + i) & 0xFF);
+                tail2 = (tail2 << 8) | (MemoryUtil.getByte(addr2 + i) & 0xFF);
+            }
+            res = Long.compare(tail1, tail2);
+            if (res != 0) {
+                return res;
+            }
+        }
+
+        return len1 - len2;
     }
 
     @Override
@@ -832,26 +855,7 @@ public class UTF8Row implements Row, Serializable {
     }
 
     private long strOffsetLen(int colId) {
-        assert creator.colIdToIndex != null;
-        if (rowDataAddr == 0) {
-            throw new IllegalStateException("illegal row");
-        }
-
-        int offset = 0;
-        if (creator.hasDims) {
-            int realIndex = creator.colIdToIndex[colId];
-            if (realIndex < creator.dimCount) {
-                // A dim.
-                offset = realIndex << 3;
-            } else {
-                // A metric.
-                int metricIndex = realIndex - creator.dimCount;
-                offset = dimDataSize + (metricIndex << 3);
-            }
-        } else {
-            offset = colId << 3;
-        }
-        return MemoryUtil.getLong(rowDataAddr + offset);
+        return numValue(colId);
     }
 
     public void merge(UTF8Row other) {
