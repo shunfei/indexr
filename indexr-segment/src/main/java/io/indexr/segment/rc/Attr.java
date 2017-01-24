@@ -48,7 +48,7 @@ public class Attr {
         byte colType = 0;
         int ordinal = 0;
         for (ColumnSchema cs : schemas) {
-            if (cs.name.equals(colName)) {
+            if (cs.name.equalsIgnoreCase(colName)) {
                 colId = ordinal;
                 colType = cs.getDataType();
                 break;
@@ -56,7 +56,7 @@ public class Attr {
             ordinal++;
         }
         if (colId == -1) {
-            throw new RuntimeException(String.format("column [%s] not found in columns [%s]", colName, schemas));
+            throw new RuntimeException(String.format("column [name: %s, type: %d] not found in columns [%s]", colName, columnType, schemas));
         }
         Preconditions.checkState(colType == columnType, "Column type not match");
         return colId;
