@@ -6,7 +6,15 @@ IndexR is a distributed, columnar storage system based on HDFS, which focus on f
 
 **Wiki** - [https://github.com/shunfei/indexr/wiki](https://github.com/shunfei/indexr/wiki)
 
+* [IndexR 白皮书](https://github.com/shunfei/sfmind/blob/master/indexr_white_paper/indexr_white_paper.md)
+* [IndexR introduction](https://github.com/shunfei/sfmind/blob/master/indexr.about.en.md)
+
 Please feel free to file any issues.
+
+## Contact
+
+* email: <indexrdb@gmail.com>
+* QQ Group: 606666586 (IndexR讨论组)
 
 ## License
 
