@@ -8,9 +8,8 @@ LIBDIR=${ROOT_DIR}/lib
 mkdir -p ${LIBDIR}
 
 # link lib into sub modules, convenient for testing.
-if [ ! -d "${ROOT_DIR}/indexr-segment/lib" ]; then
-    ln -s ${LIBDIR} ${ROOT_DIR}/indexr-segment/lib
-fi
-if [ ! -d "${ROOT_DIR}/indexr-server/lib" ]; then
-    ln -s ${LIBDIR} ${ROOT_DIR}/indexr-server/lib
-fi
+rm -f ${ROOT_DIR}/indexr-segment/lib
+rm -f ${ROOT_DIR}/indexr-server/lib
+
+ln -s ${LIBDIR} ${ROOT_DIR}/indexr-segment/lib
+ln -s ${LIBDIR} ${ROOT_DIR}/indexr-server/lib
