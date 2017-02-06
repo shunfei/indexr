@@ -35,6 +35,7 @@
         "upload.period.minutes": 60,
         "max.row.memory": 500000,
         "max.row.realtime": 10000000,
+        "compress": true,
         "fetcher": {
             "type": "kafka-0.8",
             "topic": "test_topic",
