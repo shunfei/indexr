@@ -64,9 +64,15 @@ public class BHCompressBenchmark {
         intData = ByteSlice.allocateDirect(objCount << 2);
         longData = ByteSlice.allocateDirect(objCount << 3);
 
-        List<UTF8String> strings = new ArrayList<>();
-
         Random random = new Random();
+
+        List<UTF8String> uniqueStrs = new ArrayList<>();
+        for (int i = 0; i < cardinality; i++) {
+            String string = RandomStringUtils.random(random.nextInt(50));
+            uniqueStrs.add(UTF8String.fromString(string));
+        }
+
+        List<UTF8String> stringValues = new ArrayList<>();
         for (int i = 0; i < objCount; i++) {
             byte bv = (byte) random.nextInt(Byte.MAX_VALUE);
             byteData.put(i, bv);
@@ -84,10 +90,9 @@ public class BHCompressBenchmark {
             longData.putLong(i << 3, lv);
             maxLong = Math.max(lv, maxLong);
 
-            String string = RandomStringUtils.random(random.nextInt(20));
-            strings.add(UTF8String.fromString(string));
+            stringValues.add(uniqueStrs.get(random.nextInt(uniqueStrs.size())));
         }
-        strData = _from_v1(strings);
+        strData = _from_v1(stringValues);
 
         byteCmpData = BHCompressor.compressByte(byteData, objCount, maxByte);
         shortCmpData = BHCompressor.compressShort(shortData, objCount, maxShort);
