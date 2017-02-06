@@ -207,6 +207,10 @@ public class UpdateColumnJob extends Configured implements Tool {
 
                     DistributedFileSystem fileSystem = (DistributedFileSystem) FileSystem.get(jobContext.getConfiguration());
                     Path tmpSegDir = new Path(jobContext.getWorkingDirectory(), TMP_SEG_DIR);
+                    if (!fileSystem.exists(tmpSegDir)) {
+                        log.warn("Segment tmp dir not found");
+                        return;
+                    }
                     try {
                         tmpSegDir = fileSystem.resolvePath(tmpSegDir);
                         String tmpSegDirStr = tmpSegDir.toString() + "/";
