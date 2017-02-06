@@ -5,7 +5,10 @@ ROOT_DIR=$(echo $PWD)
 source ${ROOT_DIR}/script/env.sh
 
 LIBDIR=${ROOT_DIR}/lib
-mkdir -p ${LIBDIR}
+
+if [ ! -d "${LIBDIR}" ] && [ ! -L "${LIBDIR}" ]; then
+    mkdir -p ${LIBDIR}
+fi
 
 # link lib into sub modules, convenient for testing.
 rm -f ${ROOT_DIR}/indexr-segment/lib
