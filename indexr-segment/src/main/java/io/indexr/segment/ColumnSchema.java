@@ -39,10 +39,10 @@ public class ColumnSchema {
     public ColumnSchema(String name,
                         byte dataType,
                         String defaultValue) {
-        this.name = name;
+        this.name = name.intern();
         this.dataTypeName = ColumnType.toName(dataType);
         this.dataType = dataType;
-        this.defaultStringValue = defaultValue == null ? "" : defaultValue;
+        this.defaultStringValue = defaultValue == null ? "" : defaultValue.intern();
         if (ColumnType.isNumber(dataType)) {
             this.defaultNumberValue = Strings.isEmpty(defaultStringValue)
                     ? 0 : ColumnType.castStringToNumber(defaultStringValue, dataType);

@@ -348,15 +348,15 @@ public class Integrated {
     }
 
     public static class ColumnNodeInfo {
-        public long minNumValue;
-        public long maxNumValue;
+        public final long minNumValue;
+        public final long maxNumValue;
+
+        //private static
 
         public ColumnNodeInfo(long minNumValue, long maxNumValue) {
             this.minNumValue = minNumValue;
             this.maxNumValue = maxNumValue;
         }
-
-        private ColumnNodeInfo() {}
 
         @Override
         public boolean equals(Object o) {
@@ -377,10 +377,7 @@ public class Integrated {
         }
 
         static ColumnNodeInfo read(ByteBuffer buffer) {
-            ColumnNodeInfo info = new ColumnNodeInfo();
-            info.minNumValue = buffer.getLong();
-            info.maxNumValue = buffer.getLong();
-            return info;
+            return new ColumnNodeInfo(buffer.getLong(), buffer.getLong());
         }
     }
 
@@ -388,6 +385,7 @@ public class Integrated {
         public int nameSize;
         public String name;
         public byte dataType;
+
         public long dpnOffset;
         public long indexOffset;
         public long packOffset;
@@ -399,7 +397,7 @@ public class Integrated {
 
         ColumnInfo(String name, byte dataType, int dpnSize, int indexSize, long packSize) {
             nameSize = UTF8Util.toUtf8(name).length;
-            this.name = name;
+            this.name = name.intern();
             this.dataType = dataType;
             this.dpnSize = dpnSize;
             this.indexSize = indexSize;
@@ -454,8 +452,9 @@ public class Integrated {
             int pos = buffer.position();
 
             ColumnInfo info = new ColumnInfo();
+
             info.nameSize = buffer.getInt();
-            info.name = UTF8Util.fromUtf8(buffer, info.nameSize);
+            info.name = UTF8Util.fromUtf8(buffer, info.nameSize).intern();
             info.dataType = buffer.get();
             info.dpnOffset = buffer.getLong();
             info.indexOffset = buffer.getLong();
