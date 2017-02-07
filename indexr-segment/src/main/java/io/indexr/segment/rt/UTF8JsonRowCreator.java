@@ -124,9 +124,7 @@ public class UTF8JsonRowCreator implements UTF8JsonDeserializer.Listener {
         boolean ok = utf8JsonDeserializer.parse(jsonBytes, offset, len, this);
         if (!ok) {
             failCount++;
-            if (logger.isTraceEnabled()) {
-                logger.trace("creator [{}] found illegal event: {}", creatorName, UTF8Util.fromUtf8(jsonBytes));
-            }
+            logger.warn("creator [{}] found illegal event: {}", creatorName, UTF8Util.fromUtf8(jsonBytes));
             for (UTF8Row row : curRows) {
                 row.free();
             }

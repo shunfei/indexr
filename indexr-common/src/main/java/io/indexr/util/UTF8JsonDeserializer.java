@@ -343,33 +343,15 @@ public class UTF8JsonDeserializer {
         } catch (NumberFormatException e) {
             // HACK!!!
             return false;
-            //try {
-            //    switch (type) {
-            //        case INT: {
-            //            double v = UTF8Util.parseDouble(buffer.array(), buffer.position(), buffer.remaining());
-            //            return listener.onIntValue((int) v);
-            //        }
-            //        case LONG: {
-            //            double v = UTF8Util.parseDouble(buffer.array(), buffer.position(), buffer.remaining());
-            //            return listener.onLongValue((long) v);
-            //        }
-            //        default:
-            //            throw new IllegalStateException("illegal type " + type);
-            //    }
-            //} catch (NumberFormatException e2) {
-            //    return false;
-            //}
         }
     }
 
     private static void logErrorJson(String format, byte[] data, int offset, int len, int pos) {
         try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("{}, json: {}, error pos: {}",
-                        format,
-                        new String(data, offset, len, UTF8Util.UTF8_NAME),
-                        new String(data, pos, (offset + len) - pos, UTF8Util.UTF8_NAME));
-            }
+            logger.warn("{}, json: {}, error pos: {}",
+                    format,
+                    new String(data, offset, len, UTF8Util.UTF8_NAME),
+                    new String(data, pos, (offset + len) - pos, UTF8Util.UTF8_NAME));
         } catch (UnsupportedEncodingException e) {
             // Should not happen.
         }
