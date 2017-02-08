@@ -47,6 +47,7 @@ import io.indexr.server.ZkTableManager;
 import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.server.rt.RealtimeSegmentPool;
 import io.indexr.server.rt2his.HiveHelper;
+import io.indexr.util.GenericCompression;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
 import io.indexr.util.Try;
@@ -252,7 +253,7 @@ public class Tools {
             if (bytes == null) {
                 continue;
             }
-            RealtimeSegmentPool.HostSegmentInfo hostInfo = JsonUtil.fromJson(bytes, RealtimeSegmentPool.HostSegmentInfo.class);
+            RealtimeSegmentPool.HostSegmentInfo hostInfo = JsonUtil.fromJson(GenericCompression.decomress(bytes), RealtimeSegmentPool.HostSegmentInfo.class);
             if (hostInfo == null) {
                 continue;
             }
