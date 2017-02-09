@@ -105,7 +105,7 @@
             <plugin>
                 <groupId>com.nativelibs4java</groupId>
                 <artifactId>maven-jnaerator-plugin</artifactId>
-                <version>0.13-SNAPSHOT</version>
+                <version>0.12</version>
                 <configuration>
                     <javaOutputDirectory>src/main/java</javaOutputDirectory>
                 </configuration>
