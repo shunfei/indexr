@@ -3,10 +3,33 @@ package io.indexr.segment;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import io.indexr.data.BytePiece;
+import io.indexr.util.DateTimeUtil;
 
 public interface Row {
+    default String getSQL(int colId, SQLType type) {
+        switch (type) {
+            case INT:
+                return String.valueOf(getInt(colId));
+            case BIGINT:
+                return String.valueOf(getLong(colId));
+            case FLOAT:
+                return String.valueOf(getFloat(colId));
+            case DOUBLE:
+                return String.valueOf(getDouble(colId));
+            case VARCHAR:
+                return getString(colId).toString();
+            case DATE:
+                return DateTimeUtil.getLocalDate(getLong(colId)).toString();
+            case TIME:
+                return DateTimeUtil.getLocalTime(getInt(colId)).toString();
+            case DATETIME:
+                return DateTimeUtil.getLocalDateTime(getLong(colId)).toString();
+            default:
+                throw new IllegalStateException("illegal type: " + type);
+        }
+    }
 
-    default String getDisplayString(int colId, int type) {
+    default String getInternalString(int colId, int type) {
         switch (type) {
             case ColumnType.INT:
                 return String.valueOf(getInt(colId));

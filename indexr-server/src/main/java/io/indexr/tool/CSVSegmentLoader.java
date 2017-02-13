@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -25,10 +26,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
@@ -106,59 +105,15 @@ public class CSVSegmentLoader {
     }
 
     private void loadFile(DPSegment segment, String path) throws IOException {
-        List<Byte> types = schema.columns.stream().map(schema -> schema.dataType).collect(Collectors.toList());
-        SimpleRow.Builder rowBuilder = new SimpleRow.Builder(types);
+        SimpleRow.Builder rowBuilder = SimpleRow.Builder.createByColumnSchemas(Arrays.asList(columnSchemas));
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"))) {
             String line;
             while (StringUtils.isNotEmpty(line = reader.readLine()) && !interrupted) {
                 String[] vals = line.split(spliter);
                 try {
                     for (int colId = 0; colId < schema.columns.size(); colId++) {
-                        ColumnSchema cs = columnSchemas[colId];
                         int valIndex = valIndexes[colId];
-                        switch (cs.dataType) {
-                            case ColumnType.INT:
-                                if (valIndex == -1 || vals[valIndex].isEmpty()) {
-                                    rowBuilder.appendInt(0);
-                                } else {
-                                    rowBuilder.appendInt(Integer.parseInt(vals[valIndex]));
-                                }
-                                break;
-                            case ColumnType.LONG:
-                                if (valIndex == -1 || vals[valIndex].isEmpty()) {
-                                    rowBuilder.appendLong(0);
-                                } else {
-                                    rowBuilder.appendLong(Long.parseLong(vals[valIndex]));
-                                }
-                                break;
-                            case ColumnType.FLOAT:
-                                if (valIndex == -1 || vals[valIndex].isEmpty()) {
-                                    rowBuilder.appendFloat(0);
-                                } else {
-                                    rowBuilder.appendFloat(Float.parseFloat(vals[valIndex]));
-                                }
-                                break;
-                            case ColumnType.DOUBLE:
-                                if (valIndex == -1 || vals[valIndex].isEmpty()) {
-                                    rowBuilder.appendDouble(0);
-                                } else {
-                                    rowBuilder.appendDouble(Double.parseDouble(vals[valIndex]));
-                                }
-                                break;
-                            case ColumnType.STRING:
-                                if (valIndex == -1) {
-                                    rowBuilder.appendString("");
-                                } else {
-                                    if (vals.length <= valIndex) {
-                                        rowBuilder.appendString("");
-                                        continue;
-                                    }
-                                    rowBuilder.appendString(vals[valIndex]);
-                                }
-                                break;
-                            default:
-                                throw new IllegalStateException("Unsupported column type: " + cs.dataType);
-                        }
+                        rowBuilder.appendStringFormVal(getValue(vals, valIndex));
                     }
                 } catch (NumberFormatException e) {
                     System.out.printf("error csv line: [%s]", line);
@@ -168,6 +123,10 @@ public class CSVSegmentLoader {
                 rowCount++;
             }
         }
+    }
+
+    private String getValue(String[] vals, int index) {
+        return (index == -1 || Strings.isEmpty(vals[index])) ? "" : vals[index];
     }
 
     public long rowCount() {

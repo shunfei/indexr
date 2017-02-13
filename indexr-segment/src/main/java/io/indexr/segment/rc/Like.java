@@ -66,7 +66,7 @@ public class Like extends ColCmpVal {
 
         int colId = attr.columnId();
         ColumnNode columnNode = segment.columnNode(colId);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         if (ColumnType.isNumber(type)) {
             return RSValue.Some;
         } else {
@@ -77,7 +77,7 @@ public class Like extends ColCmpVal {
     @Override
     public byte roughCheckOnRow(DataPack[] rowPacks) {
         DataPack pack = rowPacks[attr.columnId()];
-        byte type = attr.columType();
+        byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
         switch (type) {
@@ -90,7 +90,7 @@ public class Like extends ColCmpVal {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         if (hitCount == rowCount) {
             return RSValue.All;
@@ -106,7 +106,7 @@ public class Like extends ColCmpVal {
         DataPack pack = rowPacks[attr.columnId()];
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(pack.objCount());
-        byte type = attr.columType();
+        byte type = attr.dataType();
         switch (type) {
             case ColumnType.STRING: {
                 for (int rowId = 0; rowId < rowCount; rowId++) {
@@ -115,7 +115,7 @@ public class Like extends ColCmpVal {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         return colRes;
     }

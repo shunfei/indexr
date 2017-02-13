@@ -14,6 +14,7 @@ import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.Integrated.ColumnInfo;
@@ -68,7 +69,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
                 columnNodes[i] = new ColumnNode(cni.minNumValue, cni.maxNumValue);
 
                 ColumnInfo ci = sectionInfo.columnInfos[i];
-                columnSchemas.add(new ColumnSchema(ci.name, ci.dataType));
+                columnSchemas.add(new ColumnSchema(ci.name, SQLType.fromId(ci.sqlType)));
             }
 
             this.segmentId = MemCache.nextSegmentId();
@@ -126,7 +127,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
                         segmentId,
                         ci,
                         sc.name,
-                        sc.dataType,
+                        sc.sqlType,
                         rc,
                         wrappedDataSource,
                         info.dpnOffset,
@@ -209,7 +210,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
 
         /**
          * Create a {@link IntegratedSegment} from an opening data source.
-         * 
+         *
          * It will be the creator's responsibility to close the data source.
          *
          * @param name       The name of segment.

@@ -10,14 +10,11 @@ import java.util.stream.Collectors;
 
 import io.indexr.query.row.InternalRow;
 import io.indexr.segment.ColumnSchema;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.query.SegmentSelectHelper;
+import io.indexr.util.DateTimeUtil;
 
-import static io.indexr.segment.ColumnType.DOUBLE;
-import static io.indexr.segment.ColumnType.FLOAT;
-import static io.indexr.segment.ColumnType.INT;
-import static io.indexr.segment.ColumnType.LONG;
-import static io.indexr.segment.ColumnType.STRING;
 import static io.indexr.util.ExtraStringUtil.trimAndSpace;
 import static io.indexr.util.Trick.compareList;
 import static io.indexr.util.Trick.indexLast;
@@ -37,25 +34,25 @@ public class UpdateColSegment {
                                                   UpdateColSchema newColumn,
                                                   int newColId,
                                                   Path storePath) throws IOException {
-        int dataType = newColumn.dataType;
+        SQLType sqlType = newColumn.sqlType;
         SegmentSchema baseSchema = baseSegment.schema();
         int colId = indexWhere(baseSchema.getColumns(), c -> c.getName().equals(trimAndSpace(newColumn.value)));
-        if (colId >= 0 && baseSchema.getColumns().get(colId).dataType == dataType) {
+        if (colId >= 0 && baseSchema.getColumns().get(colId).getSqlType() == sqlType) {
             // This new column point to a existing column. We just need to move the column data.
             return baseSegment.column(colId).copy(-1, newColId, newColumn.name); // segmentId is useless here.
         }
 
         // Run the sql on baseSegment to get filed value and insert into newly created column.
-        DPColumn dpColumn = new DPColumn(baseSegment.version(), newColId, newColumn.name, newColumn.dataType, 0, storePath);
+        DPColumn dpColumn = new DPColumn(baseSegment.version(), newColId, newColumn.name, newColumn.sqlType, 0, storePath);
         dpColumn.initUpdate();
         SegmentSelectHelper.RowsConsumer consumer = it -> {
             while (it.hasNext()) {
                 InternalRow row = it.next();
-                switch (dataType) {
+                switch (sqlType) {
                     case INT:
                         dpColumn.add(row.getInt(0));
                         break;
-                    case LONG:
+                    case BIGINT:
                         dpColumn.add(row.getLong(0));
                         break;
                     case FLOAT:
@@ -64,11 +61,20 @@ public class UpdateColSegment {
                     case DOUBLE:
                         dpColumn.add(row.getDouble(0));
                         break;
-                    case STRING:
+                    case VARCHAR:
                         dpColumn.add(row.getString(0));
                         break;
+                    case DATE:
+                        dpColumn.add(DateTimeUtil.parseDate(row.getString(0).getBytes()));
+                        break;
+                    case TIME:
+                        dpColumn.add(DateTimeUtil.parseTime(row.getString(0).getBytes()));
+                        break;
+                    case DATETIME:
+                        dpColumn.add(DateTimeUtil.parseDateTime(row.getString(0).getBytes()));
+                        break;
                     default:
-                        throw new IllegalStateException("column type " + dataType + " is illegal");
+                        throw new IllegalStateException("Illegal type :" + sqlType);
                 }
             }
         };
@@ -99,7 +105,7 @@ public class UpdateColSegment {
         boolean equals = compareList(baseSchema.getColumns(), targetColumnSchema,
                 (c1, c2) -> {
                     return c1.getName().equals(c2.name)
-                            && c1.getDataType() == c2.dataType
+                            && c1.getSqlType() == c2.sqlType
                             && c1.getName().equals(trimAndSpace(c2.value));
                 });
         if (equals) {
@@ -107,7 +113,7 @@ public class UpdateColSegment {
         }
 
         SegmentSchema targetSchema = new SegmentSchema(
-                targetColumnSchema.stream().map(c -> new ColumnSchema(c.name, c.dataType)).collect(Collectors.toList()));
+                targetColumnSchema.stream().map(c -> new ColumnSchema(c.name, c.sqlType)).collect(Collectors.toList()));
 
         int baseColumnCount = baseSchema.getColumns().size();
         StorageSegment.StorageColumnCreator<StorageColumn> scCreator = (ci, cs, rc) -> {
@@ -129,7 +135,7 @@ public class UpdateColSegment {
 
         List<UpdateColSchema> targetColumns = new ArrayList<>();
         for (ColumnSchema cs : baseSegment.schema().getColumns()) {
-            targetColumns.add(new UpdateColSchema(cs.getName(), cs.getDataType()));
+            targetColumns.add(new UpdateColSchema(cs.getName(), cs.getSqlType(), cs.getName()));
         }
         boolean update = false;
         for (UpdateColSchema acs : newColumnSchema) {
@@ -158,7 +164,7 @@ public class UpdateColSegment {
             if (indexWhere(deleteColumns, c -> cs.getName().equals(c)) >= 0) {
                 update = true;
             } else {
-                targetColumns.add(new UpdateColSchema(cs.getName(), cs.getDataType()));
+                targetColumns.add(new UpdateColSchema(cs.getName(), cs.getSqlType(), cs.getName()));
             }
         }
         if (!update) {
@@ -185,7 +191,7 @@ public class UpdateColSegment {
             int idx = indexWhere(alterColumnSchema, c -> c.name.equals(cs.getName()));
             if (idx < 0) {
                 // Keep untouch.
-                targetColumns.add(new UpdateColSchema(cs.getName(), cs.getDataType()));
+                targetColumns.add(new UpdateColSchema(cs.getName(), cs.getSqlType(), cs.getName()));
             } else {
                 targetColumns.add(alterColumnSchema.get(idx));
                 update = true;

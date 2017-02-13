@@ -9,28 +9,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 import io.indexr.segment.ColumnSchema;
+import io.indexr.segment.SQLType;
 
 /**
  * Attr is a pointer to a column in a table. It could point to different columnIds in different segments.
  */
 public class Attr {
-    @JsonProperty("columnName")
-    public final String columnName;
-    @JsonProperty("columnType")
-    public final byte columnType;
+    @JsonProperty("name")
+    public final String name;
+    @JsonProperty("type")
+    public final SQLType type;
 
     private int columnId = -1;
 
     @JsonCreator
-    public Attr(@JsonProperty("columnName") String columnName,
-                @JsonProperty("columnType") byte columnType) {
-        this.columnName = columnName;
-        this.columnType = columnType;
+    public Attr(@JsonProperty("name") String name,
+                @JsonProperty("type") SQLType type) {
+        this.name = name;
+        this.type = type;
     }
 
     @JsonIgnore
-    public String columnName() {
-        return columnName;
+    public String name() {
+        return name;
     }
 
     @JsonIgnore
@@ -39,31 +40,36 @@ public class Attr {
     }
 
     @JsonIgnore
-    public byte columType() {
-        return columnType;
+    public byte dataType() {
+        return type.dataType;
     }
 
-    private static int find(List<ColumnSchema> schemas, String colName, byte columnType) {
+    @JsonIgnore
+    public SQLType sqlType() {
+        return type;
+    }
+
+    private static int find(List<ColumnSchema> schemas, String colName, SQLType type) {
         int colId = -1;
-        byte colType = 0;
+        SQLType colType = null;
         int ordinal = 0;
         for (ColumnSchema cs : schemas) {
             if (cs.name.equalsIgnoreCase(colName)) {
                 colId = ordinal;
-                colType = cs.getDataType();
+                colType = cs.getSqlType();
                 break;
             }
             ordinal++;
         }
         if (colId == -1) {
-            throw new RuntimeException(String.format("column [name: %s, type: %d] not found in columns [%s]", colName, columnType, schemas));
+            throw new RuntimeException(String.format("column [name: %s, type: %d] not found in columns [%s]", colName, type, schemas));
         }
-        Preconditions.checkState(colType == columnType, "Column type not match");
+        Preconditions.checkState(colType == type, "Column type not match");
         return colId;
     }
 
     public boolean checkCurrent(List<ColumnSchema> schemas) {
-        int colId = find(schemas, columnName, columnType);
+        int colId = find(schemas, name, type);
         return colId == this.columnId;
     }
 
@@ -71,12 +77,12 @@ public class Attr {
      * Set the real column id in specific schemas.
      */
     public void materialize(List<ColumnSchema> schemas) {
-        this.columnId = find(schemas, columnName, columnType);
+        this.columnId = find(schemas, name, type);
     }
 
     @Override
     public String toString() {
-        return columnName;
+        return name;
     }
 
     @Override
@@ -84,11 +90,11 @@ public class Attr {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Attr attr = (Attr) o;
-        return columnName.equals(attr.columnName);
+        return name.equals(attr.name);
     }
 
     @Override
     public int hashCode() {
-        return columnName != null ? columnName.hashCode() : 0;
+        return name != null ? name.hashCode() : 0;
     }
 }

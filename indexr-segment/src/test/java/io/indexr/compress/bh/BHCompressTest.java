@@ -19,7 +19,7 @@ public class BHCompressTest {
 
     @Test
     public void test_byte() {
-        int item_size = 50;
+        int item_size = 65536;
         byte[] data = new byte[item_size];
         for (int i = 0; i < item_size; i++) {
             data[i] = (byte) (random.nextInt(256) - 128);
@@ -42,11 +42,7 @@ public class BHCompressTest {
 
     @Test
     public void test_short() {
-        ByteSlice s = ByteSlice.allocateDirect(100);
-        s.putShort(0, (short) 2);
-
-
-        int item_size = 50;
+        int item_size = 65536;
         short[] data = new short[item_size];
         for (int i = 0; i < item_size; i++) {
             data[i] = (short) (random.nextInt(65536) - 32768);
@@ -69,7 +65,7 @@ public class BHCompressTest {
 
     @Test
     public void test_int() {
-        int item_size = 50;
+        int item_size = 65536;
         int[] data = new int[item_size];
         for (int i = 0; i < item_size; i++) {
             data[i] = (int) (i * 2);
@@ -90,7 +86,7 @@ public class BHCompressTest {
 
     @Test
     public void test_long() {
-        int item_size = 50;
+        int item_size = 65536;
         long[] data = new long[item_size];
         for (int i = 0; i < item_size; i++) {
             data[i] = random.nextLong();

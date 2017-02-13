@@ -19,32 +19,32 @@ public class UTF8JsonDeserializerTest {
         }
 
         @Override
-        public byte onKey(ByteBuffer key, int size) {
+        public int onKey(ByteBuffer key, int size) {
             String s = UTF8Util.fromUtf8(key, size);
             if (s.isEmpty()) {
                 System.out.print("\"\": ");
-                return UTF8JsonDeserializer.STRING;
+                return UTF8JsonDeserializer.VARCHAR;
             }
             if (s.charAt(0) == 'v') {
                 return UTF8JsonDeserializer.INVALID;
             }
             System.out.printf("\"%s\": ", s);
             if (s.isEmpty()) {
-                return UTF8JsonDeserializer.STRING;
+                return UTF8JsonDeserializer.VARCHAR;
             }
             switch (s.charAt(0)) {
                 case 'i':
                     return UTF8JsonDeserializer.INT;
                 case 'l':
-                    return UTF8JsonDeserializer.LONG;
+                    return UTF8JsonDeserializer.BIGINT;
                 case 'f':
                     return UTF8JsonDeserializer.FLOAT;
                 case 'd':
                     return UTF8JsonDeserializer.DOUBLE;
                 case 's':
-                    return UTF8JsonDeserializer.STRING;
+                    return UTF8JsonDeserializer.VARCHAR;
                 default:
-                    return UTF8JsonDeserializer.STRING;
+                    return UTF8JsonDeserializer.VARCHAR;
             }
         }
 

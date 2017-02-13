@@ -65,7 +65,7 @@ public class GreaterEqual extends ColCmpVal {
 
         int colId = attr.columnId();
         ColumnNode columnNode = segment.columnNode(colId);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         if (ColumnType.isNumber(type)) {
             return RoughCheck_N.greaterEqualCheckOnColumn(columnNode, type, numValue);
         } else {
@@ -77,7 +77,7 @@ public class GreaterEqual extends ColCmpVal {
     @Override
     public byte roughCheckOnRow(DataPack[] rowPacks) {
         DataPack pack = rowPacks[attr.columnId()];
-        byte type = attr.columType();
+        byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
         switch (type) {
@@ -122,7 +122,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         if (hitCount == rowCount) {
             return RSValue.All;
@@ -138,7 +138,7 @@ public class GreaterEqual extends ColCmpVal {
         DataPack pack = rowPacks[attr.columnId()];
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(rowCount);
-        switch (attr.columType()) {
+        switch (attr.dataType()) {
             case ColumnType.INT: {
                 int value = (int) numValue;
                 for (int rowId = 0; rowId < rowCount; rowId++) {
@@ -172,7 +172,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         return colRes;
     }

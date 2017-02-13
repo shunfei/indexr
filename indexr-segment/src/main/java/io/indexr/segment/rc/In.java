@@ -134,7 +134,7 @@ public class In implements CmpOperator {
 
         int colId = attr.columnId();
         ColumnNode columnNode = segment.columnNode(colId);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         if (ColumnType.isNumber(type)) {
             if (!calced) {
                 calMinMax(type);
@@ -149,7 +149,7 @@ public class In implements CmpOperator {
     @Override
     public byte roughCheckOnRow(DataPack[] rowPacks) {
         DataPack pack = rowPacks[attr.columnId()];
-        byte type = attr.columType();
+        byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
         switch (type) {
@@ -192,7 +192,7 @@ public class In implements CmpOperator {
         DataPack pack = rowPacks[attr.columnId()];
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(rowCount);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         switch (type) {
             case ColumnType.STRING: {
                 BytePiece bp = new BytePiece();

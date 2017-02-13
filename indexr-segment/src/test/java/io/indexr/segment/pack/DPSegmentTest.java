@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.spark.unsafe.types.UTF8String;
-import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -22,13 +21,13 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
+import io.indexr.util.DateTimeUtil;
 
 public class DPSegmentTest {
     private static final Logger log = LoggerFactory.getLogger(DPSegmentTest.class);
@@ -46,27 +45,30 @@ public class DPSegmentTest {
     }
 
     static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", ColumnType.INT),
-            new ColumnSchema("c1", ColumnType.LONG),
-            new ColumnSchema("c2", ColumnType.FLOAT),
-            new ColumnSchema("c3", ColumnType.DOUBLE),
-            new ColumnSchema("c4", ColumnType.STRING),
-            new ColumnSchema("c5", ColumnType.INT)
+            new ColumnSchema("c0", SQLType.INT),
+            new ColumnSchema("c1", SQLType.BIGINT),
+            new ColumnSchema("c2", SQLType.FLOAT),
+            new ColumnSchema("c3", SQLType.DOUBLE),
+            new ColumnSchema("c4", SQLType.VARCHAR),
+            new ColumnSchema("c5", SQLType.DATE),
+            new ColumnSchema("c6", SQLType.TIME),
+            new ColumnSchema("c7", SQLType.DATETIME)
     );
     static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
-    static String[][] rawRows = new String[][]{
-            {"89", String.valueOf(Long.MAX_VALUE), "4.5", "9.1", "windows", "12"},
-            {"3", "-52233", "4.5", "9.199", "mac", String.valueOf(Integer.MIN_VALUE)},
-            {"14121", "99", "2.5", "11.1", "linux", "87"},
-            {"39", String.valueOf(Long.MIN_VALUE), String.valueOf(Float.MIN_VALUE), "1.51", "android", String.valueOf(Integer.MAX_VALUE)},
+    private static String[][] rawRows = new String[][]{
+            {"89", "222222", "4.5", "9.1", "windows", "2014-12-09", "00:00:00", "2014-12-09T00:00:00"},
+            {"3", String.valueOf(Long.MAX_VALUE), "4.5", "9.199", "mac", "1901-03-24", "11:43:56", "1901-03-24T11:43:56"},
+            {"14121", "99", "2.5", "11.1", "linux", "9999-01-01", "12:59:59", "9999-01-01T12:59:59"},
+            {String.valueOf(Integer.MAX_VALUE), "11", String.valueOf(Float.MIN_VALUE), "1.51", "android", "2741-1-3", "1:1:1", "2741-1-3T1:1:1"},
     };
+
     static List<Row> sample_rows = new ArrayList<>(rawRows.length);
     static final int rowCount = DataPack.MAX_COUNT * 3 + 99;
 
     static {
-        SimpleRow.Builder builder = new SimpleRow.Builder(columnSchemas.stream().map(schema -> schema.dataType).collect(Collectors.toList()));
+        SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(columnSchemas);
         for (int rowId = 0; rowId < rawRows.length; rowId++) {
-            builder.appendRawVals(Arrays.asList(rawRows[rowId]));
+            builder.appendStringFormVals(Arrays.asList(rawRows[rowId]));
             sample_rows.add(builder.buildAndReset());
         }
     }
@@ -98,23 +100,38 @@ public class DPSegmentTest {
     static void rowCmp(Row expected, Row actual) {
         for (int colId = 0; colId < columnSchemas.size(); colId++) {
             ColumnSchema cs = columnSchemas.get(colId);
-            switch (cs.dataType) {
-                case ColumnType.INT:
+            switch (cs.getSqlType()) {
+                case INT:
                     Assert.assertEquals(expected.getInt(colId), actual.getInt(colId));
                     break;
-                case ColumnType.LONG:
+                case BIGINT:
                     Assert.assertEquals(expected.getLong(colId), actual.getLong(colId));
                     break;
-                case ColumnType.FLOAT:
+                case FLOAT:
                     Assert.assertEquals(0, Float.compare(expected.getFloat(colId), actual.getFloat(colId)));
                     break;
-                case ColumnType.DOUBLE:
+                case DOUBLE:
                     Assert.assertEquals(0, Double.compare(expected.getDouble(colId), actual.getDouble(colId)));
                     break;
-                case ColumnType.STRING:
+                case VARCHAR:
                     UTF8String actualStr = actual.getString(colId);
                     UTF8String expectedStr = expected.getString(colId);
-                    Assert.assertThat(actualStr.toString(), CoreMatchers.equalTo(expectedStr.toString()));
+                    Assert.assertEquals(expectedStr, actualStr);
+                    break;
+                case DATE:
+                    Assert.assertEquals(
+                            DateTimeUtil.getLocalDate(expected.getLong(colId)),
+                            DateTimeUtil.getLocalDate(actual.getLong(colId)));
+                    break;
+                case TIME:
+                    Assert.assertEquals(
+                            DateTimeUtil.getLocalTime(expected.getInt(colId)),
+                            DateTimeUtil.getLocalTime(actual.getInt(colId)));
+                    break;
+                case DATETIME:
+                    Assert.assertEquals(
+                            DateTimeUtil.getLocalDateTime(expected.getLong(colId)),
+                            DateTimeUtil.getLocalDateTime(actual.getLong(colId)));
                     break;
                 default:
                     throw new IllegalStateException();

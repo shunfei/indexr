@@ -28,12 +28,13 @@ import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentSchema;
+import io.indexr.util.DateTimeUtil;
 
 public class SegmentSelectHelper {
     public static StructType fromSegmentSchema(SegmentSchema schema) {
         return new StructType(
                 schema.columns.stream().map(
-                        cs -> new StructField(cs.name, storageTypeToQueryType(cs.dataType))
+                        cs -> new StructField(cs.name, storageTypeToQueryType(cs.getSqlType().dataType))
                 ).collect(Collectors.toList())
         );
     }
@@ -73,7 +74,7 @@ public class SegmentSelectHelper {
     }
 
     public static Attribute columnSchemaToAttribute(ColumnSchema schema) {
-        return new AttributeReference(schema.name, storageTypeToQueryType(schema.dataType));
+        return new AttributeReference(schema.name, storageTypeToQueryType(schema.getSqlType().dataType));
     }
 
     private static MemoryManager memoryManager = new MemoryManager();
@@ -110,38 +111,47 @@ public class SegmentSelectHelper {
         void accept(Iterator<InternalRow> it) throws IOException;
     }
 
-    public static void printRows(Iterator<InternalRow> rows, SegmentSchema schema) {
-        List<DataType> dataTypes = schema.getColumns().stream().map(
-                c -> SegmentSelectHelper.storageTypeToQueryType(c.getDataType())).collect(Collectors.toList());
-        for (ColumnSchema cs : schema.getColumns()) {
+    public static void printRows(Iterator<InternalRow> rows, List<ColumnSchema> schemas) {
+        for (ColumnSchema cs : schemas) {
             System.out.print(equalWidthText(cs.getName()));
         }
         System.out.println();
         while (rows.hasNext()) {
-            System.out.println(rowText(rows.next(), dataTypes));
+            System.out.println(rowText(rows.next(), schemas));
         }
     }
 
-    private static String rowText(InternalRow row, List<DataType> dataTypes) {
+    public static String rowText(InternalRow row, List<ColumnSchema> schemas) {
         String s = "";
         int i = 0;
-        for (DataType c : dataTypes) {
-            switch (c) {
-                case IntegerType:
+        for (ColumnSchema c : schemas) {
+            switch (c.getSqlType()) {
+                case INT:
                     s += equalWidthText(row.getInt(i));
                     break;
-                case LongType:
+                case BIGINT:
                     s += equalWidthText(row.getLong(i));
                     break;
-                case FloatType:
+                case FLOAT:
                     s += equalWidthText(row.getFloat(i));
                     break;
-                case DoubleType:
+                case DOUBLE:
                     s += equalWidthText(row.getDouble(i));
                     break;
-                case StringType:
+                case VARCHAR:
                     s += equalWidthText(row.getString(i));
                     break;
+                case DATE:
+                    s += equalWidthText(DateTimeUtil.getLocalDate(row.getLong(i)));
+                    break;
+                case TIME:
+                    s += equalWidthText(DateTimeUtil.getLocalTime(row.getInt(i)));
+                    break;
+                case DATETIME:
+                    s += equalWidthText(DateTimeUtil.getLocalDateTime(row.getLong(i)));
+                    break;
+                default:
+                    throw new RuntimeException("Unsupported type: " + c.getSqlType());
             }
             i++;
         }
@@ -149,7 +159,7 @@ public class SegmentSelectHelper {
     }
 
     private static String equalWidthText(Object o) {
-        int len = 10;
+        int len = 20;
         String txt = o.toString();
         if (txt.length() >= len) {
             return txt.substring(0, len - 4) + StringUtils.repeat(".", 2) + txt.substring(txt.length() - 2, txt.length()) + " ";

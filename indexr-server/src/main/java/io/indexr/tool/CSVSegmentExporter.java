@@ -25,7 +25,6 @@ import java.util.List;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentSchema;
@@ -101,25 +100,7 @@ public class CSVSegmentExporter {
                 for (int csvColId = 0; csvColId < valIndexes.length; csvColId++) {
                     int colId = valIndexes[csvColId];
                     ColumnSchema cs = columnSchemas[colId];
-                    switch (cs.dataType) {
-                        case ColumnType.INT:
-                            builder.append(row.getInt(colId));
-                            break;
-                        case ColumnType.LONG:
-                            builder.append(row.getLong(colId));
-                            break;
-                        case ColumnType.FLOAT:
-                            builder.append(row.getFloat(colId));
-                            break;
-                        case ColumnType.DOUBLE:
-                            builder.append(row.getDouble(colId));
-                            break;
-                        case ColumnType.STRING:
-                            builder.append(row.getString(colId).toString());
-                            break;
-                        default:
-                            throw new IllegalStateException("Unsupported column type: " + cs.dataType);
-                    }
+                    builder.append(row.getSQL(colId, cs.getSqlType()));
                     if (csvColId != valIndexes.length - 1) {
                         builder.append(spliter);
                     } else {

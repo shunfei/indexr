@@ -11,6 +11,7 @@ public enum Version {
     VERSION_2(2, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '3'}),
     // VERSION_3 was eaten by a big dog.
     VERSION_4(4, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '4'}),
+    VERSION_5(5, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '5'}),
     //
     ;
 
@@ -19,9 +20,10 @@ public enum Version {
     public static final int VERSION_1_ID = 1;
     public static final int VERSION_2_ID = 2;
     public static final int VERSION_4_ID = 4;
+    public static final int VERSION_5_ID = 5;
 
     public static final int INDEXR_SEG_FILE_FLAG_SIZE = 8;
-    public static final Version LATEST = VERSION_4;
+    public static final Version LATEST = VERSION_5;
     public static final int LATEST_ID = LATEST.id;
 
     public final int id;
@@ -38,7 +40,7 @@ public enum Version {
                 return v;
             }
         }
-        return null;
+        throw new RuntimeException("Illegal version id: " + versionId);
     }
 
     public static Version check(ByteBufferReader reader) throws IOException {

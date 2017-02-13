@@ -3,7 +3,6 @@ package io.indexr.server.rt2his;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.SegmentSchema;
 
 public class HiveHelper {
@@ -14,19 +13,23 @@ public class HiveHelper {
                                                String location,
                                                String partitionColumn) throws Exception {
         String colDefStr = Joiner.on(",\n").join(Lists.transform(schema.getColumns(), sc -> {
-            switch (sc.getDataType()) {
-                case ColumnType.INT:
+            switch (sc.getSqlType()) {
+                case INT:
                     return String.format("  `%s` int", sc.getName());
-                case ColumnType.LONG:
+                case BIGINT:
                     return String.format("  `%s` bigint", sc.getName());
-                case ColumnType.FLOAT:
+                case FLOAT:
                     return String.format("  `%s` float", sc.getName());
-                case ColumnType.DOUBLE:
+                case DOUBLE:
                     return String.format("  `%s` double", sc.getName());
-                case ColumnType.STRING:
+                case VARCHAR:
                     return String.format("  `%s` string", sc.getName());
+                case DATE:
+                    return String.format("  `%s` date", sc.getName());
+                case DATETIME:
+                    return String.format("  `%s` timestamp", sc.getName());
                 default:
-                    throw new IllegalStateException("column type " + sc.getDataTypeName() + " is illegal");
+                    throw new IllegalStateException("Illegal type :" + sc.getSqlType());
             }
         }));
 

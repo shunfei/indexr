@@ -45,7 +45,7 @@ public class Integrated {
                 packSize += dpn.packSize();
             }
 
-            ColumnInfo info = new ColumnInfo(column.name(), column.dataType(), dpnSize, indexSize, packSize);
+            ColumnInfo info = new ColumnInfo(column.name(), column.sqlType().id, dpnSize, indexSize, packSize);
             sectionInfo.columnInfos[colId] = info;
         }
 
@@ -175,7 +175,7 @@ public class Integrated {
             }
             int colInfoSize = 0;
             for (ColumnInfo info : columnInfos) {
-                colInfoSize += info.infoSize();
+                colInfoSize += info.infoSize(version);
             }
             int size = 8 + 8 + 8 + 4 + cniSize + colInfoSize;
             return version == Version.VERSION_0_ID ? size : size + 8 + 4;
@@ -195,7 +195,7 @@ public class Integrated {
                 ColumnNodeInfo.write(cni, buffer);
             }
             for (ColumnInfo ci : si.columnInfos) {
-                ColumnInfo.write(ci, buffer);
+                ColumnInfo.write(si.version, ci, buffer);
             }
         }
 
@@ -224,7 +224,7 @@ public class Integrated {
 
             info.columnInfos = new ColumnInfo[info.columnCount];
             for (int i = 0; i < info.columnCount; i++) {
-                info.columnInfos[i] = ColumnInfo.read(buffer);
+                info.columnInfos[i] = ColumnInfo.read(version, buffer);
             }
 
             return info;
@@ -384,7 +384,7 @@ public class Integrated {
     public static class ColumnInfo {
         public int nameSize;
         public String name;
-        public byte dataType;
+        public int sqlType;
 
         public long dpnOffset;
         public long indexOffset;
@@ -395,10 +395,10 @@ public class Integrated {
         private int indexSize;
         private long packSize;
 
-        ColumnInfo(String name, byte dataType, int dpnSize, int indexSize, long packSize) {
+        ColumnInfo(String name, int sqlType, int dpnSize, int indexSize, long packSize) {
             nameSize = UTF8Util.toUtf8(name).length;
             this.name = name.intern();
-            this.dataType = dataType;
+            this.sqlType = sqlType;
             this.dpnSize = dpnSize;
             this.indexSize = indexSize;
             this.packSize = packSize;
@@ -414,7 +414,7 @@ public class Integrated {
             ColumnInfo info = (ColumnInfo) o;
 
             return nameSize == info.nameSize
-                    && dataType == info.dataType
+                    && sqlType == info.sqlType
                     && dpnOffset == info.dpnOffset
                     && indexOffset == info.indexOffset
                     && packOffset == info.packOffset
@@ -427,40 +427,52 @@ public class Integrated {
             packOffset = dataOffset + dpnSize + indexSize;
         }
 
-        int infoSize() {
-            return 4 + nameSize + 1 + 8 + 8 + 8;
+        int infoSize(int version) {
+            if (version < Version.VERSION_5_ID) {
+                return 4 + nameSize + 1 + 8 + 8 + 8;
+            } else {
+                return 4 + nameSize + 4 + 8 + 8 + 8;
+            }
         }
 
         long dataSize() {
             return (long) dpnSize + (long) indexSize + packSize;
         }
 
-        static void write(ColumnInfo ci, ByteBuffer buffer) {
+        static void write(int version, ColumnInfo ci, ByteBuffer buffer) {
             int pos = buffer.position();
 
             buffer.putInt(ci.nameSize);
             UTF8Util.toUtf8(buffer, ci.name);
-            buffer.put(ci.dataType);
+            if (version < Version.VERSION_5_ID) {
+                buffer.put((byte) ci.sqlType);
+            } else {
+                buffer.putInt(ci.sqlType);
+            }
             buffer.putLong(ci.dpnOffset);
             buffer.putLong(ci.indexOffset);
             buffer.putLong(ci.packOffset);
 
-            assert buffer.position() - pos == ci.infoSize();
+            assert buffer.position() - pos == ci.infoSize(version);
         }
 
-        static ColumnInfo read(ByteBuffer buffer) {
+        static ColumnInfo read(int version, ByteBuffer buffer) {
             int pos = buffer.position();
 
             ColumnInfo info = new ColumnInfo();
 
             info.nameSize = buffer.getInt();
             info.name = UTF8Util.fromUtf8(buffer, info.nameSize).intern();
-            info.dataType = buffer.get();
+            if (version < Version.VERSION_5_ID) {
+                info.sqlType = buffer.get();
+            } else {
+                info.sqlType = buffer.getInt();
+            }
             info.dpnOffset = buffer.getLong();
             info.indexOffset = buffer.getLong();
             info.packOffset = buffer.getLong();
 
-            assert buffer.position() - pos == info.infoSize();
+            assert buffer.position() - pos == info.infoSize(version);
 
             return info;
         }

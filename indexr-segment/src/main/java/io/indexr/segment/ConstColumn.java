@@ -10,7 +10,7 @@ import io.indexr.segment.pack.DataPackNode;
 
 public class ConstColumn implements Column {
     private String name;
-    private byte dataType;
+    private SQLType sqlType;
     private int packCount;
     private long rowCount;
     private long numValue;
@@ -18,9 +18,9 @@ public class ConstColumn implements Column {
     private DataPackNode dpn;
     private RSIndex index;
 
-    public ConstColumn(int version, String name, byte dataType, long rowCount, long numValue, UTF8String strValue) {
+    public ConstColumn(int version, String name, SQLType sqlType, long rowCount, long numValue, UTF8String strValue) {
         this.name = name;
-        this.dataType = dataType;
+        this.sqlType = sqlType;
         this.rowCount = rowCount;
         this.packCount = DataPack.rowCountToPackCount(rowCount);
         this.numValue = numValue;
@@ -30,9 +30,9 @@ public class ConstColumn implements Column {
         dpn.setMinValue(numValue);
         dpn.setMaxValue(numValue);
 
-        if (ColumnType.isNumber(dataType)) {
+        if (ColumnType.isNumber(sqlType.dataType)) {
             this.index = new RSIndexNum() {
-                boolean isFloat = ColumnType.isFloatPoint(dataType);
+                boolean isFloat = ColumnType.isFloatPoint(sqlType.dataType);
 
                 @Override
                 public byte isValue(int packId, long minVal, long maxVal, long packMin, long packMax) {
@@ -65,8 +65,8 @@ public class ConstColumn implements Column {
     }
 
     @Override
-    public byte dataType() {
-        return dataType;
+    public SQLType sqlType() {
+        return sqlType;
     }
 
     @Override

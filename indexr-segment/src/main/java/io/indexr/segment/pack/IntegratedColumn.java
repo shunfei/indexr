@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.segment.RSIndex;
+import io.indexr.segment.SQLType;
 
 public class IntegratedColumn extends StorageColumn {
     private ByteBufferReader.Opener dataSource;
@@ -20,7 +21,7 @@ public class IntegratedColumn extends StorageColumn {
                      long segmentId,
                      int columnId,
                      String name,
-                     byte dataType,
+                     SQLType sqlType,
                      long rowCount,
                      ByteBufferReader.Opener dataSource,
                      long dpnBase,
@@ -29,7 +30,7 @@ public class IntegratedColumn extends StorageColumn {
                      DpnCache dpnCache,
                      IndexMemCache indexMemCache,
                      PackMemCache packMemCache) {
-        super(version, columnId, name, dataType, rowCount);
+        super(version, columnId, name, sqlType, rowCount);
         this.dataSource = dataSource;
         this.dpnBase = dpnBase;
         this.indexBase = indexBase;
@@ -47,7 +48,7 @@ public class IntegratedColumn extends StorageColumn {
                 segmentId,
                 columnId,
                 name,
-                this.dataType,
+                this.sqlType,
                 this.rowCount(),
                 this.dataSource,
                 this.dpnBase,

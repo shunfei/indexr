@@ -51,7 +51,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.indexr.io.ByteBufferReader;
-import io.indexr.segment.ColumnType;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.pack.IntegratedSegment;
 import io.indexr.segment.pack.StorageSegment;
 import io.indexr.segment.pack.UpdateColSchema;
@@ -412,7 +412,7 @@ public class UpdateColumnJob extends Configured implements Tool {
             } catch (JsonProcessingException e) {
                 // this schema is not specified by json.
                 String[] strs = columns.split(",");
-                updateColSchemas = Lists.transform(Arrays.asList(strs), s -> new UpdateColSchema(s, ColumnType.STRING)); // type is not used.
+                updateColSchemas = Lists.transform(Arrays.asList(strs), s -> new UpdateColSchema(s, SQLType.VARCHAR, s)); // type is not used.
             }
         } else {
             System.out.println("please specify update mode -[add|del|alt]");

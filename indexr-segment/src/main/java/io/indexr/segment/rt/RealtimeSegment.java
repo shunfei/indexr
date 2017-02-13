@@ -497,9 +497,9 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
             Iterator<UTF8Row> it = map.values().iterator();
             while (it.hasNext()) {
                 UTF8Row row = it.next();
-                it.remove();
                 row.free();
             }
+            map.clear();
             Preconditions.checkState(map.isEmpty(), "Realtime rows map should be emptpy now.");
             rtResources.decMemoryUsage(memory);
         }

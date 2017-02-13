@@ -2,6 +2,7 @@ package io.indexr.segment.helper;
 
 import com.google.common.base.Preconditions;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.nio.ByteBuffer;
@@ -10,6 +11,8 @@ import java.util.List;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
+import io.indexr.segment.SQLType;
+import io.indexr.util.DateTimeUtil;
 import io.indexr.util.Trick;
 import io.indexr.util.UTF8Util;
 
@@ -26,47 +29,38 @@ public class SimpleRow implements Row {
     }
 
     public static class Builder {
-        private final byte[] columnTypes;
+        private final SQLType[] columnTypes;
 
         private ByteBuffer buffer;
         private int[] curSums;
         private int curColIndex;
 
-        public Builder(List<Byte> columnTypes) {
-            this(toByteArr(columnTypes));
-        }
-
         public static Builder createByColumnSchemas(List<ColumnSchema> columnSchemas) {
-            return new Builder(Trick.mapToList(columnSchemas, cs -> cs.dataType));
+            return new Builder(Trick.mapToList(columnSchemas, ColumnSchema::getSqlType));
         }
 
-        private static byte[] toByteArr(List<Byte> list) {
-            byte[] arr = new byte[list.size()];
-            for (int i = 0; i < arr.length; i++) {
-                arr[i] = list.get(i);
-            }
-            return arr;
-        }
-
-        public Builder(byte[] columnTypes) {
-            this.columnTypes = columnTypes;
+        public Builder(List<SQLType> columnTypes) {
+            this.columnTypes = columnTypes.toArray(new SQLType[columnTypes.size()]);
 
             int bufferSize = 0;
-            for (byte type : columnTypes) {
+            for (SQLType type : columnTypes) {
                 switch (type) {
-                    case ColumnType.INT:
+                    case INT:
+                    case TIME:
                         bufferSize += 4;
                         break;
-                    case ColumnType.LONG:
+                    case BIGINT:
+                    case DATE:
+                    case DATETIME:
                         bufferSize += 8;
                         break;
-                    case ColumnType.FLOAT:
+                    case FLOAT:
                         bufferSize += 4;
                         break;
-                    case ColumnType.DOUBLE:
+                    case DOUBLE:
                         bufferSize += 8;
                         break;
-                    case ColumnType.STRING:
+                    case VARCHAR:
                         bufferSize += ColumnType.MAX_STRING_UTF8_SIZE;
                         break;
                     default:
@@ -75,7 +69,7 @@ public class SimpleRow implements Row {
             }
 
             buffer = ByteBuffer.allocate(bufferSize);
-            curSums = new int[columnTypes.length];
+            curSums = new int[columnTypes.size()];
             curColIndex = 0;
         }
 
@@ -96,7 +90,8 @@ public class SimpleRow implements Row {
         }
 
         public void appendInt(int val) {
-            Preconditions.checkState(columnTypes[curColIndex] == ColumnType.INT);
+            assert columnTypes[curColIndex] == SQLType.INT
+                    || columnTypes[curColIndex] == SQLType.TIME;
 
             buffer.putInt(val);
             curSums[curColIndex] = buffer.position();
@@ -104,7 +99,9 @@ public class SimpleRow implements Row {
         }
 
         public void appendLong(long val) {
-            Preconditions.checkState(columnTypes[curColIndex] == ColumnType.LONG);
+            assert columnTypes[curColIndex] == SQLType.BIGINT
+                    || columnTypes[curColIndex] == SQLType.DATE
+                    || columnTypes[curColIndex] == SQLType.DATETIME;
 
             buffer.putLong(val);
             curSums[curColIndex] = buffer.position();
@@ -112,7 +109,7 @@ public class SimpleRow implements Row {
         }
 
         public void appendFloat(float val) {
-            Preconditions.checkState(columnTypes[curColIndex] == ColumnType.FLOAT);
+            assert columnTypes[curColIndex] == SQLType.FLOAT;
 
             buffer.putFloat(val);
             curSums[curColIndex] = buffer.position();
@@ -120,7 +117,7 @@ public class SimpleRow implements Row {
         }
 
         public void appendDouble(double val) {
-            Preconditions.checkState(columnTypes[curColIndex] == ColumnType.DOUBLE);
+            assert columnTypes[curColIndex] == SQLType.DOUBLE;
 
             buffer.putDouble(val);
             curSums[curColIndex] = buffer.position();
@@ -128,7 +125,7 @@ public class SimpleRow implements Row {
         }
 
         public void appendString(CharSequence val) {
-            Preconditions.checkState(columnTypes[curColIndex] == ColumnType.STRING);
+            assert columnTypes[curColIndex] == SQLType.VARCHAR;
 
             byte[] bytes = UTF8Util.toUtf8(val);
             buffer.put(bytes);
@@ -136,31 +133,44 @@ public class SimpleRow implements Row {
             curColIndex++;
         }
 
-        public void appendRawVals(List<String> rawVals) {
-            for (String rawVal : rawVals) {
+        public void appendStringFormVal(String val) {
+            SQLType type = columnTypes[curColIndex];
+            switch (type) {
+                case INT:
+                    appendInt(Strings.isEmpty(val) ? 0 : Integer.parseInt(val));
+                    break;
+                case BIGINT:
+                    appendLong(Strings.isEmpty(val) ? 0 : Long.parseLong(val));
+                    break;
+                case FLOAT:
+                    appendFloat(Strings.isEmpty(val) ? 0 : Float.parseFloat(val));
+                    break;
+                case DOUBLE:
+                    appendDouble(Strings.isEmpty(val) ? 0 : Double.parseDouble(val));
+                    break;
+                case VARCHAR:
+                    appendString(Strings.isEmpty(val) ? "" : val);
+                    break;
+                case DATE:
+                    appendLong(Strings.isEmpty(val) ? 0 : DateTimeUtil.parseDate(UTF8Util.toUtf8(val)));
+                    break;
+                case TIME:
+                    appendInt(Strings.isEmpty(val) ? 0 : DateTimeUtil.parseTime(UTF8Util.toUtf8(val)));
+                    break;
+                case DATETIME:
+                    appendLong(Strings.isEmpty(val) ? 0 : DateTimeUtil.parseDateTime(UTF8Util.toUtf8(val)));
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
+        }
+
+        public void appendStringFormVals(List<String> vals) {
+            for (String val : vals) {
                 if (curColIndex >= columnTypes.length) {
                     return;
                 }
-                byte type = columnTypes[curColIndex];
-                switch (type) {
-                    case ColumnType.INT:
-                        appendInt(Integer.parseInt(rawVal));
-                        break;
-                    case ColumnType.LONG:
-                        appendLong(Long.parseLong(rawVal));
-                        break;
-                    case ColumnType.FLOAT:
-                        appendFloat(Float.parseFloat(rawVal));
-                        break;
-                    case ColumnType.DOUBLE:
-                        appendDouble(Double.parseDouble(rawVal));
-                        break;
-                    case ColumnType.STRING:
-                        appendString(rawVal);
-                        break;
-                    default:
-                        throw new IllegalStateException();
-                }
+                appendStringFormVal(val);
             }
         }
     }

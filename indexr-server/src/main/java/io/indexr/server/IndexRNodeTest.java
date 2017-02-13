@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 
 import io.indexr.data.BytePiece;
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
@@ -82,20 +81,23 @@ public class IndexRNodeTest {
         }
         int colId = 0;
         for (ColumnSchema cs : schema.columns) {
-            switch (cs.getDataType()) {
-                case ColumnType.INT:
+            switch (cs.getSqlType()) {
+                case INT:
+                case TIME:
                     row.getInt(colId);
                     break;
-                case ColumnType.LONG:
+                case BIGINT:
+                case DATE:
+                case DATETIME:
                     row.getLong(colId);
                     break;
-                case ColumnType.FLOAT:
+                case FLOAT:
                     row.getFloat(colId);
                     break;
-                case ColumnType.DOUBLE:
+                case DOUBLE:
                     row.getDouble(colId);
                     break;
-                case ColumnType.STRING:
+                case VARCHAR:
                     row.getRaw(colId, bytePiece);
                     break;
                 default:

@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.indexr.query.BasicPlanner;
 import io.indexr.query.Catalog;
@@ -21,33 +20,32 @@ import io.indexr.query.QueryExecution;
 import io.indexr.query.QueryPlanner;
 import io.indexr.query.TaskContext;
 import io.indexr.query.TaskContextImpl;
-import io.indexr.query.expr.Evaluable;
 import io.indexr.query.plan.physical.PhysicalPlan;
 import io.indexr.query.row.InternalRow;
-import io.indexr.query.types.DataType;
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
-import io.indexr.util.ExtraStringUtil;
 
 public class SegmentScanTest {
     static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", ColumnType.INT),
-            new ColumnSchema("c1", ColumnType.LONG),
-            new ColumnSchema("c2", ColumnType.FLOAT),
-            new ColumnSchema("c3", ColumnType.DOUBLE),
-            new ColumnSchema("c4", ColumnType.STRING),
-            new ColumnSchema("c5", ColumnType.INT)
+            new ColumnSchema("c0", SQLType.INT),
+            new ColumnSchema("c1", SQLType.BIGINT),
+            new ColumnSchema("c2", SQLType.FLOAT),
+            new ColumnSchema("c3", SQLType.DOUBLE),
+            new ColumnSchema("c4", SQLType.VARCHAR),
+            new ColumnSchema("c5", SQLType.DATE),
+            new ColumnSchema("c6", SQLType.TIME),
+            new ColumnSchema("c5", SQLType.DATETIME)
     );
     static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
-    static String[][] rawRows = new String[][]{
-            {"89", "222222", "4.5", "9.1", "111", "12"},
-            {"3", String.valueOf(Long.MAX_VALUE), "4.5", "9.199", "mac", "33"},
-            {"14121", "99", "2.5", "11.1", "linux", "87"},
-            {"39", "11", String.valueOf(Float.MIN_VALUE), "1.51", "android", String.valueOf(Integer.MAX_VALUE)},
+    private static String[][] rawRows = new String[][]{
+            {"89", "222222", "4.5", "9.1", "windows", "2014-12-09", "00:00:00", "2014-12-09T00:00:00"},
+            {"3", String.valueOf(Long.MAX_VALUE), "4.5", "9.199", "mac", "1901-03-24", "11:43:56", "1901-03-24T11:43:56"},
+            {"14121", "99", "2.5", "11.1", "linux", "9999-01-01", "12:59:59", "9999-01-01T12:59:59"},
+            {String.valueOf(Integer.MAX_VALUE), "11", String.valueOf(Float.MIN_VALUE), "1.51", "android", "2741-1-3", "1:1:1", "2741-1-3T1:1:1"},
     };
     static List<Row> sample_rows = new ArrayList<>(rawRows.length);
     static int rowCount = 10; // DataPack.MAX_COUNT * 3 + 99;
@@ -57,9 +55,9 @@ public class SegmentScanTest {
     static long id = 1;
 
     static {
-        SimpleRow.Builder builder = new SimpleRow.Builder(columnSchemas.stream().map(schema -> schema.dataType).collect(Collectors.toList()));
+        SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(columnSchemas);
         for (int rowId = 0; rowId < rawRows.length; rowId++) {
-            builder.appendRawVals(Arrays.asList(rawRows[rowId]));
+            builder.appendStringFormVals(Arrays.asList(rawRows[rowId]));
             sample_rows.add(builder.buildAndReset());
         }
 
@@ -128,32 +126,6 @@ public class SegmentScanTest {
         };
     }
 
-    public static String rowText(InternalRow row, List<DataType> dataTypes) {
-        String s = "";
-        int i = 0;
-        for (DataType c : dataTypes) {
-            switch (c) {
-                case IntegerType:
-                    s += row.getInt(i) + "\t";
-                    break;
-                case LongType:
-                    s += row.getLong(i) + "\t";
-                    break;
-                case FloatType:
-                    s += row.getFloat(i) + "\t";
-                    break;
-                case DoubleType:
-                    s += row.getDouble(i) + "\t";
-                    break;
-                case StringType:
-                    s += row.getString(i) + "\t";
-                    break;
-            }
-            i++;
-        }
-        return ExtraStringUtil.trim(s, "\t");
-    }
-
     public static void main(String[] args) {
         //STRING sql = "SELECT user_id, sum(impressions) as sum_c1, count(*) as count from A where user_id > 1000 group by user_id having count >= 2  ";
         //STRING sql 0= "select c0, sum(c1), avg(c3) from A group by c0 limit 10";
@@ -195,11 +167,8 @@ public class SegmentScanTest {
         System.out.println("physicalPlan: =========\n" + execution.physicalPlan());
         System.out.println("physicalPlan: =========\n");
 
-        List<DataType> dataTypeList = execution.physicalPlan().output().stream().map(Evaluable::dataType).collect(Collectors.toList());
         Iterator<InternalRow> res = execution.result();
-        while (res.hasNext()) {
-            System.out.println(rowText(res.next(), dataTypeList));
-        }
+        SegmentSelectHelper.printRows(res, columnSchemas);
 
         taskContext.markTaskCompleted();
         long freedMemory = taskContext.taskMemoryManager().cleanUpAllAllocatedMemory();

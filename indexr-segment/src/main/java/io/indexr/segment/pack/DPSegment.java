@@ -55,7 +55,7 @@ public class DPSegment extends StorageSegment<DPColumn> {
     private boolean update;
 
     DPSegment(int version, Path segmentPath, String name, SegmentSchema schema, long rowCount) throws IOException {
-        super(version, name, schema, rowCount, (ci, sc, rc) -> new DPColumn(version, ci, sc.name, sc.dataType, rc, segmentPath));
+        super(version, name, schema, rowCount, (ci, sc, rc) -> new DPColumn(version, ci, sc.name, sc.sqlType, rc, segmentPath));
         this.segmentPath = segmentPath;
     }
 
@@ -203,7 +203,7 @@ public class DPSegment extends StorageSegment<DPColumn> {
 
         for (int colId = 0; colId < columns.size(); colId++) {
             DPColumn column = columns.get(colId);
-            switch (segmentSchema.columns.get(colId).dataType) {
+            switch (segmentSchema.columns.get(colId).getDataType()) {
                 case ColumnType.INT:
                     column.add(row.getInt(colId));
                     break;

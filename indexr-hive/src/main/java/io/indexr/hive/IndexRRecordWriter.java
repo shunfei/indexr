@@ -6,6 +6,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.ArrayWritable;
@@ -25,17 +27,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
 import io.indexr.segment.pack.OpenOption;
+import io.indexr.util.DateTimeUtil;
 
 public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, RecordWriter<Void, ArrayWritable> {
     private static final Log logger = LogFactory.getLog(IndexRRecordWriter.class);
 
     private DPSegment segment;
-    private byte[] columnTypes;
+    private SQLType[] sqlTypes;
     private SimpleRow.Builder rowBuilder;
     private FileSystem fileSystem;
     private java.nio.file.Path localSegmentPath;
@@ -59,10 +62,10 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
         this.segmentOutPath = finalOutPath;
 
         SegmentSchema schema = convertToIndexRSchema(columnNames, columnTypes);
-        this.columnTypes = new byte[schema.columns.size()];
+        this.sqlTypes = new SQLType[schema.columns.size()];
         int i = 0;
         for (ColumnSchema sc : schema.columns) {
-            this.columnTypes[i] = sc.dataType;
+            this.sqlTypes[i] = sc.getSqlType();
             i++;
         }
         this.rowBuilder = SimpleRow.Builder.createByColumnSchemas(schema.columns);
@@ -76,18 +79,22 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
         for (int i = 0; i < columnNames.size(); i++) {
             String currentColumn = columnNames.get(i);
             TypeInfo currentType = columnTypes.get(i);
-            Byte convertedType = null;
+            SQLType convertedType = null;
 
             if (currentType.equals(TypeInfoFactory.intTypeInfo)) {
-                convertedType = ColumnType.INT;
+                convertedType = SQLType.INT;
             } else if (currentType.equals(TypeInfoFactory.longTypeInfo)) {
-                convertedType = ColumnType.LONG;
+                convertedType = SQLType.BIGINT;
             } else if (currentType.equals(TypeInfoFactory.floatTypeInfo)) {
-                convertedType = ColumnType.FLOAT;
+                convertedType = SQLType.FLOAT;
             } else if (currentType.equals(TypeInfoFactory.doubleTypeInfo)) {
-                convertedType = ColumnType.DOUBLE;
+                convertedType = SQLType.DOUBLE;
             } else if (currentType.equals(TypeInfoFactory.stringTypeInfo)) {
-                convertedType = ColumnType.STRING;
+                convertedType = SQLType.VARCHAR;
+            } else if (currentType.equals(TypeInfoFactory.dateTypeInfo)) {
+                convertedType = SQLType.DATE;
+            } else if (currentType.equals(TypeInfoFactory.timestampTypeInfo)) {
+                convertedType = SQLType.DATETIME;
             } else {
                 throw new IOException("can't recognize this type [" + currentType.getTypeName() + "]");
             }
@@ -100,43 +107,57 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
     @Override
     public void write(Writable w) throws IOException {
         ArrayWritable datas = (ArrayWritable) w;
-        for (int colId = 0; colId < columnTypes.length; colId++) {
-            byte type = columnTypes[colId];
+        for (int colId = 0; colId < sqlTypes.length; colId++) {
+            SQLType type = sqlTypes[colId];
             Writable currentValue = datas.get()[colId];
             switch (type) {
-                case ColumnType.INT:
+                case INT:
                     if (currentValue == null) {
                         rowBuilder.appendInt(0);
                     } else {
                         rowBuilder.appendInt(((IntWritable) currentValue).get());
                     }
                     break;
-                case ColumnType.LONG:
+                case BIGINT:
                     if (currentValue == null) {
                         rowBuilder.appendLong(0L);
                     } else {
                         rowBuilder.appendLong(((LongWritable) currentValue).get());
                     }
                     break;
-                case ColumnType.FLOAT:
+                case FLOAT:
                     if (currentValue == null) {
                         rowBuilder.appendFloat(0f);
                     } else {
                         rowBuilder.appendFloat(((FloatWritable) currentValue).get());
                     }
                     break;
-                case ColumnType.DOUBLE:
+                case DOUBLE:
                     if (currentValue == null) {
                         rowBuilder.appendDouble(0d);
                     } else {
                         rowBuilder.appendDouble(((DoubleWritable) currentValue).get());
                     }
                     break;
-                case ColumnType.STRING:
+                case VARCHAR:
                     if (currentValue == null) {
                         rowBuilder.appendString("");
                     } else {
                         rowBuilder.appendString(((Text) currentValue).toString());
+                    }
+                    break;
+                case DATE:
+                    if (currentValue == null) {
+                        rowBuilder.appendLong(0);
+                    } else {
+                        rowBuilder.appendLong(DateTimeUtil.getEpochMillisecond(((DateWritable) currentValue).get()));
+                    }
+                    break;
+                case DATETIME:
+                    if (currentValue == null) {
+                        rowBuilder.appendLong(0);
+                    } else {
+                        rowBuilder.appendLong(DateTimeUtil.getEpochMillisecond(((TimestampWritable) currentValue).getTimestamp()));
                     }
                     break;
                 default:

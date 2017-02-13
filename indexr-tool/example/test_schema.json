@@ -2,7 +2,8 @@
     "schema":{
         "columns":
         [
-            {"name": "date", "dataType": "int"},
+            {"name": "date", "dataType": "date"},
+            {"name": "datetime", "dataType": "datetime"},
             {"name": "d1", "dataType": "string"},
             {"name": "m1", "dataType": "int"},
             {"name": "m2", "dataType": "long"},
@@ -14,6 +15,7 @@
         "grouping": true,
         "dims": [
             "date",
+            "datetime",
             "d1"
         ],
         "metrics": [
@@ -25,11 +27,6 @@
         "name.alias": {
             "date": "dt",
             "m1": "m1_alias"
-        },
-        "tag.setting": {
-            "tag.field": "_tag_",
-            "accept.tags": ["a"],
-            "accept.none": false
         },
         "save.period.minutes": 20,
         "upload.period.minutes": 60,

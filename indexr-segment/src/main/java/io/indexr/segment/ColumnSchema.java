@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 
 import io.indexr.util.JsonUtil;
 
@@ -13,10 +12,7 @@ public class ColumnSchema {
     @JsonIgnore
     public final String name;
     @JsonIgnore
-    /** @see {@link ColumnType} */
-    public final byte dataType;
-    @JsonIgnore
-    public final String dataTypeName;
+    public final SQLType sqlType;
 
     // Those fields below only used by realtime ingestion.
     @JsonIgnore
@@ -26,31 +22,24 @@ public class ColumnSchema {
 
     @JsonCreator
     public ColumnSchema(@JsonProperty("name") String name,
-                        @JsonProperty("dataType") String dataTypeName,
+                        @JsonProperty("dataType") String sqlTypeName,
                         @JsonProperty("default") String defaultValue) {
-        this(name, ColumnType.fromName(dataTypeName), defaultValue);
+        this(name, SQLType.fromName(sqlTypeName), defaultValue);
     }
 
     public ColumnSchema(String name,
-                        byte dataType) {
-        this(name, dataType, "");
+                        SQLType sqlType) {
+        this(name, sqlType, "");
     }
 
     public ColumnSchema(String name,
-                        byte dataType,
+                        SQLType sqlType,
                         String defaultValue) {
         this.name = name.intern();
-        this.dataTypeName = ColumnType.toName(dataType);
-        this.dataType = dataType;
+        this.sqlType = sqlType;
         this.defaultStringValue = defaultValue == null ? "" : defaultValue.intern();
-        if (ColumnType.isNumber(dataType)) {
-            this.defaultNumberValue = Strings.isEmpty(defaultStringValue)
-                    ? 0 : ColumnType.castStringToNumber(defaultStringValue, dataType);
-        } else {
-            this.defaultNumberValue = 0;
-        }
+        this.defaultNumberValue = sqlType.isNumber() ? SQLType.parseNumber(sqlType, defaultValue) : 0;
     }
-
 
     @JsonProperty("name")
     public String getName() {
@@ -59,12 +48,17 @@ public class ColumnSchema {
 
     @JsonIgnore
     public byte getDataType() {
-        return dataType;
+        return sqlType.dataType;
+    }
+
+    @JsonIgnore
+    public SQLType getSqlType() {
+        return sqlType;
     }
 
     @JsonProperty("dataType")
-    public String getDataTypeName() {
-        return dataTypeName;
+    public String getSQLTypeName() {
+        return sqlType.name();
     }
 
     @JsonProperty("default")
@@ -92,6 +86,6 @@ public class ColumnSchema {
         }
         ColumnSchema otherCS = (ColumnSchema) other;
         return StringUtils.equals(name, otherCS.name)
-                && dataType == otherCS.dataType;
+                && sqlType == otherCS.sqlType;
     }
 }

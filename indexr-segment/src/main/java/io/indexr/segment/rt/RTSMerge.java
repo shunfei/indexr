@@ -176,7 +176,7 @@ public class RTSMerge {
                 creator.onColumnId(id);
 
                 ColumnSchema cs = csList.get(id);
-                switch (cs.dataType) {
+                switch (cs.getDataType()) {
                     case ColumnType.INT:
                         creator.onIntValue(row.getInt(id));
                         break;
@@ -195,7 +195,7 @@ public class RTSMerge {
                         creator.onStringValue(bp.addr, bp.len);
                         break;
                     default:
-                        throw new IllegalStateException("column type " + cs.dataType + " is illegal");
+                        throw new IllegalStateException("Illegal type: " + cs.getDataType());
                 }
             }
             return creator.endRow();

@@ -83,7 +83,7 @@ public class UTF8JsonRowCreator implements UTF8JsonDeserializer.Listener {
     }
 
     @Override
-    public byte onKey(ByteBuffer key, int size) {
+    public int onKey(ByteBuffer key, int size) {
         return creator.onColumnUTF8Name(key, size);
     }
 

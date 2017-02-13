@@ -7,17 +7,19 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.directory.api.util.Strings;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
 
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.rt.Fetcher;
 import io.indexr.segment.rt.UTF8JsonRowCreator;
 import io.indexr.segment.rt.UTF8Row;
+import io.indexr.util.DateTimeUtil;
 
 public class TestFetcher implements Fetcher {
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHH");
@@ -82,23 +84,33 @@ public class TestFetcher implements Fetcher {
         }
         for (ColumnSchema cs : schema.getColumns()) {
             sb.append('\"').append(cs.getName()).append("\": ");
-            if ("time".equals(cs.getName())) {
-                ZonedDateTime now = ZonedDateTime.now();
-                long calValue = Long.parseLong(now.format(timeFormatter));
-                //long calValue = v++;
-                sb.append(calValue);
-            } else {
-                if (randomValue) {
-                    if (cs.getDataType() == ColumnType.STRING) {
+            switch (cs.getSqlType()) {
+                case DATE:
+                    LocalDate date = LocalDate.now();
+                    sb.append('\"').append(date.format(DateTimeUtil.DATE_FORMATTER)).append('\"');
+                    break;
+                case TIME:
+                    LocalTime time = LocalTime.now();
+                    sb.append('\"').append(time.format(DateTimeUtil.TIME_FORMATTER)).append('\"');
+                    break;
+                case DATETIME:
+                    LocalDateTime dateTime = LocalDateTime.now();
+                    sb.append('\"').append(dateTime.format(DateTimeUtil.DATETIME_FORMATTER)).append('\"');
+                    break;
+                case VARCHAR:
+                    if (randomValue) {
                         String colValue = RandomStringUtils.randomAlphabetic(random.nextInt(20));
                         sb.append('\"').append(colValue).append('\"');
                     } else {
-                        long colValue = random.nextInt();
-                        sb.append(colValue);
+                        sb.append("\"1\"");
                     }
-                } else {
-                    sb.append("\"1\"");
-                }
+                    break;
+                default:
+                    if (randomValue) {
+                        sb.append(random.nextInt());
+                    } else {
+                        sb.append(1);
+                    }
             }
 
             colId++;

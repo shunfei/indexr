@@ -62,7 +62,7 @@ public class Equal extends ColCmpVal {
 
         int colId = attr.columnId();
         ColumnNode columnNode = segment.columnNode(colId);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         if (ColumnType.isNumber(type)) {
             return RoughCheck_N.equalCheckOnColumn(columnNode, type, numValue);
         } else {
@@ -73,7 +73,7 @@ public class Equal extends ColCmpVal {
     @Override
     public byte roughCheckOnRow(DataPack[] rowPacks) {
         DataPack pack = rowPacks[attr.columnId()];
-        byte type = attr.columType();
+        byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
         switch (type) {
@@ -113,7 +113,7 @@ public class Equal extends ColCmpVal {
         DataPack pack = rowPacks[attr.columnId()];
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(rowCount);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         switch (type) {
             case ColumnType.STRING: {
                 BytePiece bp = new BytePiece();

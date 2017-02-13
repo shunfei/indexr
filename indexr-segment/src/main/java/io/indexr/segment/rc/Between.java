@@ -93,7 +93,7 @@ public class Between implements CmpOperator {
 
         int colId = attr.columnId();
         ColumnNode columnNode = segment.columnNode(colId);
-        byte type = attr.columType();
+        byte type = attr.dataType();
         if (ColumnType.isNumber(type)) {
             return RoughCheck_N.betweenCheckOnColumn(columnNode, type, numValue1, numValue2);
         } else {
@@ -104,7 +104,7 @@ public class Between implements CmpOperator {
     @Override
     public byte roughCheckOnRow(DataPack[] rowPacks) {
         DataPack pack = rowPacks[attr.columnId()];
-        byte type = attr.columType();
+        byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
         switch (type) {
@@ -153,7 +153,7 @@ public class Between implements CmpOperator {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         if (hitCount == rowCount) {
             return RSValue.All;
@@ -169,7 +169,7 @@ public class Between implements CmpOperator {
         DataPack pack = rowPacks[attr.columnId()];
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(pack.objCount());
-        switch (attr.columType()) {
+        switch (attr.dataType()) {
             case ColumnType.INT: {
                 int min = (int) numValue1;
                 int max = (int) numValue2;
@@ -207,7 +207,7 @@ public class Between implements CmpOperator {
                 break;
             }
             default:
-                throw new IllegalStateException("column type " + attr.columType() + " is illegal in " + getType().toUpperCase());
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         return colRes;
     }

@@ -35,6 +35,7 @@ import io.indexr.segment.ColumnType;
 import io.indexr.segment.DPValues;
 import io.indexr.segment.Row;
 import io.indexr.segment.RowTraversal;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.util.MemoryUtil;
@@ -42,13 +43,14 @@ import io.indexr.util.MemoryUtil;
 public class SegmentBenchmark {
 
     private static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", ColumnType.INT),
-            new ColumnSchema("c1", ColumnType.LONG),
-            new ColumnSchema("c2", ColumnType.FLOAT),
-            new ColumnSchema("c3", ColumnType.DOUBLE),
-            // STRING hurt performance too much, skip it now.
-            //new ColumnSchema("c4", ColumnType.STRING),
-            new ColumnSchema("c5", ColumnType.INT)
+            new ColumnSchema("c0", SQLType.INT),
+            new ColumnSchema("c1", SQLType.BIGINT),
+            new ColumnSchema("c2", SQLType.FLOAT),
+            new ColumnSchema("c3", SQLType.DOUBLE),
+            new ColumnSchema("c4", SQLType.VARCHAR),
+            new ColumnSchema("c5", SQLType.DATE),
+            new ColumnSchema("c6", SQLType.TIME),
+            new ColumnSchema("c5", SQLType.DATETIME)
     );
     private static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
 
@@ -123,7 +125,7 @@ public class SegmentBenchmark {
         public void accept(Row row) {
             for (int colId = 0; colId < colSchemas.size(); colId++) {
                 ColumnSchema cs = colSchemas.get(colId);
-                switch (cs.dataType) {
+                switch (cs.getDataType()) {
                     case ColumnType.INT:
                         row.getInt(colId);
                         break;
@@ -351,7 +353,7 @@ public class SegmentBenchmark {
         for (int colId = 0; colId < columnSchemas.size(); colId++) {
             Column column = columns[colId];
             ColumnSchema cs = columnSchemas.get(colId);
-            switch (cs.dataType) {
+            switch (cs.getDataType()) {
                 case ColumnType.INT:
                     for (int packId = 0; packId < packCount; packId++) {
                         DataPack pack = (DataPack) column.pack(packId);

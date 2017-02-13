@@ -22,6 +22,7 @@ import io.indexr.data.BytePiece;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
+import io.indexr.segment.SQLType;
 import io.indexr.util.ByteArrayWrapper;
 import io.indexr.util.MemoryUtil;
 import io.indexr.util.Serializable;
@@ -87,9 +88,9 @@ public class UTF8Row implements Row, Serializable {
         private final int columnCount;
 
         // colId -> type
-        private final byte[] columnTypes;
+        private final SQLType[] columnTypes;
         // index -> type
-        private final byte[] indexTypes;
+        private final SQLType[] indexTypes;
         // metric agg types.
         private final int[] indexAggTypes;
 
@@ -142,8 +143,8 @@ public class UTF8Row implements Row, Serializable {
             this.columnCount = columnSchemas.size();
 
             this.nameToIndex = new HashMap<>(columnCount);
-            this.columnTypes = new byte[columnCount];
-            this.indexTypes = new byte[columnCount];
+            this.columnTypes = new SQLType[columnCount];
+            this.indexTypes = new SQLType[columnCount];
             this.numDefaultValues = new long[columnCount];
             this.strDefaultValues = new byte[columnCount][];
             this.hasDims = dims != null && dims.size() != 0;
@@ -158,7 +159,7 @@ public class UTF8Row implements Row, Serializable {
 
             for (int i = 0; i < columnCount; i++) {
                 ColumnSchema cs = columnSchemas.get(i);
-                columnTypes[i] = cs.getDataType();
+                columnTypes[i] = cs.getSqlType();
             }
 
             if (nameToAlias != null && !nameToAlias.isEmpty()) {
@@ -263,12 +264,12 @@ public class UTF8Row implements Row, Serializable {
             int bufferSize = 0;
             for (int i = 0; i < columnCount; i++) {
                 ColumnSchema cs = finalSchema.get(i);
-                byte type = cs.getDataType();
+                SQLType type = cs.getSqlType();
                 indexTypes[i] = type;
                 numDefaultValues[i] = cs.getDefaultNumberValue();
                 strDefaultValues[i] = UTF8Util.toUtf8(cs.getDefaultStringValue());
 
-                bufferSize += ColumnType.bufferSize(type);
+                bufferSize += ColumnType.bufferSize(type.dataType);
                 byte[] utf8Name = UTF8Util.toUtf8(cs.getName());
                 nameToIndex.put(new ByteArrayWrapper(utf8Name), i);
             }
@@ -303,7 +304,7 @@ public class UTF8Row implements Row, Serializable {
                     continue;
                 }
                 onColumnIndex(index);
-                switch (indexTypes[index]) {
+                switch (indexTypes[index].dataType) {
                     case ColumnType.STRING:
                         onStringValue(strDefaultValues[index]);
                         break;
@@ -326,7 +327,7 @@ public class UTF8Row implements Row, Serializable {
 
                 int curRawDataOffset = dimValueSize;
                 for (int dimId = 0; dimId < dimCount; dimId++) {
-                    byte type = indexTypes[dimId];
+                    byte type = indexTypes[dimId].dataType;
                     if (type == ColumnType.STRING) {
                         long offsetAndLen = MemoryUtil.getLong(rowDataAddr + (dimId << 3));
                         int offset = (int) (offsetAndLen >>> 32);
@@ -351,7 +352,7 @@ public class UTF8Row implements Row, Serializable {
 
                 curRawDataOffset += metricValueSize;
                 for (int metricId = 0; metricId < metricCount; metricId++) {
-                    byte type = indexTypes[dimCount + metricId];
+                    byte type = indexTypes[dimCount + metricId].dataType;
                     if (type == ColumnType.STRING) {
                         long offsetAndLen = MemoryUtil.getLong(rowDataAddr + dimDataSize + (metricId << 3));
                         int offset = (int) (offsetAndLen >>> 32);
@@ -376,7 +377,7 @@ public class UTF8Row implements Row, Serializable {
 
                 int curRawDataOffset = valueSize;
                 for (int index = 0; index < columnCount; index++) {
-                    byte type = indexTypes[index];
+                    byte type = indexTypes[index].dataType;
                     if (type == ColumnType.STRING) {
                         long offsetAndLen = MemoryUtil.getLong(rowDataAddr + (index << 3));
                         int offset = (int) (offsetAndLen >>> 32);
@@ -455,7 +456,7 @@ public class UTF8Row implements Row, Serializable {
             return buildRow();
         }
 
-        public byte onColumnUTF8Name(ByteBuffer key, int size) {
+        public int onColumnUTF8Name(ByteBuffer key, int size) {
             assert key.hasArray() && key.arrayOffset() == 0;
 
             if (curRowIgnore) {
@@ -472,7 +473,7 @@ public class UTF8Row implements Row, Serializable {
                 // The tag field always be string.
                 curRowIsTagField = true;
                 curRowHasTagField = true;
-                return UTF8JsonDeserializer.STRING;
+                return UTF8JsonDeserializer.VARCHAR;
             }
 
             cmpWrapper.set(arr, offset, size);
@@ -489,7 +490,7 @@ public class UTF8Row implements Row, Serializable {
             if (index == null) {
                 return -1;
             } else {
-                return indexTypes[index];
+                return indexTypes[index].id;
             }
         }
 
@@ -616,9 +617,9 @@ public class UTF8Row implements Row, Serializable {
             startRow();
             while (byteBuffer.position() < pos + size) {
                 int colId = byteBuffer.getShort();
-                byte type = columnTypes[colId];
+                SQLType type = columnTypes[colId];
                 onColumnIndex(colIdToIndex[colId]);
-                switch (type) {
+                switch (type.dataType) {
                     case ColumnType.INT:
                         onIntValue(byteBuffer.getInt());
                         break;
@@ -710,7 +711,7 @@ public class UTF8Row implements Row, Serializable {
             for (int i = 0; i < dimCount; i++) {
                 word1 = MemoryUtil.getLong(rowDataAddr1 + (i << 3));
                 word2 = MemoryUtil.getLong(rowDataAddr2 + (i << 3));
-                if (r1.creator.indexTypes[i] == ColumnType.STRING) {
+                if (r1.creator.indexTypes[i].dataType == ColumnType.STRING) {
                     int offset1 = (int) (word1 >>> 32);
                     int len1 = (int) word1 & ColumnType.MAX_STRING_UTF8_SIZE_MASK;
 
@@ -770,9 +771,9 @@ public class UTF8Row implements Row, Serializable {
         for (ColumnSchema cs : creator.originalSchema) {
             sb.append('\"').append(cs.getName()).append("\": ");
             if (cs.getDataType() == ColumnType.STRING) {
-                sb.append('\"').append(getDisplayString(colId, cs.getDataType())).append('\"');
+                sb.append('\"').append(getInternalString(colId, cs.getDataType())).append('\"');
             } else {
-                sb.append(getDisplayString(colId, cs.getDataType()));
+                sb.append(getInternalString(colId, cs.getDataType()));
             }
             colId++;
             if (colId < creator.columnCount) {
@@ -800,7 +801,7 @@ public class UTF8Row implements Row, Serializable {
             byteBuffer.putShort((short) colId);
             size += 2;
             // Store in real type instead of long to reduce size.
-            byte type = creator.columnTypes[colId];
+            byte type = creator.columnTypes[colId].dataType;
             switch (type) {
                 case ColumnType.INT:
                     byteBuffer.putInt(getInt(colId));
@@ -867,7 +868,7 @@ public class UTF8Row implements Row, Serializable {
         }
 
         for (int index = creator.dimCount; index < creator.columnCount; index++) {
-            byte type = creator.indexTypes[index];
+            byte type = creator.indexTypes[index].dataType;
             int aggType = creator.indexAggTypes[index];
             int metricIndex = index - creator.dimCount;
             long offset = dimDataSize + (metricIndex << 3);

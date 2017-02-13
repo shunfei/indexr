@@ -18,6 +18,7 @@ import io.indexr.io.ByteBufferWriter;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.PackRSIndex;
 import io.indexr.segment.RSIndex;
+import io.indexr.segment.SQLType;
 import io.indexr.util.Pair;
 
 public class DPColumn extends StorageColumn {
@@ -30,13 +31,13 @@ public class DPColumn extends StorageColumn {
     DPColumn(int version,
              int columnId,
              String name,
-             byte dataType,
+             SQLType sqlType,
              long rowCount,
              Path segmentPath) {
         this(version,
                 columnId,
                 name,
-                dataType,
+                sqlType,
                 rowCount,
                 segmentPath.resolve(name + ".dpn"),
                 segmentPath.resolve(name + ".index"),
@@ -46,12 +47,12 @@ public class DPColumn extends StorageColumn {
     DPColumn(int version,
              int columnId,
              String name,
-             byte dataType,
+             SQLType sqlType,
              long rowCount,
              Path dpnFilePath,
              Path indexFilePath,
              Path packFilePath) {
-        super(version, columnId, name, dataType, rowCount);
+        super(version, columnId, name, sqlType, rowCount);
         this.dpnFilePath = dpnFilePath;
         this.indexFilePath = indexFilePath;
         this.packFilePath = packFilePath;
@@ -63,7 +64,7 @@ public class DPColumn extends StorageColumn {
                 version,
                 columnId,
                 name,
-                this.dataType,
+                this.sqlType,
                 this.rowCount(),
                 this.dpnFilePath,
                 this.indexFilePath,
@@ -163,7 +164,7 @@ public class DPColumn extends StorageColumn {
             packFileOffset = 0;
             dpnFileOffset = 0;
             indexFileOffset = 0;
-            cache = new VirtualDataPack(dataType, null);
+            cache = new VirtualDataPack(sqlType.dataType, null);
         } else {
             DataPackNode[] dpns = getDPNs();
             DataPackNode lastDPN = dpns[dpns.length - 1];
@@ -173,7 +174,7 @@ public class DPColumn extends StorageColumn {
                 packFileOffset = lastDPN.packAddr() + lastDPN.packSize();
                 dpnFileOffset = DataPackNode.SERIALIZED_SIZE * packCount;
                 indexFileOffset = lastDPN.indexAddr() + lastDPN.indexSize();
-                cache = new VirtualDataPack(dataType, null);
+                cache = new VirtualDataPack(sqlType.dataType, null);
             } else {
                 // Last pack is not full, we need to append new data into it.
 
@@ -186,13 +187,13 @@ public class DPColumn extends StorageColumn {
                 lastPack.decompress(lastDPN);
                 packCount--;
 
-                cache = new VirtualDataPack(dataType, lastPack);
+                cache = new VirtualDataPack(sqlType.dataType, lastPack);
                 lastPack.free();
             }
         }
 
         // Set up index.
-        switch (dataType) {
+        switch (sqlType.dataType) {
             case ColumnType.INT:
             case ColumnType.LONG:
                 packIndex = new RSIndex_Histogram.HistPackIndex(false);
@@ -216,7 +217,7 @@ public class DPColumn extends StorageColumn {
                 }
                 break;
             default:
-                throw new IllegalArgumentException(String.format("Not support data type of %s", dataType));
+                throw new IllegalArgumentException(String.format("Not support data type of %s", sqlType.dataType));
         }
     }
 
@@ -375,7 +376,7 @@ public class DPColumn extends StorageColumn {
         }
 
         // Now append fragment packs' value.
-        switch (dataType) {
+        switch (sqlType.dataType) {
             case ColumnType.INT:
                 for (DataPack pack : appendByRows) {
                     for (int i = 0; i < pack.count(); i++) {
@@ -417,7 +418,7 @@ public class DPColumn extends StorageColumn {
                 }
                 break;
             default:
-                throw new IllegalStateException(String.format("Not support data type of %s", dataType));
+                throw new IllegalStateException(String.format("Not support data type of %s", sqlType.dataType));
         }
 
         seal();

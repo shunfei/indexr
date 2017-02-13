@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
-import io.indexr.segment.ColumnType;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.pack.Integrated.SectionInfo;
@@ -183,23 +183,27 @@ public class IntegratedTest {
 
         System.out.println("baseSegment=============");
         SegmentSelectHelper.selectSegment(baseSegment, "select * from A limit 10", itr -> {
-            SegmentSelectHelper.printRows(itr, baseSegment.schema());
+            SegmentSelectHelper.printRows(itr, baseSegment.schema().getColumns());
         });
 
 
         // add
         System.out.println("addColumnSegment=============");
         List<UpdateColSchema> addColumns = Arrays.asList(
-                new UpdateColSchema("_c0", ColumnType.INT, "c0"),
-                new UpdateColSchema("_c1", ColumnType.LONG, "c1"),
-                new UpdateColSchema("_c2", ColumnType.FLOAT, "c2"),
-                new UpdateColSchema("_c3", ColumnType.DOUBLE, "c3"),
-                new UpdateColSchema("_c4", ColumnType.STRING, "c4"),
+                new UpdateColSchema("_c0", SQLType.INT, "c0"),
+                new UpdateColSchema("_c1", SQLType.BIGINT, "c1"),
+                new UpdateColSchema("_c2", SQLType.FLOAT, "c2"),
+                new UpdateColSchema("_c3", SQLType.DOUBLE, "c3"),
+                new UpdateColSchema("_c4", SQLType.VARCHAR, "c4"),
 
-                new UpdateColSchema("_cstr", ColumnType.STRING, "cast(c0, string)"),
-                new UpdateColSchema("_ccast", ColumnType.STRING, "cast(c0 + c3, string)"),
-                new UpdateColSchema("_cplus", ColumnType.FLOAT, "c0 + c1 + c2"),
-                new UpdateColSchema("_cif", ColumnType.INT, "if((c0 > 100), 100, 10)")
+                new UpdateColSchema("_cstr", SQLType.VARCHAR, "cast(c0, string)"),
+                new UpdateColSchema("_ccast", SQLType.VARCHAR, "cast(c0 + c3, string)"),
+                new UpdateColSchema("_cplus", SQLType.FLOAT, "c0 + c1 + c2"),
+                new UpdateColSchema("_cif", SQLType.INT, "if((c0 > 100), 100, 10)"),
+
+                new UpdateColSchema("_date", SQLType.DATE, "'2015-09-12'"),
+                new UpdateColSchema("_time", SQLType.TIME, "'23:59:59'"),
+                new UpdateColSchema("_datetime", SQLType.DATETIME, "'2015-09-12T23:59:59'")
         );
 
         Path addStorePath = workDir.resolve(".segment_add." + RandomStringUtils.randomAlphabetic(8));
@@ -207,7 +211,7 @@ public class IntegratedTest {
         StorageSegment addSegment = UpdateColSegment.addColumn("add_segment", baseSegment, addColumns, addStorePath);
 
         SegmentSelectHelper.selectSegment(addSegment, "select * from A limit 10", itr -> {
-            SegmentSelectHelper.printRows(itr, addSegment.schema());
+            SegmentSelectHelper.printRows(itr, addSegment.schema().getColumns());
         });
 
 
@@ -218,7 +222,7 @@ public class IntegratedTest {
         StorageSegment deleteSegment = UpdateColSegment.deleteColumn("delete_segment", addSegment, deleteColumns);
 
         SegmentSelectHelper.selectSegment(deleteSegment, "select * from A limit 10", itr -> {
-            SegmentSelectHelper.printRows(itr, deleteSegment.schema());
+            SegmentSelectHelper.printRows(itr, deleteSegment.schema().getColumns());
         });
 
         DPSegmentTest.rowsCmp(baseSegment.rowTraversal().iterator(), deleteSegment.rowTraversal().iterator());
@@ -227,11 +231,11 @@ public class IntegratedTest {
         System.out.println("alterColumnSegment=============");
 
         List<UpdateColSchema> alterColumns = Arrays.asList(
-                new UpdateColSchema("c0", ColumnType.STRING, "cast(c0, string)"),
-                new UpdateColSchema("c1", ColumnType.STRING, "cast(c0 + c3, string)"),
-                new UpdateColSchema("c2", ColumnType.FLOAT, "c0 + c1 + c2"),
-                new UpdateColSchema("c3", ColumnType.INT, "if((c0 > 100), 100, 10)"),
-                new UpdateColSchema("c4", ColumnType.INT, "c0")
+                new UpdateColSchema("c0", SQLType.VARCHAR, "cast(c0, string)"),
+                new UpdateColSchema("c1", SQLType.VARCHAR, "cast(c0 + c3, string)"),
+                new UpdateColSchema("c2", SQLType.FLOAT, "c0 + c1 + c2"),
+                new UpdateColSchema("c3", SQLType.INT, "if((c0 > 100), 100, 10)"),
+                new UpdateColSchema("c4", SQLType.INT, "c0")
         );
 
         Path alterStorePath = workDir.resolve(".segment_alter." + RandomStringUtils.randomAlphabetic(8));
@@ -239,7 +243,7 @@ public class IntegratedTest {
 
         StorageSegment alterSegment = UpdateColSegment.alterColumn("alter_segment", deleteSegment, alterColumns, alterStorePath);
         SegmentSelectHelper.selectSegment(alterSegment, "select * from A limit 10", itr -> {
-            SegmentSelectHelper.printRows(itr, alterSegment.schema());
+            SegmentSelectHelper.printRows(itr, alterSegment.schema().getColumns());
         });
     }
 }

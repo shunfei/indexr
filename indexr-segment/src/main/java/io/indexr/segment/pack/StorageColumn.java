@@ -10,12 +10,13 @@ import io.indexr.io.ByteSlice;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.RSIndex;
+import io.indexr.segment.SQLType;
 
 public abstract class StorageColumn implements Column, Freeable {
     final int version;
     final int columnId;
     final String name;
-    final byte dataType;
+    final SQLType sqlType;
 
     int packCount;
     // Local cache while outer cache not work.
@@ -28,12 +29,12 @@ public abstract class StorageColumn implements Column, Freeable {
     StorageColumn(int version,
                   int columnId,
                   String name,
-                  byte dataType,
+                  SQLType sqlType,
                   long rowCount) {
         this.version = version;
         this.columnId = columnId;
         this.name = name;
-        this.dataType = dataType;
+        this.sqlType = sqlType;
 
         this.packCount = DataPack.rowCountToPackCount(rowCount);
     }
@@ -89,7 +90,7 @@ public abstract class StorageColumn implements Column, Freeable {
             ByteSlice buffer = ByteSlice.allocateDirect(bufferSize);
             reader.read(0, buffer.byteBuffer(), bufferSize);
             buffer.byteBuffer().clear();
-            switch (dataType) {
+            switch (sqlType.dataType) {
                 case ColumnType.INT:
                 case ColumnType.LONG:
                     index = new RSIndex_Histogram(buffer, packCount, false);
@@ -113,7 +114,7 @@ public abstract class StorageColumn implements Column, Freeable {
                     }
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Not support data type of %s", dataType));
+                    throw new IllegalArgumentException(String.format("Unsupported data type %s", sqlType));
             }
         }
         PackDurationStat.INSTANCE.add_loadIndex(System.currentTimeMillis() - time);
@@ -134,8 +135,8 @@ public abstract class StorageColumn implements Column, Freeable {
     }
 
     @Override
-    public byte dataType() {
-        return dataType;
+    public SQLType sqlType() {
+        return sqlType;
     }
 
     @Override

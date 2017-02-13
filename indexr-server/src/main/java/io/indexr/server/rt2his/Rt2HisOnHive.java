@@ -30,7 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.indexr.segment.ColumnSchema;
-import io.indexr.segment.ColumnType;
+import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.server.SegmentHelper;
 import io.indexr.util.IOUtil;
@@ -327,27 +327,35 @@ public class Rt2HisOnHive {
             String[] strs = colStr.trim().split(" ", 2);
             String colName = StringUtils.strip(strs[0], "`");
             String colType = strs[1].trim();
-            byte indexrType;
+            SQLType indexrType;
             switch (colType) {
                 case "int":
                 case "INT":
-                    indexrType = ColumnType.INT;
+                    indexrType = SQLType.INT;
                     break;
                 case "bigint":
                 case "BIGINT":
-                    indexrType = ColumnType.LONG;
+                    indexrType = SQLType.BIGINT;
                     break;
                 case "float":
                 case "FLOAT":
-                    indexrType = ColumnType.FLOAT;
+                    indexrType = SQLType.FLOAT;
                     break;
                 case "double":
                 case "DOUBLE":
-                    indexrType = ColumnType.DOUBLE;
+                    indexrType = SQLType.DOUBLE;
                     break;
                 case "string":
                 case "STRING":
-                    indexrType = ColumnType.STRING;
+                    indexrType = SQLType.VARCHAR;
+                    break;
+                case "date":
+                case "DATE":
+                    indexrType = SQLType.DATE;
+                    break;
+                case "timestamp":
+                case "TIMESTAMP":
+                    indexrType = SQLType.DATETIME;
                     break;
                 default:
                     throw new IllegalStateException("unsupported hive type " + colType);
