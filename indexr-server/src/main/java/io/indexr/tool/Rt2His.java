@@ -78,7 +78,7 @@ public class Rt2His {
             return false;
         }
         if (Strings.isEmpty(options.partitionColumn)) {
-            System.out.println("please specify segment partition column by -column");
+            System.out.println("please specify segment partition column by -segpc");
             return false;
         }
         Rt2HisOnHive rt2HisOnHive = new Rt2HisOnHive(

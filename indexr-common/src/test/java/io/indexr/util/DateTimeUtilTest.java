@@ -3,6 +3,9 @@ package io.indexr.util;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.sql.Date;
+import java.time.LocalDate;
+
 public class DateTimeUtilTest {
     @Test
     public void dateTimeTest() {
@@ -25,6 +28,13 @@ public class DateTimeUtilTest {
         Assert.assertEquals("2017-10-11T23:03:56", DateTimeUtil.getLocalDateTime(s).format(DateTimeUtil.DATETIME_FORMATTER));
 
         Assert.assertEquals("1970-01-01T00:00:00", DateTimeUtil.getLocalDateTime(0).format(DateTimeUtil.DATETIME_FORMATTER));
+
+
+        LocalDate date = LocalDate.now();
+        Date sqlDate = Date.valueOf(date);
+        long epochMillis = DateTimeUtil.getEpochMillisecond(sqlDate);
+        Assert.assertEquals(date, DateTimeUtil.getLocalDate(epochMillis));
+        Assert.assertEquals(sqlDate, DateTimeUtil.getJavaSQLDate(epochMillis));
     }
 
     @Test(expected = IllegalArgumentException.class)

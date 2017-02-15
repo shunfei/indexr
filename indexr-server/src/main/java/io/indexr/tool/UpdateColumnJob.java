@@ -397,6 +397,8 @@ public class UpdateColumnJob extends Configured implements Tool {
         }
         String columns = options.columns.trim();
 
+        System.out.println("-col " + columns);
+
         String mode;
         List<UpdateColSchema> updateColSchemas;
         if (options.add) {

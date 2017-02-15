@@ -12,11 +12,11 @@ import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritable;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
@@ -121,7 +121,8 @@ public class IndexRRecordReader implements RecordReader<Void, SchemaWritable> {
                     writables[i] = new DoubleWritable(current.getDouble(colId));
                     break;
                 case VARCHAR:
-                    writables[i] = new BytesWritable(current.getString(colId).getBytes());
+                    writables[i] = new Text(current.getString(colId).getBytes());
+                    //writables[i] =  new BytesWritable();
                     break;
                 case DATE:
                     writables[i] = new DateWritable(DateTimeUtil.getJavaSQLDate(current.getLong(colId)));

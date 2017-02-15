@@ -15,17 +15,17 @@ public class UpdateColSchema {
     public final String name;
     @JsonIgnore
     public final SQLType sqlType;
-    @JsonProperty("sqlType")
+    @JsonProperty("dataType")
     public final String dataTypeName;
     @JsonProperty("value")
     public final String value; // The value of this column, supports sql format, like "a + b" or "if((a > 100), a - 100, a + 100)".
 
     @JsonCreator
     public UpdateColSchema(@JsonProperty("name") String name,
-                           @JsonProperty("sqlType") String sqlTypeName,
+                           @JsonProperty("dataType") String dataTypeName,
                            @JsonProperty("value") String value) {
 
-        this(name, SQLType.fromName(sqlTypeName), value);
+        this(name, SQLType.fromName(dataTypeName), value);
     }
 
     public UpdateColSchema(String name, SQLType sqlType, String value) {

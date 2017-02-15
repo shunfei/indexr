@@ -246,7 +246,7 @@ public class Rt2HisOnHive {
                 }
 
                 // Add partitions manually.
-                String addPartition = String.format("ALTER TABLE %s ADD IF NOT EXISTS PARTITION (%s=%s)",
+                String addPartition = String.format("ALTER TABLE %s ADD IF NOT EXISTS PARTITION (%s='%s')",
                         hiveTable, tablePartitionColumn, partition);
                 try (Statement myStatement = connection.createStatement()) {
                     myStatement.execute(addPartition);
@@ -328,32 +328,25 @@ public class Rt2HisOnHive {
             String colName = StringUtils.strip(strs[0], "`");
             String colType = strs[1].trim();
             SQLType indexrType;
-            switch (colType) {
-                case "int":
+            switch (colType.toUpperCase()) {
                 case "INT":
                     indexrType = SQLType.INT;
                     break;
-                case "bigint":
                 case "BIGINT":
                     indexrType = SQLType.BIGINT;
                     break;
-                case "float":
                 case "FLOAT":
                     indexrType = SQLType.FLOAT;
                     break;
-                case "double":
                 case "DOUBLE":
                     indexrType = SQLType.DOUBLE;
                     break;
-                case "string":
                 case "STRING":
                     indexrType = SQLType.VARCHAR;
                     break;
-                case "date":
                 case "DATE":
                     indexrType = SQLType.DATE;
                     break;
-                case "timestamp":
                 case "TIMESTAMP":
                     indexrType = SQLType.DATETIME;
                     break;

@@ -235,7 +235,8 @@ public class IntegratedTest {
                 new UpdateColSchema("c1", SQLType.VARCHAR, "cast(c0 + c3, string)"),
                 new UpdateColSchema("c2", SQLType.FLOAT, "c0 + c1 + c2"),
                 new UpdateColSchema("c3", SQLType.INT, "if((c0 > 100), 100, 10)"),
-                new UpdateColSchema("c4", SQLType.INT, "c0")
+                new UpdateColSchema("c4", SQLType.INT, "c0"),
+                new UpdateColSchema("_date", SQLType.DATE, "'2015-09-12'")
         );
 
         Path alterStorePath = workDir.resolve(".segment_alter." + RandomStringUtils.randomAlphabetic(8));
