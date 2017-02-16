@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 CUR_DIR=$(cd $(dirname $0); echo $PWD)
 ROOT_DIR=$(cd ${CUR_DIR}/../;echo $PWD)
-VERSION=0.2.0
+VERSION=0.2.1
 
 source ${ROOT_DIR}/conf/env.sh
 
