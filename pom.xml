@@ -6,7 +6,7 @@
     <groupId>io.indexr</groupId>
     <artifactId>indexr</artifactId>
     <packaging>pom</packaging>
-    <version>0.2.0</version>
+    <version>0.3.0-SNAPSHOT</version>
 
     <modules>
         <module>indexr-segment</module>
