@@ -143,7 +143,8 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
                     if (currentValue == null) {
                         rowBuilder.appendString("");
                     } else {
-                        rowBuilder.appendString(((Text) currentValue).toString());
+                        Text v = (Text) currentValue;
+                        rowBuilder.appendUTF8String(v.getBytes(), 0, v.getLength());
                     }
                     break;
                 case DATE:

@@ -128,7 +128,17 @@ public class SimpleRow implements Row {
             assert columnTypes[curColIndex] == SQLType.VARCHAR;
 
             byte[] bytes = UTF8Util.toUtf8(val);
-            buffer.put(bytes);
+            appendUTF8String(bytes);
+        }
+
+        public void appendUTF8String(byte[] bytes) {
+            appendUTF8String(bytes, 0, bytes.length);
+        }
+
+        public void appendUTF8String(byte[] bytes, int offset, int len) {
+            assert columnTypes[curColIndex] == SQLType.VARCHAR;
+
+            buffer.put(bytes, offset, len);
             curSums[curColIndex] = buffer.position();
             curColIndex++;
         }
