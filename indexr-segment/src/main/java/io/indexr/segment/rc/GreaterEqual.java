@@ -75,8 +75,9 @@ public class GreaterEqual extends ColCmpVal {
 
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
@@ -87,6 +88,7 @@ public class GreaterEqual extends ColCmpVal {
                     int v = pack.intValueAt(rowId);
                     if (v >= value) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -97,6 +99,7 @@ public class GreaterEqual extends ColCmpVal {
                     long v = pack.longValueAt(rowId);
                     if (v >= value) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -107,6 +110,7 @@ public class GreaterEqual extends ColCmpVal {
                     float v = pack.floatValueAt(rowId);
                     if (v >= value) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -117,6 +121,7 @@ public class GreaterEqual extends ColCmpVal {
                     double v = pack.doubleValueAt(rowId);
                     if (v >= value) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -134,8 +139,9 @@ public class GreaterEqual extends ColCmpVal {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(rowCount);
         switch (attr.dataType()) {

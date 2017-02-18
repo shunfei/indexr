@@ -129,7 +129,7 @@ public class UTF8Row implements Row, Serializable {
                        List<Metric> metrics,
                        Map<String, String> nameToAlias,
                        TagSetting tagSetting,
-                       int ignoreStrategy) {
+                       EventIgnoreStrategy ignoreStrategy) {
             Trick.notRepeated(columnSchemas, ColumnSchema::getName);
             Trick.notRepeated(dims, d -> d);
             Trick.notRepeated(metrics, m -> m.name);
@@ -137,7 +137,7 @@ public class UTF8Row implements Row, Serializable {
                 Trick.notRepeated(Trick.concatToList(dims, Lists.transform(metrics, m -> m.name)), s -> s);
             }
 
-            this.ignoreStrategy = ignoreStrategy;
+            this.ignoreStrategy = ignoreStrategy.id;
 
             this.originalSchema = columnSchemas;
             this.columnCount = columnSchemas.size();
@@ -289,7 +289,7 @@ public class UTF8Row implements Row, Serializable {
                 return null;
             }
             switch (ignoreStrategy) {
-                case EventIgnoreStrategy.IGNORE_EMPTY:
+                case EventIgnoreStrategy.ID_IGNORE_EMPTY:
                     if (isEmpty()) {
                         return null;
                     }

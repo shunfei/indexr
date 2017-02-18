@@ -17,6 +17,7 @@ public class ConstColumn implements Column {
     private UTF8String strValue;
     private DataPackNode dpn;
     private RSIndex index;
+    private PackExtIndex extIndex;
 
     public ConstColumn(int version, String name, SQLType sqlType, long rowCount, long numValue, UTF8String strValue) {
         this.name = name;
@@ -39,6 +40,18 @@ public class ConstColumn implements Column {
                     return RSIndexNum.minMaxCheck(minVal, maxVal, packMin, packMax, isFloat);
                 }
             };
+            this.extIndex = new PackExtIndexNum() {
+                @Override
+                public int serializedSize() {return 0;}
+
+                @Override
+                public void putValue(int rowId, long val) {}
+
+                @Override
+                public byte isValue(int rowId, long val) {
+                    return numValue == val ? RSValue.All : RSValue.None;
+                }
+            };
         } else {
             this.index = new RSIndexStr() {
                 @Override
@@ -53,6 +66,28 @@ public class ConstColumn implements Column {
                 @Override
                 public byte isLike(int packId, LikePattern value) {
                     // TODO implementation.
+                    return RSValue.Some;
+                }
+            };
+            this.extIndex = new PackExtIndexStr() {
+
+                @Override
+                public int serializedSize() {return 0;}
+
+                @Override
+                public void putValue(int rowId, UTF8String value) {}
+
+                @Override
+                public byte isValue(int rowId, UTF8String value) {
+                    if (value == null ? strValue == null : value.equals(strValue)) {
+                        return RSValue.All;
+                    } else {
+                        return RSValue.None;
+                    }
+                }
+
+                @Override
+                public byte isLike(int rowId, LikePattern pattern) {
                     return RSValue.Some;
                 }
             };
@@ -127,5 +162,10 @@ public class ConstColumn implements Column {
     @Override
     public <T extends RSIndex> T rsIndex() throws IOException {
         return (T) index;
+    }
+
+    @Override
+    public <T extends PackExtIndex> T extIndex(int packId) throws IOException {
+        return (T) extIndex;
     }
 }

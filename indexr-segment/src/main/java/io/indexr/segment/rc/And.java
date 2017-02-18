@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.DataPack;
 
 public class And implements LogicalOperator {
     @JsonProperty("children")
@@ -150,10 +149,10 @@ public class And implements LogicalOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
         boolean hasSome = false;
         for (RCOperator op : children) {
-            byte v = op.roughCheckOnRow(rowPacks);
+            byte v = op.roughCheckOnRow(segment, packId);
             if (v == RSValue.None) {
                 return RSValue.None;
             } else if (v == RSValue.Some) {
@@ -164,10 +163,10 @@ public class And implements LogicalOperator {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
         BitSet res = null;
         for (RCOperator op : children) {
-            BitSet bitSet = op.exactCheckOnRow(rowPacks);
+            BitSet bitSet = op.exactCheckOnRow(segment, packId);
             if (res == null) {
                 res = bitSet;
             } else {

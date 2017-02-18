@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import io.indexr.segment.SegmentMode;
+
 public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable> {
 
     @Override
@@ -33,7 +35,9 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         String columnTypeProperty = tableProperties.getProperty(IOConstants.COLUMNS_TYPES);
         Path tableLocation = new Path(tableProperties.getProperty(Config.KEY_LOCATION));
         String compressStr = tableProperties.getProperty(Config.KEY_COMPRESS, "true");
+        String modeStr = tableProperties.getProperty(Config.KEY_SEGMENT_MODE);
         boolean compress = Boolean.parseBoolean(compressStr);
+        SegmentMode mode = SegmentMode.fromNameWithCompress(modeStr, compress);
 
         List<String> columnNames;
         List<TypeInfo> columnTypes;
@@ -50,7 +54,7 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
             columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(columnTypeProperty);
         }
 
-        return new IndexRRecordWriter(jc, columnNames, columnTypes, finalOutPath, tableLocation, compress);
+        return new IndexRRecordWriter(jc, columnNames, columnTypes, finalOutPath, tableLocation, mode);
     }
 
     @Override

@@ -10,7 +10,6 @@ import java.util.List;
 
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.DataPack;
 
 public class Not implements LogicalOperator {
     @JsonProperty("child")
@@ -53,12 +52,12 @@ public class Not implements LogicalOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
         throw new IllegalStateException("Should not call this method!");
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
         throw new IllegalStateException("Should not call this method!");
     }
 

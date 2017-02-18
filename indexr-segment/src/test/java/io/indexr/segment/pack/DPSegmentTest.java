@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
-import io.indexr.segment.SQLType;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.util.DateTimeUtil;
@@ -32,6 +32,8 @@ import io.indexr.util.DateTimeUtil;
 public class DPSegmentTest {
     private static final Logger log = LoggerFactory.getLogger(DPSegmentTest.class);
     private static Path workDir;
+    private static SegmentSchema segmentSchema = TestRows.segmentSchema;
+    private static List<ColumnSchema> columnSchemas = TestRows.columnSchemas;
 
     @BeforeClass
     public static void init() throws IOException {
@@ -44,17 +46,7 @@ public class DPSegmentTest {
         FileUtils.deleteDirectory(workDir.toFile());
     }
 
-    static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", SQLType.INT),
-            new ColumnSchema("c1", SQLType.BIGINT),
-            new ColumnSchema("c2", SQLType.FLOAT),
-            new ColumnSchema("c3", SQLType.DOUBLE),
-            new ColumnSchema("c4", SQLType.VARCHAR),
-            new ColumnSchema("c5", SQLType.DATE),
-            new ColumnSchema("c6", SQLType.TIME),
-            new ColumnSchema("c7", SQLType.DATETIME)
-    );
-    static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
+
     private static String[][] rawRows = new String[][]{
             {"89", "222222", "4.5", "9.1", "windows", "2014-12-09", "00:00:00", "2014-12-09T00:00:00"},
             {"3", String.valueOf(Long.MAX_VALUE), "4.5", "9.199", "mac", "1901-03-24", "11:43:56", "1901-03-24T11:43:56"},
@@ -145,20 +137,36 @@ public class DPSegmentTest {
         }
     }
 
-    private void test_generate(int version, String name, String path, boolean compress) throws IOException {
+    private void test_generate(int version, SegmentMode mode, String name, String path) throws IOException {
         DPSegment segment = DPSegment.open(
                 version,
+                mode,
                 Paths.get(path),
                 name,
                 segmentSchema,
-                OpenOption.Overwrite).setCompress(compress).update();
+                OpenOption.Overwrite).update();
         addRows(segment, genRows(rowCount));
         segment.seal();
         rowsCmp(genRows(rowCount), segment.rowTraversal().iterator());
     }
 
-    private void test_append(int version, String name, String path) throws IOException {
-        DPSegment segment = DPSegment.open(version, Paths.get(path), name, null);
+    private void test_generate2(int version, SegmentMode mode, String name, String path) throws IOException {
+        DPSegment segment = DPSegment.open(
+                version,
+                mode,
+                Paths.get(path),
+                name,
+                segmentSchema,
+                OpenOption.Overwrite).update();
+        addRows(segment, TestRows.sampleRows.iterator());
+        segment.seal();
+
+        RSIndexTest.checkIndex(segment);
+        segment.close();
+    }
+
+    private void test_append(String path) throws IOException {
+        DPSegment segment = DPSegment.open(Paths.get(path));
 
         rowsCmp(genRows(rowCount), segment.rowTraversal().iterator());
         segment.update();
@@ -171,18 +179,28 @@ public class DPSegmentTest {
         Iterator<Row> toCompare = Iterators.<Row>concat(genRows(rowCount), genRows(rowCount));
         rowsCmp(toCompare, segment.rowTraversal().iterator());
 
-        segment = DPSegment.open(version, Paths.get(path), name, segmentSchema);
+        segment = DPSegment.open(Paths.get(path));
         toCompare = Iterators.<Row>concat(genRows(rowCount), genRows(rowCount));
         rowsCmp(toCompare, segment.rowTraversal().iterator());
+
+        RSIndexTest.checkIndex(segment);
+
+        segment.close();
     }
 
-    private void test_merge(int version, String name, String path) throws IOException {
+    private void test_merge(int version, SegmentMode mode, String name, String path) throws IOException {
         DPSegment segment = DPSegment.open(
-                version, Paths.get(path), name, segmentSchema, OpenOption.Overwrite).update();
+                version,
+                mode,
+                Paths.get(path),
+                name,
+                segmentSchema,
+                OpenOption.Overwrite).update();
         addRows(segment, genRows(rowCount));
 
         DPSegment segment2 = DPSegment.open(
                 version,
+                mode,
                 Paths.get(path + UUID.randomUUID().toString()),
                 name,
                 segmentSchema,
@@ -191,6 +209,7 @@ public class DPSegmentTest {
 
         DPSegment segment3 = DPSegment.open(
                 version,
+                mode,
                 Paths.get(path + UUID.randomUUID().toString()),
                 name,
                 segmentSchema,
@@ -226,6 +245,7 @@ public class DPSegmentTest {
 
         segment = DPSegment.open(
                 version,
+                mode,
                 Paths.get(path + UUID.randomUUID().toString()),
                 name,
                 segmentSchema,
@@ -237,27 +257,23 @@ public class DPSegmentTest {
                 genRows(99),
                 genRows(99));
         rowsCmp(toCompare, segment.rowTraversal().iterator());
+
+        RSIndexTest.checkIndex(segment);
+
+        segment.close();
     }
 
     @Test
-    public void test_compress() throws IOException {
-        String segmentName = "test_segment" + 0;
-        String segmentPath = workDir.toString();
-        for (Version version : Version.values()) {
-            test_generate(version.id, segmentName, segmentPath, true);
-            test_append(version.id, segmentName, segmentPath);
-            test_merge(version.id, segmentName, segmentPath);
-        }
-    }
-
-    @Test
-    public void test_notcompress() throws IOException {
+    public void test() throws IOException {
         String segmentName = "test_segment" + 1;
         String segmentPath = workDir.toString();
         for (Version version : Version.values()) {
-            test_generate(version.id, segmentName, segmentPath, false);
-            test_append(version.id, segmentName, segmentPath);
-            test_merge(version.id, segmentName, segmentPath);
+            for (SegmentMode mode : SegmentMode.values()) {
+                test_generate(version.id, mode, segmentName, segmentPath);
+                test_generate2(version.id, mode, segmentName, segmentPath + "/2");
+                test_append(segmentPath);
+                test_merge(version.id, mode, segmentName, segmentPath);
+            }
         }
     }
 }

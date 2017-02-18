@@ -15,13 +15,12 @@ import java.util.function.Consumer;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.DataPack;
 
 /**
  * A rough set filter operator.
  * 
  * User must call {@link #materialize(List)} before calling {@link #roughCheckOnColumn(InfoSegment)},
- * {@link #roughCheckOnPack(Segment)}, {@link #roughCheckOnPack(Segment, int)} and {@link #exactCheckOnRow(DataPack[])}.
+ * {@link #roughCheckOnPack(Segment)}, {@link #roughCheckOnPack(Segment, int)} and {@link #exactCheckOnRow(Segment, int)}.
  * e.g.
  * <pre>
  *     rsFilter.optimize();
@@ -81,9 +80,9 @@ public interface RCOperator {
 
     byte roughCheckOnPack(Segment segment, int packId) throws IOException;
 
-    byte roughCheckOnRow(DataPack[] rowPacks);
+    byte roughCheckOnRow(Segment segment, int packId) throws IOException;
 
-    BitSet exactCheckOnRow(DataPack[] rowPacks);
+    BitSet exactCheckOnRow(Segment segment, int packId) throws IOException;
 
     /*
      * Apply not to this node.

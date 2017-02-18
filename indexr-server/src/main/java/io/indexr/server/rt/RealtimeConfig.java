@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
+import io.indexr.segment.SegmentMode;
+import io.indexr.segment.rt.EventIgnoreStrategy;
 import io.indexr.segment.rt.Fetcher;
 import io.indexr.segment.rt.Metric;
 import io.indexr.segment.rt.TagSetting;
@@ -50,7 +52,7 @@ public class RealtimeConfig {
     @JsonProperty("tag.setting")
     public final TagSetting tagSetting;
     @JsonProperty("ignoreStrategy")
-    public final String ignoreStrategy;
+    public final EventIgnoreStrategy ignoreStrategy;
     @JsonProperty("grouping")
     public boolean grouping;
     @JsonProperty("save.period.minutes")
@@ -63,8 +65,8 @@ public class RealtimeConfig {
     public long maxRowInRealtime;
     @JsonProperty("ingest")
     public boolean ingest;
-    @JsonProperty("compress")
-    public boolean compress;
+    @JsonProperty("mode")
+    public SegmentMode mode;
     @JsonProperty("fetcher")
     public Fetcher fetcher;
 
@@ -80,19 +82,20 @@ public class RealtimeConfig {
                           @JsonProperty("max.row.realtime") Long maxRowInRealtime,
                           @JsonProperty("ingest") Boolean ingest,
                           @JsonProperty("compress") Boolean compress,
+                          @JsonProperty("mode") String mode,
                           @JsonProperty("fetcher") Fetcher fetcher) {
         this.dims = dims;
         this.metrics = metrics;
         this.nameToAlias = nameToAlias;
         this.tagSetting = tagSetting;
-        this.ignoreStrategy = ignoreStrategy;
+        this.ignoreStrategy = EventIgnoreStrategy.fromName(ignoreStrategy);
         this.grouping = grouping == null ? true : grouping;
         this.savePeriodMinutes = savePeriodMinutes == null ? 20 : savePeriodMinutes;
         this.uploadPeriodMinutes = uploadPeriodMinutes == null ? 60 : uploadPeriodMinutes;
         this.maxRowInMemory = maxRowInMemory == null ? 500000 : maxRowInMemory;
         this.maxRowInRealtime = maxRowInRealtime == null ? 10000000 : maxRowInRealtime;
         this.ingest = ingest == null ? true : ingest;
-        this.compress = compress == null ? true : compress;
+        this.mode = SegmentMode.fromNameWithCompress(mode, compress);
         this.fetcher = fetcher;
     }
 
@@ -109,7 +112,7 @@ public class RealtimeConfig {
         if (maxRowInMemory != that.maxRowInMemory) return false;
         if (maxRowInRealtime != that.maxRowInRealtime) return false;
         if (ingest != that.ingest) return false;
-        if (compress != that.compress) return false;
+        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
         if (dims != null ? !dims.equals(that.dims) : that.dims != null) return false;
         if (metrics != null ? !metrics.equals(that.metrics) : that.metrics != null) return false;
         if (nameToAlias != null ? !nameToAlias.equals(that.nameToAlias) : that.nameToAlias != null)

@@ -6,7 +6,8 @@ import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 
 import io.indexr.io.ByteSlice;
-import io.indexr.util.Pair;
+import io.indexr.segment.PackExtIndexNum;
+import io.indexr.segment.PackRSIndexNum;
 
 class DataPack_N {
 
@@ -23,8 +24,23 @@ class DataPack_N {
         return NumOp.decompress(dpn.numType(), cmpData, pack.objCount, dpn.uniformMin(), dpn.uniformMax());
     }
 
-    public static Pair<DataPack, DataPackNode> from(int version, long[] values, int offset, int size, RSIndex_Histogram.HistPackIndex index) {
-        index = index != null ? index : new RSIndex_Histogram.HistPackIndex(false);
+    private static PackRSIndexNum createPackRSIndex(int version, boolean isFloat) {
+        if (version < Version.VERSION_6_ID) {
+            return new RSIndex_Histogram.PackIndex(isFloat);
+        } else {
+            return new RSIndex_Histogram_V2.PackIndex(isFloat);
+        }
+    }
+
+    private static PackExtIndexNum createPackExtIndex(int version, boolean useExtIndex) {
+        return new PackExtIndex_Unused();
+    }
+
+    private static boolean withDefault(boolean[] values, boolean defaultVal) {
+        return values.length == 0 ? defaultVal : values[0];
+    }
+
+    public static PackBundle from(int version, long[] values, int offset, int size, boolean... useExtIndex) {
         long min, max;
         min = max = values[offset];
         for (int i = 0; i < size; i++) {
@@ -34,14 +50,13 @@ class DataPack_N {
         }
         switch (version) {
             case Version.VERSION_0_ID:
-                return _from_v0(values, offset, size, NumType.NLong, min, max, index);
+                return _from_v0(version, values, offset, size, NumType.NLong, min, max);
             default:
-                return _from_v1(version, values, offset, size, NumType.NLong, min, max, index);
+                return _from_v1(version, withDefault(useExtIndex, true), values, offset, size, NumType.NLong, min, max);
         }
     }
 
-    public static Pair<DataPack, DataPackNode> from(int version, int[] values, int offset, int size, RSIndex_Histogram.HistPackIndex index) {
-        index = index != null ? index : new RSIndex_Histogram.HistPackIndex(false);
+    public static PackBundle from(int version, int[] values, int offset, int size, boolean... useExtIndex) {
         int min, max;
         min = max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -51,14 +66,13 @@ class DataPack_N {
         }
         switch (version) {
             case Version.VERSION_0_ID:
-                return _from_v0(values, offset, size, min, max, index);
+                return _from_v0(version, values, offset, size, min, max);
             default:
-                return _from_v1(version, values, offset, size, min, max, index);
+                return _from_v1(version, withDefault(useExtIndex, true), values, offset, size, min, max);
         }
     }
 
-    public static Pair<DataPack, DataPackNode> from(int version, float[] values, int offset, int size, RSIndex_Histogram.HistPackIndex index) {
-        index = index != null ? index : new RSIndex_Histogram.HistPackIndex(true);
+    public static PackBundle from(int version, float[] values, int offset, int size, boolean... useExtIndex) {
         float min, max;
         min = max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -68,14 +82,13 @@ class DataPack_N {
         }
         switch (version) {
             case Version.VERSION_0_ID:
-                return _from_v0(values, offset, size, min, max, index);
+                return _from_v0(version, values, offset, size, min, max);
             default:
-                return _from_v1(version, values, offset, size, min, max, index);
+                return _from_v1(version, withDefault(useExtIndex, true), values, offset, size, min, max);
         }
     }
 
-    public static Pair<DataPack, DataPackNode> from(int version, double[] values, int offset, int size, RSIndex_Histogram.HistPackIndex index) {
-        index = index != null ? index : new RSIndex_Histogram.HistPackIndex(true);
+    public static PackBundle from(int version, double[] values, int offset, int size, boolean... useExtIndex) {
         double min, max;
         min = max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -85,22 +98,24 @@ class DataPack_N {
         }
         switch (version) {
             case Version.VERSION_0_ID:
-                return _from_v0(values, offset, size, min, max, index);
+                return _from_v0(version, values, offset, size, min, max);
             default:
-                return _from_v1(version, values, offset, size, min, max, index);
+                return _from_v1(version, withDefault(useExtIndex, true), values, offset, size, min, max);
         }
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v1(int version,
-                                                         int[] values,
-                                                         int offset,
-                                                         int size,
-                                                         int origMin,
-                                                         int origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v1(int version,
+                                       boolean useExtIndex,
+                                       int[] values,
+                                       int offset,
+                                       int size,
+                                       int origMin,
+                                       int origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, false);
+        PackExtIndexNum extIndex = createPackExtIndex(version, useExtIndex);
         int min = 0; // Useless here.
         int max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -109,6 +124,7 @@ class DataPack_N {
                 max = val;
             }
             index.putValue(val, origMin, origMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NInt;
@@ -127,20 +143,22 @@ class DataPack_N {
             NumOp.putInt(addr, i, values[i]);
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v1(int version,
-                                                         long[] values,
-                                                         int offset,
-                                                         int size,
-                                                         byte suggestType,
-                                                         long origMin,
-                                                         long origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v1(int version,
+                                       boolean useExtIndex,
+                                       long[] values,
+                                       int offset,
+                                       int size,
+                                       byte suggestType,
+                                       long origMin,
+                                       long origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, false);
+        PackExtIndexNum extIndex = createPackExtIndex(version, useExtIndex);
         long min = 0;
         long max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -149,6 +167,7 @@ class DataPack_N {
                 max = val;
             }
             index.putValue(val, origMin, origMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NLong;
@@ -167,19 +186,21 @@ class DataPack_N {
             NumOp.putLong(addr, i, values[i]);
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v1(int version,
-                                                         float[] values,
-                                                         int offset,
-                                                         int size,
-                                                         float origMin,
-                                                         float origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v1(int version,
+                                       boolean useExtIndex,
+                                       float[] values,
+                                       int offset,
+                                       int size,
+                                       float origMin,
+                                       float origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, true);
+        PackExtIndexNum extIndex = createPackExtIndex(version, useExtIndex);
         long uniformOrignMin = NumType.floatToLong(origMin);
         long uniformOrignMax = NumType.floatToLong(origMax);
         long min = 0;
@@ -195,7 +216,9 @@ class DataPack_N {
             if (Integer.compareUnsigned(max, val) < 0) {
                 max = val;
             }
-            index.putValue(NumType.floatToLong(values[i]), uniformOrignMin, uniformOrignMax);
+            long uniforVal = NumType.floatToLong(values[i]);
+            index.putValue(uniforVal, uniformOrignMin, uniformOrignMax);
+            extIndex.putValue(i, uniforVal);
         }
 
         byte type = NumType.NInt;
@@ -214,19 +237,21 @@ class DataPack_N {
             NumOp.putFloat(addr, i, values[i]);
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v1(int version,
-                                                         double[] values,
-                                                         int offset,
-                                                         int size,
-                                                         double origMin,
-                                                         double origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v1(int version,
+                                       boolean useExtIndex,
+                                       double[] values,
+                                       int offset,
+                                       int size,
+                                       double origMin,
+                                       double origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, true);
+        PackExtIndexNum extIndex = createPackExtIndex(version, useExtIndex);
         long uniformOrignMin = NumType.doubleToLong(origMin);
         long uniformOrignMax = NumType.doubleToLong(origMax);
         long min = 0;
@@ -237,6 +262,7 @@ class DataPack_N {
                 max = val;
             }
             index.putValue(val, uniformOrignMin, uniformOrignMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NLong;
@@ -255,21 +281,23 @@ class DataPack_N {
             NumOp.putDouble(addr, i, values[i]);
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
     //=======================================================================
     // VERSION_0 deprecated
 
-    private static Pair<DataPack, DataPackNode> _from_v0(int[] values,
-                                                         int offset,
-                                                         int size,
-                                                         int origMin,
-                                                         int origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v0(int version,
+                                       int[] values,
+                                       int offset,
+                                       int size,
+                                       int origMin,
+                                       int origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, false);
+        PackExtIndexNum extIndex = createPackExtIndex(version, false);
         long min, max;
         min = max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -277,6 +305,7 @@ class DataPack_N {
             min = Math.min(min, val);
             max = Math.max(max, val);
             index.putValue(val, origMin, origMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NInt;
@@ -302,19 +331,21 @@ class DataPack_N {
             }
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v0(long[] values,
-                                                         int offset,
-                                                         int size,
-                                                         byte suggestType,
-                                                         long origMin,
-                                                         long origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v0(int version,
+                                       long[] values,
+                                       int offset,
+                                       int size,
+                                       byte suggestType,
+                                       long origMin,
+                                       long origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, false);
+        PackExtIndexNum extIndex = createPackExtIndex(version, false);
         long min, max;
         min = max = values[offset];
         for (int i = offset; i < offset + size; i++) {
@@ -322,6 +353,7 @@ class DataPack_N {
             min = Math.min(min, val);
             max = Math.max(max, val);
             index.putValue(val, origMin, origMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NLong;
@@ -347,18 +379,20 @@ class DataPack_N {
             }
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v0(float[] values,
-                                                         int offset,
-                                                         int size,
-                                                         float origMin,
-                                                         float origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v0(int version,
+                                       float[] values,
+                                       int offset,
+                                       int size,
+                                       float origMin,
+                                       float origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, true);
+        PackExtIndexNum extIndex = createPackExtIndex(version, false);
         long uniformOrignMin = NumType.floatToLong(origMin);
         long uniformOrignMax = NumType.floatToLong(origMax);
         long min, max;
@@ -368,6 +402,7 @@ class DataPack_N {
             min = Math.min(min, val);
             max = Math.max(max, val);
             index.putValue(val, uniformOrignMin, uniformOrignMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NInt;
@@ -393,18 +428,20 @@ class DataPack_N {
             }
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
-    private static Pair<DataPack, DataPackNode> _from_v0(double[] values,
-                                                         int offset,
-                                                         int size,
-                                                         double origMin,
-                                                         double origMax,
-                                                         RSIndex_Histogram.HistPackIndex index) {
+    private static PackBundle _from_v0(int version,
+                                       double[] values,
+                                       int offset,
+                                       int size,
+                                       double origMin,
+                                       double origMax) {
         assert values.length > 0;
         assert size > 0 && size <= DataPack.MAX_COUNT;
 
+        PackRSIndexNum index = createPackRSIndex(version, true);
+        PackExtIndexNum extIndex = createPackExtIndex(version, false);
         long uniformOrignMin = NumType.doubleToLong(origMin);
         long uniformOrignMax = NumType.doubleToLong(origMax);
         long min, max;
@@ -414,6 +451,7 @@ class DataPack_N {
             min = Math.min(min, val);
             max = Math.max(max, val);
             index.putValue(val, uniformOrignMin, uniformOrignMax);
+            extIndex.putValue(i, val);
         }
 
         byte type = NumType.NLong;
@@ -439,6 +477,6 @@ class DataPack_N {
             }
         }
 
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 }

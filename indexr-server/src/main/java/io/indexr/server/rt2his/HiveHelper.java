@@ -3,13 +3,21 @@ package io.indexr.server.rt2his;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
+import org.apache.commons.lang.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 
 public class HiveHelper {
+    public static final String KEY_SEGMENT_MODE = "indexr.segment.mode";
 
     public static String getHiveTableCreateSql(String tableName,
                                                boolean external,
                                                SegmentSchema schema,
+                                               SegmentMode mode,
                                                String location,
                                                String partitionColumn) throws Exception {
         String colDefStr = Joiner.on(",\n").join(Lists.transform(schema.getColumns(), sc -> {
@@ -39,7 +47,11 @@ public class HiveHelper {
         }
         createTableSql += "TABLE IF NOT EXISTS " + tableName + " (\n" + colDefStr + "\n) \n";
         if (partitionColumn != null) {
-            createTableSql += "PARTITIONED BY (`" + partitionColumn + "` string)\n";
+            List<String> pc = new ArrayList<>();
+            for (String c : partitionColumn.split(",")) {
+                pc.add("`" + c + "` string");
+            }
+            createTableSql += "PARTITIONED BY (" + StringUtils.join(pc, ", ") + ")\n";
         }
         createTableSql += "ROW FORMAT SERDE 'io.indexr.hive.IndexRSerde' \n";
         createTableSql += "STORED AS INPUTFORMAT 'io.indexr.hive.IndexRInputFormat' \n";
@@ -47,6 +59,8 @@ public class HiveHelper {
         if (location != null) {
             createTableSql += "LOCATION '" + location + "' \n";
         }
+        createTableSql += "TBLPROPERTIES ( '" + KEY_SEGMENT_MODE + "'='" + mode + "' ) \n";
+
 
         return createTableSql;
     }

@@ -11,7 +11,6 @@ import java.util.BitSet;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.DataPack;
 
 public class NotEqual extends Equal {
     @JsonCreator
@@ -48,12 +47,12 @@ public class NotEqual extends Equal {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        return RSValue.not(super.roughCheckOnRow(rowPacks));
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        return RSValue.not(super.roughCheckOnRow(segment, packId));
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        return RCHelper.not(super.exactCheckOnRow(rowPacks));
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        return RCHelper.not(super.exactCheckOnRow(segment, packId));
     }
 }

@@ -44,6 +44,8 @@ public class UpdateColSegment {
 
         // Run the sql on baseSegment to get filed value and insert into newly created column.
         DPColumn dpColumn = new DPColumn(baseSegment.version(), newColId, newColumn.name, newColumn.sqlType, 0, storePath);
+        dpColumn.setCompress(baseSegment.mode().compress);
+        dpColumn.setUseExtIndex(baseSegment.mode.useExtIndex);
         dpColumn.initUpdate();
         SegmentSelectHelper.RowsConsumer consumer = it -> {
             while (it.hasNext()) {
@@ -119,7 +121,7 @@ public class UpdateColSegment {
         StorageSegment.StorageColumnCreator<StorageColumn> scCreator = (ci, cs, rc) -> {
             return getStorageColumn(baseSegment, targetColumnSchema.get(ci), ci, storePath);
         };
-        return new StorageSegment<StorageColumn>(baseSegment.version(), name, targetSchema, baseSegment.rowCount(), scCreator);
+        return new StorageSegment<StorageColumn>(baseSegment.version(), baseSegment.mode(), name, targetSchema, baseSegment.rowCount(), scCreator);
     }
 
     /**

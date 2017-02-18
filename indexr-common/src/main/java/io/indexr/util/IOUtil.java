@@ -87,7 +87,7 @@ public class IOUtil {
 
         InputStream is = reader.getWrappedStream();
         if (!(is instanceof ByteBufferReadable)) {
-            //logger.warn("Using read bytes method");
+            logger.trace("Using read bytes method");
             byte[] bytes = new byte[size];
             reader.readFully(bytes);
             buffer.put(bytes);

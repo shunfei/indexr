@@ -16,10 +16,18 @@ import io.indexr.segment.pack.DataPack;
 public class UnknownOperator implements CmpOperator {
     @JsonProperty("content")
     public final String content;
+    @JsonProperty("not")
+    public final boolean not;
 
     @JsonCreator
-    public UnknownOperator(@JsonProperty("content") String content) {
+    public UnknownOperator(@JsonProperty("content") String content,
+                           @JsonProperty("not") boolean not) {
         this.content = content;
+        this.not = not;
+    }
+
+    public UnknownOperator(String content) {
+        this(content, false);
     }
 
     @Override
@@ -29,7 +37,7 @@ public class UnknownOperator implements CmpOperator {
 
     @Override
     public String toString() {
-        return String.format("%s(%s)", this.getClass().getSimpleName(), content);
+        return String.format("%s(%s%s)", this.getClass().getSimpleName(), not ? "NOT " : "", content);
     }
 
     @Override
@@ -39,7 +47,7 @@ public class UnknownOperator implements CmpOperator {
 
     @Override
     public RCOperator applyNot() {
-        return this;
+        return new UnknownOperator(content, !not);
     }
 
     @Override
@@ -53,14 +61,14 @@ public class UnknownOperator implements CmpOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
         return RSValue.Some;
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
         // We don't know what this op is, so just assume every rows is ok.
-        int rowCount = rowPacks[0].objCount();
+        int rowCount = DataPack.MAX_COUNT;
         BitSet res = new BitSet(rowCount);
         res.set(0, rowCount, true);
         return res;

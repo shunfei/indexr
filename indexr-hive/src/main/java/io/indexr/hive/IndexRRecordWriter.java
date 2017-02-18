@@ -1,6 +1,7 @@
 package io.indexr.hive;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -28,10 +29,12 @@ import java.util.List;
 
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.SQLType;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
 import io.indexr.segment.pack.OpenOption;
+import io.indexr.segment.pack.Version;
 import io.indexr.util.DateTimeUtil;
 
 public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, RecordWriter<Void, ArrayWritable> {
@@ -52,7 +55,7 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
                               List<TypeInfo> columnTypes,
                               Path finalOutPath,
                               Path tableLocation,
-                              boolean compress) throws IOException {
+                              SegmentMode mode) throws IOException {
         // Hive may ask to create a file located on local file system.
         // We have to get the real file system by path's schema.
         this.fileSystem = FileSystem.get(finalOutPath.toUri(), FileSystem.get(jobConf).getConf());
@@ -70,8 +73,13 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
         }
         this.rowBuilder = SimpleRow.Builder.createByColumnSchemas(schema.columns);
 
-        segment = DPSegment.open(localSegmentPath.toString(), segmentName, schema, OpenOption.Overwrite);
-        segment.setCompress(compress).update();
+        segment = DPSegment.open(
+                Version.LATEST_ID,
+                mode,
+                localSegmentPath,
+                segmentName,
+                schema,
+                OpenOption.Overwrite).update();
     }
 
     private SegmentSchema convertToIndexRSchema(List<String> columnNames, List<TypeInfo> columnTypes) throws IOException {
@@ -177,6 +185,7 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
                 SegmentHelper.uploadSegment(segment, fileSystem, segmentOutPath, tableLocation);
             }
         } finally {
+            IOUtils.closeQuietly(segment);
             // Remove temporary dir.
             FileUtils.deleteDirectory(localSegmentPath.toFile());
         }

@@ -26,8 +26,8 @@ public class RoughCheck_R {
     public static byte inCheckOnPack(Column column, int packId, UTF8String[] values) throws IOException {
         RSIndexStr index = column.rsIndex();
         boolean none = true;
-        for (UTF8String v : values) {
-            byte vRes = index.isValue(packId, v);
+        for (UTF8String value : values) {
+            byte vRes = index.isValue(packId, value);
             if (vRes == All) {
                 return All;
             } else if (vRes == Some) {

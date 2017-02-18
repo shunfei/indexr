@@ -13,6 +13,7 @@ import io.indexr.data.BytePiece;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.PackExtIndexStr;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
 import io.indexr.segment.pack.ColumnNode;
@@ -71,13 +72,26 @@ public class Equal extends ColCmpVal {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
         byte type = attr.dataType();
-        int rowCount = pack.objCount();
+        int rowCount = column.dpn(packId).objCount();
         int hitCount = 0;
         switch (type) {
             case ColumnType.STRING: {
+                PackExtIndexStr extIndex = column.extIndex(packId);
+                byte res = RSValue.None;
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    res = extIndex.isValue(rowId, strValue);
+                    if (res != RSValue.None) {
+                        break;
+                    }
+                }
+                if (res == RSValue.None) {
+                    return RSValue.None;
+                }
+
+                DataPack pack = column.pack(packId);
                 BytePiece bp = new BytePiece();
                 Object valBase = strValue.getBaseObject();
                 long valOffset = strValue.getBaseOffset();
@@ -86,14 +100,17 @@ public class Equal extends ColCmpVal {
                     pack.rawValueAt(rowId, bp);
                     if (bp.len == valLen && ByteArrayMethods.arrayEquals(valBase, valOffset, bp.base, bp.addr, valLen)) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
             }
             default: {
+                DataPack pack = column.pack(packId);
                 for (int rowId = 0; rowId < pack.objCount(); rowId++) {
                     if (pack.uniformValAt(rowId, type) == numValue) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -109,8 +126,9 @@ public class Equal extends ColCmpVal {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(rowCount);
         byte type = attr.dataType();

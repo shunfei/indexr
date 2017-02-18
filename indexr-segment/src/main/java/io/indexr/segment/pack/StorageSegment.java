@@ -12,6 +12,7 @@ import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.RowTraversal;
 import io.indexr.segment.Segment;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 
 public class StorageSegment<SC extends StorageColumn> implements Segment {
@@ -23,6 +24,7 @@ public class StorageSegment<SC extends StorageColumn> implements Segment {
     public static final long MAX_ROW_COUNT = (long) DataPack.MAX_COUNT << 16;
 
     private final int version;
+    final SegmentMode mode;
     final String name;
     final SegmentSchema segmentSchema;
 
@@ -31,11 +33,12 @@ public class StorageSegment<SC extends StorageColumn> implements Segment {
 
     long rowCount;
 
-    StorageSegment(int version, String name, SegmentSchema schema, long rowCount, StorageColumnCreator<SC> scCreator) throws IOException {
+    StorageSegment(int version, SegmentMode mode, String name, SegmentSchema schema, long rowCount, StorageColumnCreator<SC> scCreator) throws IOException {
         Preconditions.checkArgument(schema.columns.size() <= MAX_COLUMN_COUNT,
                 "Too many columns, limit is %s, current %s",
                 MAX_COLUMN_COUNT, schema.columns.size());
         this.version = version;
+        this.mode = mode;
         this.name = name;
         this.rowCount = rowCount;
         this.segmentSchema = schema;
@@ -59,6 +62,10 @@ public class StorageSegment<SC extends StorageColumn> implements Segment {
 
     public int version() {
         return version;
+    }
+
+    public SegmentMode mode() {
+        return mode;
     }
 
     List<SC> columns() {

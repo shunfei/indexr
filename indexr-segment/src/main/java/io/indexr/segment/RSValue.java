@@ -30,10 +30,10 @@ public class RSValue {
     }
 
     public static byte and(byte v1, byte v2) {
-        if (v1 == All && v2 == All)
-            return All;
         if (v1 == None || v2 == None)
             return None;
+        if (v1 == All && v2 == All)
+            return All;
         return Some;
     }
 }

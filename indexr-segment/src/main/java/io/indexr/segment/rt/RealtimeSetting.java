@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 
 public class RealtimeSetting {
@@ -12,7 +13,7 @@ public class RealtimeSetting {
     public final List<Metric> metrics;
     public final Map<String, String> nameToAlias;
     public final TagSetting tagSetting;
-    public final String ignoreStrategy;
+    public final EventIgnoreStrategy ignoreStrategy;
     public final long savePeriodMS;
     public final long uploadPeriodMS;
     public final int maxRowInMemory;
@@ -20,7 +21,7 @@ public class RealtimeSetting {
     public final TimeZone timeZone;
     public final boolean grouping;
     public final boolean ingest;
-    public final boolean compress;
+    public final SegmentMode mode;
     public final Fetcher fetcher;
 
     public RealtimeSetting(SegmentSchema schema,
@@ -28,7 +29,7 @@ public class RealtimeSetting {
                            List<Metric> metrics,
                            Map<String, String> nameToAlias,
                            TagSetting tagSetting,
-                           String ignoreStrategy,
+                           EventIgnoreStrategy ignoreStrategy,
                            long savePeriodMS,
                            long uploadPeriodMS,
                            int maxRowInMemory,
@@ -36,7 +37,7 @@ public class RealtimeSetting {
                            TimeZone timeZone,
                            boolean grouping,
                            boolean ingest,
-                           boolean compress,
+                           SegmentMode mode,
                            Fetcher fetcher) {
         this.schema = schema;
         this.dims = dims;
@@ -51,7 +52,7 @@ public class RealtimeSetting {
         this.timeZone = timeZone;
         this.grouping = grouping;
         this.ingest = ingest;
-        this.compress = compress;
+        this.mode = mode;
         this.fetcher = fetcher;
     }
 
@@ -68,7 +69,7 @@ public class RealtimeSetting {
         if (maxRowInRealtime != that.maxRowInRealtime) return false;
         if (grouping != that.grouping) return false;
         if (ingest != that.ingest) return false;
-        if (compress != that.compress) return false;
+        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
         if (schema != null ? !schema.equals(that.schema) : that.schema != null) return false;
         if (dims != null ? !dims.equals(that.dims) : that.dims != null) return false;
         if (metrics != null ? !metrics.equals(that.metrics) : that.metrics != null) return false;
@@ -91,7 +92,7 @@ public class RealtimeSetting {
                         "maxRowInRealtime: %d, " +
                         "grouping: %s" +
                         "ingest: %s, " +
-                        "compress: %s, " +
+                        "mode: %s, " +
                         "fecther: %s",
                 savePeriodMS / 1000 / 60.0,
                 uploadPeriodMS / 1000 / 60.0,
@@ -99,7 +100,7 @@ public class RealtimeSetting {
                 maxRowInRealtime,
                 grouping,
                 ingest,
-                compress,
+                mode,
                 fetcher);
     }
 

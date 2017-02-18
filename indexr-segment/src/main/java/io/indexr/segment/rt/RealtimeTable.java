@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.indexr.segment.SegmentUploader;
+import io.indexr.segment.pack.Version;
 import io.indexr.util.DelayRepeatTask;
 import io.indexr.util.Trick;
 import io.indexr.util.Try;
@@ -240,7 +241,7 @@ public class RealtimeTable implements Closeable {
                             setting.metrics,
                             setting.nameToAlias,
                             setting.grouping,
-                            setting.compress),
+                            setting.mode),
                     1, logger,
                     String.format("Create new rts group failed. [table: %s, rtsg: %s]", tableName, rtsgName));
             if (rtsGroup == null) {
@@ -315,7 +316,7 @@ public class RealtimeTable implements Closeable {
                     setting.metrics,
                     setting.nameToAlias,
                     setting.tagSetting,
-                    EventIgnoreStrategy.nameToId(setting.ignoreStrategy),
+                    setting.ignoreStrategy,
                     setting.grouping,
                     setting.fetcher,
                     setting.maxRowInMemory,
@@ -418,7 +419,8 @@ public class RealtimeTable implements Closeable {
 
     // Wether this rtsg can be ingested or not.
     private boolean isRTSGIngestable(RTSGroup rtsGroup) {
-        return isRTSGSettingOk(rtsGroup)
+        return rtsGroup.version() == Version.LATEST_ID
+                && isRTSGSettingOk(rtsGroup)
                 && rtsGroup.allowAddSegment()
                 && !rtsGroup.timeToUpload(setting.uploadPeriodMS, setting.maxRowInRealtime);
     }

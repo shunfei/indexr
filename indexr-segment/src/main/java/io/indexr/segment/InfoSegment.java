@@ -5,7 +5,7 @@ import java.io.IOException;
 import io.indexr.segment.pack.ColumnNode;
 
 /**
- * An info segment continas basic info of a real segment.
+ * An info segment contains basic info of a real segment.
  */
 public interface InfoSegment {
 

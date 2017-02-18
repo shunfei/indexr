@@ -11,7 +11,7 @@ import io.indexr.segment.PackRSIndexStr;
 import io.indexr.segment.RSIndexStr;
 import io.indexr.segment.RSValue;
 
-public class EmptyRSIndexStr implements RSIndexStr {
+public class RSIndex_Str_Invalid implements RSIndexStr {
     @Override
     public byte isValue(int packId, UTF8String value) {
         return RSValue.Some;
@@ -24,7 +24,7 @@ public class EmptyRSIndexStr implements RSIndexStr {
 
     @Override
     public PackRSIndex packIndex(int packId) {
-        return new EmptyPackIndex();
+        return new PackIndex();
     }
 
     @Override
@@ -38,7 +38,7 @@ public class EmptyRSIndexStr implements RSIndexStr {
         return 0;
     }
 
-    public static class EmptyPackIndex implements PackRSIndexStr {
+    public static class PackIndex implements PackRSIndexStr {
         @Override
         public byte isValue(UTF8String value) {
             return RSValue.Some;

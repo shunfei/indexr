@@ -51,7 +51,7 @@ public class SegmentFdRowIterator implements Iterator<Row>, Closeable {
                 nextIndex++;
                 //System.out.printf("next segment: [%s]\n", rts.name());
                 try {
-                    current = segmentFd.open(indexMemCache, packMemCache);
+                    current = segmentFd.open(indexMemCache, null, packMemCache);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

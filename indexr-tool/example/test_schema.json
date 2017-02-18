@@ -11,6 +11,7 @@
             {"name": "m4", "dataType": "double"}
         ]
     },
+    "mode": "balance",
     "realtime":{
         "grouping": true,
         "dims": [
@@ -32,7 +33,7 @@
         "upload.period.minutes": 60,
         "max.row.memory": 500000,
         "max.row.realtime": 10000000,
-        "compress": true,
+        "mode": "performance",
         "fetcher": {
             "type": "kafka-0.8",
             "topic": "test_topic",

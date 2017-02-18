@@ -89,10 +89,10 @@ public class FixedBitWidthNumbers implements FixedWidthNumbers {
 
         int startOffsetBits = index * skipWidth + offset;
 
-        int byteStart = startOffsetBits >> 3; // div 8, 8 bits a byte.
+        int byteStart = startOffsetBits >>> 3; // div 8, 8 bits a byte.
         int bitStart = startOffsetBits & 0x07; // mod 8
 
-        int byteEnd = (startOffsetBits + width) >> 3;
+        int byteEnd = (startOffsetBits + width) >>> 3;
         int bitEnd = (startOffsetBits + width) & 0x07;
 
         long value = 0;

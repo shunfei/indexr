@@ -6,9 +6,6 @@ import java.util.Arrays;
 
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.DPValues;
-import io.indexr.segment.PackRSIndex;
-import io.indexr.segment.PackRSIndexStr;
-import io.indexr.util.Pair;
 
 class VirtualDataPack implements DPValues {
     private final byte dataType;
@@ -96,18 +93,18 @@ class VirtualDataPack implements DPValues {
         }
     }
 
-    Pair<DataPack, DataPackNode> asPack(int version, PackRSIndex index) {
+    PackBundle asPack(int version, boolean useExtIndex) {
         switch (dataType) {
             case ColumnType.INT:
-                return DataPack_N.from(version, (int[]) values, 0, size, (RSIndex_Histogram.HistPackIndex) index);
+                return DataPack_N.from(version, (int[]) values, 0, size , useExtIndex);
             case ColumnType.LONG:
-                return DataPack_N.from(version, (long[]) values, 0, size, (RSIndex_Histogram.HistPackIndex) index);
+                return DataPack_N.from(version, (long[]) values, 0, size, useExtIndex);
             case ColumnType.FLOAT:
-                return DataPack_N.from(version, (float[]) values, 0, size, (RSIndex_Histogram.HistPackIndex) index);
+                return DataPack_N.from(version, (float[]) values, 0, size, useExtIndex);
             case ColumnType.DOUBLE:
-                return DataPack_N.from(version, (double[]) values, 0, size, (RSIndex_Histogram.HistPackIndex) index);
+                return DataPack_N.from(version, (double[]) values, 0, size, useExtIndex);
             case ColumnType.STRING:
-                return DataPack_R.from(version, Arrays.asList((UTF8String[]) values).subList(0, size), (PackRSIndexStr) index);
+                return DataPack_R.from(version, Arrays.asList((UTF8String[]) values).subList(0, size), useExtIndex);
             default:
                 throw new IllegalArgumentException(String.format("Not support data type of %s", dataType));
         }

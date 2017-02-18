@@ -24,6 +24,9 @@ public class ByteBufferUtil {
         return bb;
     }
 
+    /**
+     * Allocate memory with cap len.
+     */
     public static ByteBuffer allocateDirect(int cap) {
         ByteBuffer bb = ByteBuffer.allocateDirect(cap);
         // It make operation faster, but kill the cross platform ability.

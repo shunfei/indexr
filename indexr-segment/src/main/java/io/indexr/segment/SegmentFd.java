@@ -2,18 +2,19 @@ package io.indexr.segment;
 
 import java.io.IOException;
 
+import io.indexr.segment.pack.ExtIndexMemCache;
 import io.indexr.segment.pack.IndexMemCache;
 import io.indexr.segment.pack.PackMemCache;
 
 /**
  * A segment pointer.
- * {@link #info()} provides {@link InfoSegment}, and {@link #open(IndexMemCache, PackMemCache)} opens the real {@link Segment}.
+ * {@link #info()} provides {@link InfoSegment}, and {@link #open(IndexMemCache, ExtIndexMemCache, PackMemCache)} opens the real {@link Segment}.
  * Because open a segment is a relative heavy operation, it is a good idea to filter out those not
  * related segments by info segments.
- * 
+ *
  * A {@link SegmentFd} is a light weight java object, it is fine to create many of them and throw away.
  * JVM will clean them up just like normal java object.
- * But The segment return by {@link #open(IndexMemCache, PackMemCache)} is resource related, user should call {@link Segment#close()}
+ * But The segment return by {@link #open(IndexMemCache, ExtIndexMemCache, PackMemCache)} is resource related, user should call {@link Segment#close()}
  * to release it after done with.
  */
 public interface SegmentFd {
@@ -22,13 +23,15 @@ public interface SegmentFd {
 
     InfoSegment info();
 
-    Segment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException;
+    Segment open(IndexMemCache indexMemCache,
+                 ExtIndexMemCache extIndexMemCache,
+                 PackMemCache packMemCache) throws IOException;
 
     /**
      * Same as <code>open(null, null)</code>.
      */
     default Segment open() throws IOException {
-        return open(null, null);
+        return open(null, null, null);
     }
 
     /**
@@ -47,7 +50,7 @@ public interface SegmentFd {
             }
 
             @Override
-            public Segment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
+            public Segment open(IndexMemCache indexMemCache, ExtIndexMemCache extIndexMemCache, PackMemCache packMemCache) throws IOException {
                 return segment;
             }
         };

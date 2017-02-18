@@ -3,6 +3,7 @@ package io.indexr.segment.pack;
 import java.io.IOException;
 
 import io.indexr.io.ByteBufferReader;
+import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSIndex;
 import io.indexr.segment.SQLType;
 
@@ -10,11 +11,13 @@ public class IntegratedColumn extends StorageColumn {
     private ByteBufferReader.Opener dataSource;
     private final long dpnBase;
     private final long indexBase;
+    private final long extIndexBase;
     private final long packBase;
 
     private final long segmentId;
     private DpnCache dpnCache;
     private IndexMemCache indexMemCache;
+    private ExtIndexMemCache extIndexMemCache;
     private PackMemCache packMemCache;
 
     IntegratedColumn(int version,
@@ -26,18 +29,22 @@ public class IntegratedColumn extends StorageColumn {
                      ByteBufferReader.Opener dataSource,
                      long dpnBase,
                      long indexBase,
+                     long extIndexBase,
                      long packBase,
                      DpnCache dpnCache,
                      IndexMemCache indexMemCache,
+                     ExtIndexMemCache extIndexMemCache,
                      PackMemCache packMemCache) {
         super(version, columnId, name, sqlType, rowCount);
         this.dataSource = dataSource;
         this.dpnBase = dpnBase;
         this.indexBase = indexBase;
+        this.extIndexBase = extIndexBase;
         this.packBase = packBase;
         this.segmentId = segmentId;
         this.dpnCache = dpnCache;
         this.indexMemCache = indexMemCache;
+        this.extIndexMemCache = extIndexMemCache;
         this.packMemCache = packMemCache;
     }
 
@@ -53,9 +60,11 @@ public class IntegratedColumn extends StorageColumn {
                 this.dataSource,
                 this.dpnBase,
                 this.indexBase,
+                this.extIndexBase,
                 this.packBase,
                 null, // dpnCache is passed by old segment instance, we should not use it.
                 this.indexMemCache,
+                this.extIndexMemCache,
                 this.packMemCache);
         // dpn will not change.
         column._dpns = this._dpns;
@@ -71,6 +80,11 @@ public class IntegratedColumn extends StorageColumn {
     @Override
     protected ByteBufferReader openIndexReader() throws IOException {
         return dataSource.open(indexBase);
+    }
+
+    @Override
+    ByteBufferReader openExtIndexReader() throws IOException {
+        return dataSource.open(extIndexBase);
     }
 
     @Override
@@ -102,6 +116,20 @@ public class IntegratedColumn extends StorageColumn {
     }
 
     @Override
+    public PackExtIndex extIndex(int packId) throws IOException {
+        if (extIndexMemCache == null) {
+            return super.extIndex(packId);
+        } else {
+            return extIndexMemCache.getPack(segmentId, columnId, packId, () -> {
+                DataPackNode dpn = dpn(packId);
+                PackExtIndex extIndex = loadExtIndex(dpn);
+                extIndex.decompress(dpn);
+                return extIndex;
+            });
+        }
+    }
+
+    @Override
     public DataPack pack(int packId) throws IOException {
         if (packMemCache == null) {
             return super.pack(packId);
@@ -124,6 +152,7 @@ public class IntegratedColumn extends StorageColumn {
         dataSource = null;
         dpnCache = null;
         indexMemCache = null;
+        extIndexMemCache = null;
         packMemCache = null;
     }
 }

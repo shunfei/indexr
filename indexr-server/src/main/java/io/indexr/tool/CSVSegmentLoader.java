@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.UUID;
 
 import io.indexr.segment.ColumnSchema;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
 import io.indexr.segment.pack.OpenOption;
+import io.indexr.segment.pack.Version;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
 import io.indexr.util.IOUtil;
@@ -59,7 +61,7 @@ public class CSVSegmentLoader {
                             List<String> csvPaths,
                             Path outPath,
                             String spliter,
-                            boolean compress) throws IOException {
+                            SegmentMode mode) throws IOException {
         this.schema = schema;
         this.spliter = spliter;
         this.csvPaths = csvPaths;
@@ -82,12 +84,17 @@ public class CSVSegmentLoader {
             columnSchemas[colId] = cs;
         }
 
-        OpenOption[] modes = new OpenOption[]{OpenOption.Overwrite};
-        this.segment = DPSegment.open(outPath.toString(), name, schema, modes).setCompress(compress);
+        this.segment = DPSegment.open(
+                Version.LATEST_ID,
+                SegmentMode.DEFAULT,
+                outPath,
+                name,
+                schema,
+                OpenOption.Overwrite);
     }
 
     public CSVSegmentLoader(String name, SegmentSchema schema, List<String> csvColNames, List<String> csvPaths, Path outPath) throws IOException {
-        this(name, schema, csvColNames, csvPaths, outPath, ",", true);
+        this(name, schema, csvColNames, csvPaths, outPath, ",", SegmentMode.DEFAULT);
     }
 
     public DPSegment segment() {
@@ -140,7 +147,9 @@ public class CSVSegmentLoader {
     private static class MyOptions {
         @Option(name = "-h", usage = "print this help")
         boolean help;
-        @Option(name = "-ncp", usage = "if set, will not compress segment. Default is compressed.")
+        @Option(name = "-mode", usage = "segment mode: storage, balance or performance")
+        String mode = SegmentMode.DEFAULT.toString();
+        @Option(name = "-ncp", usage = "[deprecated, use -mode instead] if set, will not compress segment. Default is compressed.")
         boolean notcompress = false;
         @Option(name = "-q", aliases = "quiet", usage = "print message or not")
         boolean quiet = false;
@@ -219,7 +228,7 @@ public class CSVSegmentLoader {
                 csvPaths,
                 tmpPath,
                 options.spliter,
-                !options.notcompress);
+                SegmentMode.fromNameWithCompress(options.mode, !options.notcompress));
 
         DPSegment segment = loader.segment();
 

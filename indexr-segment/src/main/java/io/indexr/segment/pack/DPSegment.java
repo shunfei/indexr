@@ -20,15 +20,16 @@ import java.util.List;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.RowTraversal;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.util.JsonUtil;
 
 /**
  * DPSegment is a segment which only resides on local disk. It is column based, supports rows literal, ingestion, and merge.
- * 
+ *
  * Usually DPSegment is used as an intermediate format. You can create a new one, ingest rows into it, merge with another segments,
  * maybe check correctness by literal over it. After you done play with it, transform into {@link IntegratedSegment}.
- * 
+ *
  * Dir structure:
  * <pre>
  * .../segment/path/
@@ -42,10 +43,10 @@ import io.indexr.util.JsonUtil;
  *                  colName1.index
  *                  ...
  * </pre>
- * 
+ *
  * An updating DPSegment can not be quried, i.e. those methods like {@link #rowTraversal()},
  * {@link #column(int)} will return <code>null</code> while {@link #isUpdate()} return <code>true</code>.
- * 
+ *
  * This class is <b>NOT</b> multi-thread safe.
  */
 public class DPSegment extends StorageSegment<DPColumn> {
@@ -54,9 +55,13 @@ public class DPSegment extends StorageSegment<DPColumn> {
     private final Path segmentPath;
     private boolean update;
 
-    DPSegment(int version, Path segmentPath, String name, SegmentSchema schema, long rowCount) throws IOException {
-        super(version, name, schema, rowCount, (ci, sc, rc) -> new DPColumn(version, ci, sc.name, sc.sqlType, rc, segmentPath));
+    DPSegment(Metadata metadata, Path segmentPath, String name, SegmentSchema schema) throws IOException {
+        super(metadata.version, metadata.mode, name, schema, metadata.rowCount, (ci, sc, rc) -> new DPColumn(metadata.version, ci, sc.name, sc.sqlType, rc, segmentPath));
         this.segmentPath = segmentPath;
+        for (DPColumn column : columns) {
+            column.setCompress(mode.compress);
+            column.setUseExtIndex(mode.useExtIndex);
+        }
     }
 
     /**
@@ -65,49 +70,48 @@ public class DPSegment extends StorageSegment<DPColumn> {
     private static class Metadata {
         @JsonProperty("version")
         public int version;
+        @JsonProperty("mode")
+        public SegmentMode mode;
         @JsonProperty("rowCount")
         public long rowCount;
 
         @JsonCreator
         public Metadata(@JsonProperty("version") int version,
+                        @JsonProperty("mode") String mode,
                         @JsonProperty("rowCount") long rowCount) {
             this.version = version;
+            this.mode = SegmentMode.fromName(mode);
             this.rowCount = rowCount;
         }
     }
 
-    /**
-     * Open a DPSegment, same as <code>open(path, null, null)</code>
-     */
     public static DPSegment open(String path) throws IOException {
-        return open(path, null, null);
+        return open(Paths.get(path));
     }
 
-    /**
-     * Open a DPSegment, same as <code>open(path, null, null)</code>
-     */
     public static DPSegment open(Path path) throws IOException {
-        return open(Version.LATEST_ID, path, null, null);
+        return open(-1, null, path, null, null);
     }
 
-    public static DPSegment open(String path, String name, SegmentSchema schema, OpenOption... options) throws IOException {
-        return open(Version.LATEST_ID, Paths.get(path), name, schema, options);
-    }
+    //public static DPSegment open(String path, String name, SegmentSchema schema, OpenOption... options) throws IOException {
+    //    return open(Version.LATEST_ID,  Paths.get(path), name, schema, options);
+    //}
 
     /**
      * Open a DPSegment.
-     * 
-     * The newly open segment is default in compressed state, and cannot be updated.
-     * You can Use {@link #setCompress(boolean)} to set compress status of next pack and {@link #update()} to enable update.
+     *
+     * The newly open segment cannot be updated.
+     * You can use {@link #update()} to enable update.
      *
      * @param version The segment version, check {@link Version}.
+     * @param mode    The segment mode.
      * @param path    The path of segment.
      * @param name    The unique segment identifier in the whole system.
      * @param schema  The schema of segment.
      * @param options The open options.
      * @return A segment resides on the path.
      */
-    public static DPSegment open(int version, Path path, String name, SegmentSchema schema, OpenOption... options) throws IOException {
+    public static DPSegment open(int version, SegmentMode mode, Path path, String name, SegmentSchema schema, OpenOption... options) throws IOException {
         //Preconditions.checkArgument(name != null);
         Preconditions.checkArgument(path != null);
 
@@ -133,13 +137,16 @@ public class DPSegment extends StorageSegment<DPColumn> {
             }
         } else {
             Preconditions.checkArgument(schema != null, "Segment schema should be provided while not exists yet!");
-            metadata = new Metadata(version, 0);
+            Preconditions.checkArgument(Version.fromId(version) != null, "Illegal version!");
+
+            mode = mode == null ? SegmentMode.DEFAULT : mode;
+            metadata = new Metadata(version, mode.name(), 0);
             segmentSchema = schema;
 
             saveInfo(path, metadata, segmentSchema);
         }
 
-        return new DPSegment(metadata.version, path, name, segmentSchema, metadata.rowCount);
+        return new DPSegment(metadata, path, name, segmentSchema);
     }
 
     private static void saveInfo(Path segmentPath, Metadata metadata, SegmentSchema schema) {
@@ -227,13 +234,6 @@ public class DPSegment extends StorageSegment<DPColumn> {
         rowCount++;
     }
 
-    public DPSegment setCompress(boolean compress) {
-        for (DPColumn column : columns) {
-            column.setCompress(compress);
-        }
-        return this;
-    }
-
     public boolean isUpdate() {
         return update;
     }
@@ -265,7 +265,7 @@ public class DPSegment extends StorageSegment<DPColumn> {
         if (!update) {
             return;
         }
-        saveInfo(segmentPath, new Metadata(version(), rowCount), segmentSchema);
+        saveInfo(segmentPath, new Metadata(version(), mode.name(), rowCount), segmentSchema);
         for (DPColumn col : columns) {
             col.seal();
         }

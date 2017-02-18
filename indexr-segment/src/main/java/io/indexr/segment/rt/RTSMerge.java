@@ -19,6 +19,7 @@ import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.DPSegment;
 import io.indexr.segment.pack.OpenOption;
@@ -36,6 +37,7 @@ public class RTSMerge {
     public static StorageSegment merge(
             boolean grouping,
             SegmentSchema schema,
+            SegmentMode mode,
             List<String> dims,
             List<Metric> metrics,
             List<SegmentFd> fds,
@@ -50,13 +52,13 @@ public class RTSMerge {
             int version = fds.size() == 0 ? Version.LATEST_ID : segments.get(0).version();
             mergeSegment = DPSegment.open(
                     version,
+                    mode,
                     path,
                     name,
                     schema,
                     OpenOption.Overwrite);
             mergeSegment.update();
 
-            //if (true) {
             if (dims == null || dims.size() == 0) {
                 // No need to sort, use the fast way - copy bytes directly.
                 mergeSegment.merge(segments);

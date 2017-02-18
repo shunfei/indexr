@@ -19,6 +19,7 @@ import io.indexr.data.BytePiece;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.PackExtIndexStr;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
 import io.indexr.segment.pack.ColumnNode;
@@ -51,17 +52,7 @@ public class In implements CmpOperator {
     public In(@JsonProperty("attr") Attr attr,
               @JsonProperty("numValues") long[] numValues,
               @JsonProperty("strValues") String[] strValues) {
-        this.attr = attr;
-        this.numValues = numValues;
-        if (strValues == null) {
-            this.strValues = null;
-        } else {
-            UTF8String[] vs = new UTF8String[strValues.length];
-            for (int i = 0; i < strValues.length; i++) {
-                vs[i] = strValues[i] == null ? null : UTF8String.fromString(strValues[i]);
-            }
-            this.strValues = vs;
-        }
+        this(attr, numValues, toUTF8Arr(strValues));
     }
 
     public In(Attr attr,
@@ -70,6 +61,17 @@ public class In implements CmpOperator {
         this.attr = attr;
         this.numValues = numValues;
         this.strValues = strValues;
+    }
+
+    static UTF8String[] toUTF8Arr(String[] strValues) {
+        if (strValues == null) {
+            return null;
+        }
+        UTF8String[] vs = new UTF8String[strValues.length];
+        for (int i = 0; i < strValues.length; i++) {
+            vs[i] = strValues[i] == null ? null : UTF8String.fromString(strValues[i]);
+        }
+        return vs;
     }
 
     @Override
@@ -147,13 +149,29 @@ public class In implements CmpOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
         byte type = attr.dataType();
-        int rowCount = pack.objCount();
+        int rowCount = column.dpn(packId).objCount();
         int hitCount = 0;
         switch (type) {
             case ColumnType.STRING: {
+                PackExtIndexStr extIndex = column.extIndex(packId);
+                byte res = RSValue.None;
+                _:
+                for (UTF8String value : strValues) {
+                    for (int rowId = 0; rowId < rowCount; rowId++) {
+                        res = extIndex.isValue(rowId, value);
+                        if (res != RSValue.None) {
+                            break _;
+                        }
+                    }
+                }
+                if (res == RSValue.None) {
+                    return RSValue.None;
+                }
+
+                DataPack pack = column.pack(packId);
                 BytePiece bp = new BytePiece();
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     pack.rawValueAt(rowId, bp);
@@ -161,17 +179,20 @@ public class In implements CmpOperator {
                         if (bp.len == value.numBytes()
                                 && ByteArrayMethods.arrayEquals(value.getBaseObject(), value.getBaseOffset(), bp.base, bp.addr, bp.len)) {
                             hitCount++;
+                            break;
                         }
                     }
                 }
                 break;
             }
             default: {
+                DataPack pack = column.pack(packId);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     long v = pack.uniformValAt(rowId, type);
                     for (long value : numValues) {
                         if (v == value) {
                             hitCount++;
+                            break;
                         }
                     }
                 }
@@ -188,13 +209,14 @@ public class In implements CmpOperator {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
-        int rowCount = pack.objCount();
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        int rowCount = column.dpn(packId).objCount();
         BitSet colRes = new BitSet(rowCount);
         byte type = attr.dataType();
         switch (type) {
             case ColumnType.STRING: {
+                DataPack pack = column.pack(packId);
                 BytePiece bp = new BytePiece();
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     pack.rawValueAt(rowId, bp);
@@ -203,7 +225,6 @@ public class In implements CmpOperator {
                         if (bp.len == value.numBytes()
                                 && ByteArrayMethods.arrayEquals(value.getBaseObject(), value.getBaseOffset(), bp.base, bp.addr, bp.len)) {
                             ok = true;
-                            break;
                         }
                     }
                     colRes.set(rowId, ok);
@@ -211,13 +232,13 @@ public class In implements CmpOperator {
                 break;
             }
             default: {
+                DataPack pack = column.pack(packId);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     long v = pack.uniformValAt(rowId, type);
                     boolean ok = false;
                     for (long value : numValues) {
                         if (v == value) {
                             ok = true;
-                            break;
                         }
                     }
                     colRes.set(rowId, ok);

@@ -30,9 +30,11 @@ import io.indexr.segment.Row;
 import io.indexr.segment.RowTraversal;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.SegmentUploader;
 import io.indexr.segment.pack.ColumnNode;
+import io.indexr.segment.pack.ExtIndexMemCache;
 import io.indexr.segment.pack.IndexMemCache;
 import io.indexr.segment.pack.IntegratedSegment;
 import io.indexr.segment.pack.PackMemCache;
@@ -147,8 +149,8 @@ public class RTSGroup implements InfoSegment, SegmentFd {
         public final Map<String, String> nameToAlias;
         @JsonProperty("grouping")
         public final boolean grouping;
-        @JsonProperty("compress")
-        public final boolean compress;
+        @JsonProperty("mode")
+        public final SegmentMode mode;
 
         @JsonCreator
         public Metadata(@JsonProperty("version") int version,
@@ -159,7 +161,8 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                         @JsonProperty("metrics") List<Metric> metrics,
                         @JsonProperty("nameToAlias") Map<String, String> nameToAlias,
                         @JsonProperty("grouping") boolean grouping,
-                        @JsonProperty("compress") boolean compress) {
+                        @JsonProperty("compress") Boolean compress,
+                        @JsonProperty("mode") String mode) {
             this.version = version;
             this.name = name;
             this.schema = schema;
@@ -168,12 +171,12 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             this.metrics = metrics;
             this.nameToAlias = nameToAlias;
             this.grouping = grouping;
-            this.compress = compress;
+            this.mode = SegmentMode.fromNameWithCompress(mode, compress);
         }
     }
 
     public static RTSGroup open(Path path, String tableName) throws IOException {
-        return open(path, tableName, null, null, null, null, null, false, true);
+        return open(path, tableName, null, null, null, null, null, false, SegmentMode.DEFAULT);
     }
 
     public static RTSGroup open(Path path,
@@ -184,7 +187,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                                 List<Metric> metrics,
                                 Map<String, String> nameToAlias,
                                 boolean grouping,
-                                boolean compress) throws IOException {
+                                SegmentMode mode) throws IOException {
         Preconditions.checkState(path != null && !Strings.isEmpty(tableName));
 
         State state = State.getState(path);
@@ -212,7 +215,8 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                         metrics,
                         nameToAlias,
                         grouping,
-                        compress
+                        mode.compress,
+                        mode.name()
                 );
                 JsonUtil.save(path.resolve("metadata.json"), metadata);
                 RTSGroup rtsGroup = new RTSGroup(path, tableName, metadata, state, false, false);
@@ -245,6 +249,10 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             default:
                 return null;
         }
+    }
+
+    public int version() {
+        return metadata.version;
     }
 
     public List<String> dims() {
@@ -467,7 +475,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                     break;
                 case RTIFinished:
                     SegmentFd savedSegment = Try.on(
-                            () -> rts.saveToDisk(metadata.version, metadata.compress, rtResources),
+                            () -> rts.saveToDisk(metadata.version, metadata.mode, rtResources),
                             1, logger,
                             String.format("Save in memory rows to disk failed. [table: %s, rtsg: %s, segment: %s]",
                                     tableName, metadata.name, rts.name()));
@@ -524,6 +532,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                 () -> RTSMerge.merge(
                         metadata.grouping,
                         metadata.schema,
+                        metadata.mode,
                         metadata.dims,
                         metadata.metrics,
                         savedSegments,
@@ -729,9 +738,9 @@ public class RTSGroup implements InfoSegment, SegmentFd {
      * This method is only used for testing. Never use it in real production.
      */
     @Override
-    public Segment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
+    public Segment open(IndexMemCache indexMemCache, ExtIndexMemCache extIndexMemCache, PackMemCache packMemCache) throws IOException {
         if (mergeSegment != null) {
-            return mergeSegment.open(indexMemCache, packMemCache);
+            return mergeSegment.open(indexMemCache, extIndexMemCache, packMemCache);
         }
         return new Segment() {
             SegmentFdRowIterator iterator = new SegmentFdRowIterator(

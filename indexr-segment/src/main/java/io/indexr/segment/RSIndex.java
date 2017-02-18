@@ -7,7 +7,7 @@ import io.indexr.data.Sizable;
 import io.indexr.io.ByteBufferWriter;
 
 /**
- * Rough sets index.
+ * Rough set index.
  */
 public interface RSIndex extends Freeable, Sizable {
 

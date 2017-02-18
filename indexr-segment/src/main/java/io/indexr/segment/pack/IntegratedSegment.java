@@ -16,6 +16,7 @@ import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.Integrated.ColumnInfo;
 import io.indexr.segment.pack.Integrated.ColumnNodeInfo;
@@ -28,13 +29,14 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
     private Closeable close;
 
     IntegratedSegment(int version,
+                      SegmentMode mode,
                       String name,
                       SegmentSchema schema,
                       long rowCount,
                       ColumnNode[] columnNodes,
                       StorageColumnCreator<IntegratedColumn> columnCreator,
                       Closeable close) throws IOException {
-        super(version, name, schema, rowCount, columnCreator);
+        super(version, mode, name, schema, rowCount, columnCreator);
         // Set the columnNodes here and never change.
         this.columnNodes = columnNodes;
         this.close = close;
@@ -109,12 +111,15 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
             return infoSegment;
         }
 
+        @Override
         public IntegratedSegment open() throws IOException {
-            return open(null, null);
+            return open(null, null, null);
         }
 
         @Override
-        public IntegratedSegment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
+        public IntegratedSegment open(IndexMemCache indexMemCache,
+                                      ExtIndexMemCache extIndexMemCache,
+                                      PackMemCache packMemCache) throws IOException {
             // Open file here. The user will close it by Segment#close().
             ByteBufferReader reader = dataSource.open(0);
             // Create a wrapped reader, all open peration will directly return the opening file.
@@ -132,13 +137,16 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
                         wrappedDataSource,
                         info.dpnOffset,
                         info.indexOffset,
+                        info.extIndexOffset,
                         info.packOffset,
                         dpnCache,
                         indexMemCache,
+                        extIndexMemCache,
                         packMemCache);
             };
             return new IntegratedSegment(
                     sectionInfo.version,
+                    SegmentMode.fromId(sectionInfo.mode),
                     infoSegment.name,
                     infoSegment.schema,
                     infoSegment.rowCount,
@@ -175,7 +183,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
          * @param segment      The segment to integrate.
          * @param writerOpener The destination file which generated segment will write into.
          * @param dstReader    The same file of <i>write</i>, used to generate the returned segment fd.
-         *                     It could be <i>null</i> if you are not plan to really open the segment by {@link SegmentFd#open(IndexMemCache, PackMemCache)}.
+         *                     It could be <i>null</i> if you are not plan to really open the segment by {@link SegmentFd#open(IndexMemCache, ExtIndexMemCache, PackMemCache)}.
          *                     You can create the same segment fd later by {@link IntegratedSegment.Fd#create(String, ByteBufferReader.Opener)}.
          * @return A {@link Fd} pointed to the integrated segment.
          */

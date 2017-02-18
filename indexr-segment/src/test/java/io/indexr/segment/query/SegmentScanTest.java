@@ -25,9 +25,11 @@ import io.indexr.query.row.InternalRow;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
+import io.indexr.segment.pack.Version;
 
 public class SegmentScanTest {
     static List<ColumnSchema> columnSchemas = Arrays.asList(
@@ -96,9 +98,8 @@ public class SegmentScanTest {
         String segmentId = "test_segment";
         DPSegment segment = null;
         try {
-            String path = workDir.toString();
-            System.out.println("Segment paht:" + path);
-            segment = DPSegment.open(path, segmentId, segmentSchema).update();
+            System.out.println("Segment paht:" + workDir);
+            segment = DPSegment.open(Version.LATEST_ID, SegmentMode.DEFAULT, workDir, segmentId, segmentSchema).update();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

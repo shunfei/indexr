@@ -75,8 +75,9 @@ public class Like extends ColCmpVal {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
@@ -102,8 +103,9 @@ public class Like extends ColCmpVal {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(pack.objCount());
         byte type = attr.dataType();

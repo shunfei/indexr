@@ -63,7 +63,7 @@ public class IndexRNodeTest {
         BytePiece bytePiece = new BytePiece();
         List<SegmentFd> segmentFds = node.getTablePool().get(tableName).segmentPool().all();
         for (SegmentFd segmentFd : segmentFds) {
-            try (Segment segment = segmentFd.open(indexMemCache, packMemCache)) {
+            try (Segment segment = segmentFd.open(indexMemCache, null, packMemCache)) {
                 Iterator<Row> rows = segment.rowTraversal().iterator();
                 while (rows.hasNext() && !Thread.interrupted()) {
                     literalRow(tableSchema.schema, rows.next(), bytePiece);

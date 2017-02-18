@@ -26,10 +26,6 @@ class RSIndex_CMap implements RSIndexStr {
     private long bufferAddr;
     private final int packCount;
 
-    public RSIndex_CMap(int packCount) {
-        this(ByteSlice.allocateDirect(packCount * (POSISTIONS << POSITION_BYTE_SHIFT)), packCount);
-    }
-
     public RSIndex_CMap(ByteSlice buffer, int packCount) {
         this.buffer = buffer;
         this.bufferAddr = buffer.address();
@@ -43,16 +39,36 @@ class RSIndex_CMap implements RSIndexStr {
 
     @Override
     public PackRSIndex packIndex(int packId) {
-        return new CMapPackIndex();
+        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
+        return new PackIndex(packAddr);
     }
 
     public void putValue(int packId, UTF8String value) {
         assert packId >= 0 && packId < packCount;
+        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
+        _putValue(packAddr, value);
+    }
 
+    @Override
+    public byte isValue(int packId, UTF8String value) {
+        assert packId >= 0 && packId < packCount;
+
+        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
+        return _isValue(packAddr, value);
+    }
+
+    @Override
+    public byte isLike(int packId, LikePattern pattern) {
+        assert packId >= 0 && packId < packCount;
+        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
+
+        return _isLike(packAddr, pattern);
+    }
+
+    private static void _putValue(long packAddr, UTF8String value) {
         int bytes = value.numBytes();
         Object valueBase = value.getBaseObject();
         long valueOffset = value.getBaseOffset();
-        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
         int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
 
         for (int pos = 0; pos < indexSize; pos++) {
@@ -60,14 +76,10 @@ class RSIndex_CMap implements RSIndexStr {
         }
     }
 
-    @Override
-    public byte isValue(int packId, UTF8String value) {
-        assert packId >= 0 && packId < packCount;
-
+    private static byte _isValue(long packAddr, UTF8String value) {
         int bytes = value.numBytes();
         Object valueBase = value.getBaseObject();
         long valueOffset = value.getBaseOffset();
-        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
         int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
 
         for (int pos = 0; pos < indexSize; pos++) {
@@ -78,17 +90,13 @@ class RSIndex_CMap implements RSIndexStr {
         return RSValue.Some;
     }
 
-    @Override
-    public byte isLike(int packId, LikePattern pattern) {
-        assert packId >= 0 && packId < packCount;
-
+    public static byte _isLike(long packAddr, LikePattern pattern) {
         // We can exclude cases like "ala%" and "a_l_a%"
 
         UTF8String original = pattern.original;
         int bytes = original.numBytes();
         Object valueBase = original.getBaseObject();
         long valueOffset = original.getBaseOffset();
-        long packAddr = bufferAddr + (packId * (POSISTIONS << POSITION_BYTE_SHIFT));
         int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
 
         for (int pos = 0; pos < indexSize; pos++) {
@@ -110,15 +118,15 @@ class RSIndex_CMap implements RSIndexStr {
     private static void set(long packAddr, byte charVal, int pos) {
         int charUnsigned = charVal & 0xFF;
         // packAddr + (pos * 256 / 8) + charUnsigned / 32;
-        long addr = packAddr + (pos << POSITION_BYTE_SHIFT) + (charUnsigned >> POSITION_BYTE_SHIFT);
+        long addr = packAddr + (pos << POSITION_BYTE_SHIFT) + (charUnsigned >>> POSITION_BYTE_SHIFT);
         int oldVal = MemoryUtil.getInt(addr);
         MemoryUtil.setInt(addr, oldVal | (1 << (charUnsigned % 32)));
     }
 
     private static boolean isSet(long packAddr, byte charVal, int pos) {
         int charUnsigned = charVal & 0xFF;
-        long addr = packAddr + (pos << POSITION_BYTE_SHIFT) + (charUnsigned >> POSITION_BYTE_SHIFT);
-        return ((MemoryUtil.getInt(addr) >> (charUnsigned % 32)) & 1) == 1;
+        long addr = packAddr + (pos << POSITION_BYTE_SHIFT) + (charUnsigned >>> POSITION_BYTE_SHIFT);
+        return ((MemoryUtil.getInt(addr) >>> (charUnsigned % 32)) & 1) == 1;
     }
 
     @Override
@@ -133,11 +141,11 @@ class RSIndex_CMap implements RSIndexStr {
         writer.write(buffer.toByteBuffer(), buffer.size());
     }
 
-    public static class CMapPackIndex implements PackRSIndexStr {
+    public static class PackIndex implements PackRSIndexStr {
         private ByteSlice buffer;
         private long bufferAddr;
 
-        public CMapPackIndex() {
+        public PackIndex() {
             this.buffer = ByteSlice.allocateDirect(POSISTIONS << POSITION_BYTE_SHIFT);
             this.bufferAddr = buffer.address();
             clear();
@@ -146,7 +154,7 @@ class RSIndex_CMap implements RSIndexStr {
         /**
          * A index only generated from RSIndex_CMap.
          */
-        private CMapPackIndex(long bufferAddr) {
+        private PackIndex(long bufferAddr) {
             ByteBuffer bb = MemoryUtil.getHollowDirectByteBuffer();
             // Without cleaner.
             MemoryUtil.setByteBuffer(bb, bufferAddr, POSISTIONS << POSITION_BYTE_SHIFT, null);
@@ -179,50 +187,17 @@ class RSIndex_CMap implements RSIndexStr {
 
         @Override
         public void putValue(UTF8String value) {
-            int bytes = value.numBytes();
-            Object valueBase = value.getBaseObject();
-            long valueOffset = value.getBaseOffset();
-            int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
-
-            for (int pos = 0; pos < indexSize; pos++) {
-                set(bufferAddr, Platform.getByte(valueBase, valueOffset + pos), pos);
-            }
+            _putValue(bufferAddr, value);
         }
 
         @Override
         public byte isValue(UTF8String value) {
-            int bytes = value.numBytes();
-            Object valueBase = value.getBaseObject();
-            long valueOffset = value.getBaseOffset();
-            int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
-
-            for (int pos = 0; pos < indexSize; pos++) {
-                if (!isSet(bufferAddr, Platform.getByte(valueBase, valueOffset + pos), pos)) {
-                    return RSValue.None;
-                }
-            }
-            return RSValue.Some;
+            return _isValue(bufferAddr, value);
         }
 
         @Override
         public byte isLike(LikePattern pattern) {
-            UTF8String original = pattern.original;
-            int bytes = original.numBytes();
-            Object valueBase = original.getBaseObject();
-            long valueOffset = original.getBaseOffset();
-            int indexSize = bytes < POSISTIONS ? bytes : POSISTIONS;
-
-            for (int pos = 0; pos < indexSize; pos++) {
-                byte c = Platform.getByte(valueBase, valueOffset + pos);
-                // The ESCAPE_CHARACTOR case can be optimized. But I'm too tired...
-                if (c == '%' || c == ESCAPE_CHARACTOR) {
-                    break;
-                }
-                if (c != '_' && !isSet(bufferAddr, c, pos)) {
-                    return RSValue.None;
-                }
-            }
-            return RSValue.Some;
+            return _isLike(bufferAddr, pattern);
         }
 
     }

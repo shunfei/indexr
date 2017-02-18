@@ -9,9 +9,7 @@ import org.apache.hadoop.hive.ql.io.IOConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
@@ -130,11 +128,9 @@ public class IndexRSerde extends AbstractSerDe {
             case STRING:
                 return new Text(((StringObjectInspector) inspector).getPrimitiveJavaObject(obj));
             case DATE:
-                //return ((DateObjectInspector) inspector).getPrimitiveWritableObject(obj);
-                return new DateWritable(((DateObjectInspector) inspector).getPrimitiveJavaObject(obj));
+                return ((DateObjectInspector) inspector).getPrimitiveWritableObject(obj);
             case TIMESTAMP:
-                //return ((TimestampObjectInspector) inspector).getPrimitiveWritableObject(obj);
-                return new TimestampWritable(((TimestampObjectInspector) inspector).getPrimitiveJavaObject(obj));
+                return ((TimestampObjectInspector) inspector).getPrimitiveWritableObject(obj);
             default:
                 throw new SerDeException("Can't serialize primitive : " + inspector.getPrimitiveCategory());
         }

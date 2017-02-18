@@ -37,6 +37,7 @@ import io.indexr.segment.Row;
 import io.indexr.segment.RowTraversal;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.util.MemoryUtil;
 
@@ -169,7 +170,7 @@ public class SegmentBenchmark {
         public void setup() throws IOException {
             workDir = Files.createTempDirectory("dpsegment_bm_");
             String segmentId = "test_segment";
-            segment = DPSegment.open(workDir.toString(), segmentId, segmentSchema, OpenOption.Overwrite).setCompress(compress).update();
+            segment = DPSegment.open(Version.LATEST_ID, SegmentMode.DEFAULT, workDir, segmentId, segmentSchema, OpenOption.Overwrite).update();
         }
 
         @TearDown(Level.Invocation)
@@ -208,7 +209,7 @@ public class SegmentBenchmark {
             System.out.println(workDir);
             String segmentId = "test_segment";
 
-            DPSegment insertSegment = DPSegment.open(version, workDir, segmentId, segmentSchema, OpenOption.Overwrite).setCompress(compress).update();
+            DPSegment insertSegment = DPSegment.open(Version.LATEST_ID, SegmentMode.DEFAULT, workDir, segmentId, segmentSchema, OpenOption.Overwrite).update();
             addRows(insertSegment, genRows(rowCount));
             insertSegment.seal();
 
@@ -259,7 +260,7 @@ public class SegmentBenchmark {
         @Benchmark
         public void travel_by_pack() throws IOException {
             IntegratedSegment.Fd fd = IntegratedSegment.Fd.create("aa", workDir.resolve("integreated"));
-            IntegratedSegment segment = fd.open();
+            IntegratedSegment segment = (IntegratedSegment) fd.open();
             SegmentBenchmark.travel_by_pack(segment);
         }
     }
@@ -284,7 +285,7 @@ public class SegmentBenchmark {
         private PackMemCache packMemCache;
 
         DPSegment getSegment(String path) throws IOException {
-            return DPSegment.open(path, null, null);
+            return DPSegment.open(path);
         }
 
         @Setup(Level.Trial)
@@ -295,7 +296,7 @@ public class SegmentBenchmark {
             workDir = Files.createTempDirectory("dpsegment_bm_");
             String segmentId = "test_segment";
 
-            DPSegment insertSegment = DPSegment.open(version, workDir, segmentId, segmentSchema, OpenOption.Overwrite).update();
+            DPSegment insertSegment = DPSegment.open(Version.LATEST_ID, SegmentMode.DEFAULT, workDir, segmentId, segmentSchema, OpenOption.Overwrite).update();
             addRows(insertSegment, genRows(rowCount));
             insertSegment.seal();
 
@@ -305,7 +306,7 @@ public class SegmentBenchmark {
                     false);
 
             IntegratedSegment.Fd fd = IntegratedSegment.Fd.create("aa", workDir.resolve("integreated"));
-            segment = fd.open(indexMemCache, packMemCache);
+            segment = (IntegratedSegment) fd.open(indexMemCache, null, packMemCache);
 
             // warm up.
             travel_stream_forEach();

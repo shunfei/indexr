@@ -38,10 +38,15 @@ public interface Column {
      * This operation is mean to be heavy costly, don't call it unless you really need to fetch raw data.
      * {@link #dpn(int)} should provide enough infomation.
      */
-    DPValues pack(int packId) throws IOException;
+    <T extends DPValues> T pack(int packId) throws IOException;
 
     /**
-     * Get the index of the pack.
+     * Get the rs index of the column.
      */
     <T extends RSIndex> T rsIndex() throws IOException;
+
+    /**
+     * Get the extend index of the pack.
+     */
+    <T extends PackExtIndex> T extIndex(int packId) throws IOException;
 }

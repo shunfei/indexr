@@ -170,7 +170,7 @@ public class DateTimeUtil {
     }
 
     /**
-     * "2015-12-30 22:55:55" or "2015-12-30T22:55:55".
+     * "2015-12-30 22:55:55.234" or "2015-12-30T22:55:55.234".
      */
     public static long parseDateTime(byte[] data, int offset, int len) {
         int space = search(data, offset, len, ' ', 'T');

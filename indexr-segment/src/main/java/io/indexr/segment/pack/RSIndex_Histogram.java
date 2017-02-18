@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.io.ByteSlice;
 import io.indexr.segment.PackRSIndex;
+import io.indexr.segment.PackRSIndexNum;
 import io.indexr.segment.RSIndexNum;
 import io.indexr.segment.RSValue;
 import io.indexr.util.MemoryUtil;
@@ -57,7 +58,6 @@ final class RSIndex_Histogram implements RSIndexNum {
         //System.out.println("\npackId: " + packId);
         return doCheckValue(bufferAddr + packOffset, minVal, maxVal, packMin, packMax, isFloat);
     }
-
 
     public void putValue(int packId, long value, long packMin, long packMax) {
         assert packId >= 0 && packId < packCount;
@@ -126,7 +126,7 @@ final class RSIndex_Histogram implements RSIndexNum {
                 histIntValue = MemoryUtil.getInt(packAddr + (index << 2));
                 //System.out.printf("index: %s, histIntValue: %s\n", index, histIntValue);
             }
-            if (((histIntValue >> (bit & INT_BIT_MASK)) & 1) != 0) {
+            if (((histIntValue >>> (bit & INT_BIT_MASK)) & 1) != 0) {
                 return RSValue.Some;
             }
         }
@@ -180,7 +180,7 @@ final class RSIndex_Histogram implements RSIndexNum {
     public PackRSIndex packIndex(int packId) {
         assert packId >= 0 && packId < packCount;
         int packOffset = packId << PACK_HIST_SIZE_BYTE_SHIFT;
-        return new HistPackIndex(bufferAddr + packOffset, isFloat);
+        return new PackIndex(bufferAddr + packOffset, isFloat);
     }
 
     @Override
@@ -198,13 +198,13 @@ final class RSIndex_Histogram implements RSIndexNum {
     /**
      * Note that this instance could be reused.
      */
-    public final static class HistPackIndex implements PackRSIndex {
+    public final static class PackIndex implements PackRSIndexNum {
 
         private ByteSlice histBuffer;
         private long bufferAddr;
         private final boolean isFloat;
 
-        public HistPackIndex(boolean isFloat) {
+        public PackIndex(boolean isFloat) {
             this.histBuffer = ByteSlice.allocateDirect(1 << PACK_HIST_SIZE_BYTE_SHIFT);
             this.bufferAddr = histBuffer.address();
             this.isFloat = isFloat;
@@ -214,7 +214,7 @@ final class RSIndex_Histogram implements RSIndexNum {
         /**
          * A index only generated from RSIndex_Histogram.
          */
-        private HistPackIndex(long bufferAddr, boolean isFloat) {
+        private PackIndex(long bufferAddr, boolean isFloat) {
             ByteBuffer bb = MemoryUtil.getHollowDirectByteBuffer();
             // Without cleaner.
             MemoryUtil.setByteBuffer(bb, bufferAddr, 1 << PACK_HIST_SIZE_BYTE_SHIFT, null);
@@ -236,9 +236,6 @@ final class RSIndex_Histogram implements RSIndexNum {
 
         @Override
         public void clear() {
-            //for (int offset = 0; offset < (PACK_HIST_SIZE_BIT >>> 5); offset++) {
-            //    MemoryUtil.setInt(bufferAddr + (offset << 2), 0);
-            //}
             histBuffer.clear();
         }
 
@@ -249,10 +246,12 @@ final class RSIndex_Histogram implements RSIndexNum {
             bufferAddr = 0;
         }
 
+        @Override
         public void putValue(long value, long packMin, long packMax) {
             doPutValue(bufferAddr, value, packMin, packMax, isFloat);
         }
 
+        @Override
         public byte isValue(long minVal, long maxVal, long packMin, long packMax) {
             return doCheckValue(bufferAddr, minVal, maxVal, packMin, packMax, isFloat);
         }

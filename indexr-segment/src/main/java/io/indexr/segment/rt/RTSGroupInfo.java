@@ -11,6 +11,7 @@ import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.ColumnNode;
+import io.indexr.segment.pack.ExtIndexMemCache;
 import io.indexr.segment.pack.IndexMemCache;
 import io.indexr.segment.pack.PackMemCache;
 
@@ -92,7 +93,7 @@ public class RTSGroupInfo implements InfoSegment, SegmentFd {
     }
 
     @Override
-    public Segment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
-        return rtsGroup.open(indexMemCache, packMemCache);
+    public Segment open(IndexMemCache indexMemCache, ExtIndexMemCache extIndexMemCache, PackMemCache packMemCache) throws IOException {
+        return rtsGroup.open(indexMemCache, extIndexMemCache, packMemCache);
     }
 }

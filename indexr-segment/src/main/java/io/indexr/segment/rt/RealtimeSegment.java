@@ -28,9 +28,11 @@ import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RowTraversal;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.ColumnNode;
 import io.indexr.segment.pack.DPSegment;
+import io.indexr.segment.pack.ExtIndexMemCache;
 import io.indexr.segment.pack.IndexMemCache;
 import io.indexr.segment.pack.IntegratedSegment;
 import io.indexr.segment.pack.OpenOption;
@@ -176,7 +178,7 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
                                List<Metric> metrics,
                                Map<String, String> nameToAlias,
                                TagSetting tagSetting,
-                               int ignoreStrategy,
+                               EventIgnoreStrategy ignoreStrategy,
                                boolean grouping,
                                Fetcher fetcher,
                                int maxRow,
@@ -215,7 +217,7 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
             Map<String, String> nameToAlias,
             boolean grouping,
             TagSetting tagSetting,
-            int ignoreStrategy,
+            EventIgnoreStrategy ignoreStrategy,
             Fetcher fetcher,
             int maxRow,
             long maxPeriod,
@@ -440,14 +442,14 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
     /**
      * Persistence rows in memory to local disk.
      */
-    public SegmentFd saveToDisk(int version, boolean compress, RTResources rtResources) throws IOException {
+    public SegmentFd saveToDisk(int version, SegmentMode mode, RTResources rtResources) throws IOException {
         logger.debug("Start save in-memory rows to disk. [segment: {}]", name);
         long lastTime = System.currentTimeMillis();
 
         SegmentFd integratedSegment;
         Path dumpPath = path.resolve("dump");
-        try (DPSegment dpSegment = DPSegment.open(version, dumpPath, name, schema, OpenOption.Overwrite)) {
-            dpSegment.update().setCompress(compress);
+        try (DPSegment dpSegment = DPSegment.open(version, mode, dumpPath, name, schema, OpenOption.Overwrite)) {
+            dpSegment.update();
             boolean ok = true;
             long rowCount = 0;
             for (UTF8Row row : rowsInMemory.values()) {
@@ -567,9 +569,9 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
     }
 
     @Override
-    public Segment open(IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
+    public Segment open(IndexMemCache indexMemCache, ExtIndexMemCache extIndexMemCache, PackMemCache packMemCache) throws IOException {
         if (savedSegment != null) {
-            return savedSegment.open(indexMemCache, packMemCache);
+            return savedSegment.open(indexMemCache, extIndexMemCache, packMemCache);
         } else {
             return new RTSeg(name, schema, rowsInMemory, rowInMemoryCount);
         }

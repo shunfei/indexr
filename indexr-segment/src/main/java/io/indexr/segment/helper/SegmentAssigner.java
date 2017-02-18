@@ -18,6 +18,7 @@ import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentPool;
 import io.indexr.segment.SystemConfig;
 import io.indexr.segment.pack.DataPack;
+import io.indexr.segment.pack.ExtIndexMemCache;
 import io.indexr.segment.pack.IndexMemCache;
 import io.indexr.segment.pack.PackMemCache;
 import io.indexr.segment.rc.RCOperator;
@@ -64,6 +65,7 @@ public class SegmentAssigner {
                                                                RCOperator rsFilter,
                                                                SegmentPool segmentPool,
                                                                IndexMemCache indexMemCache,
+                                                               ExtIndexMemCache extIndexMemCache,
                                                                PackMemCache packMemCache) throws Exception {
         log.debug("to assign assignCount:{}, works:{}, rsFilter:{}", assignCount, works, rsFilter);
 
@@ -114,7 +116,7 @@ public class SegmentAssigner {
                     }
                 }
                 for (RealtimeSegment rts : rtsg.realtimeSegments().values()) {
-                    try (Segment segment = rts.open(indexMemCache, packMemCache)) {
+                    try (Segment segment = rts.open(indexMemCache, extIndexMemCache, packMemCache)) {
                         if (rsFilter != null) {
                             rsFilter.materialize(segment.schema().getColumns());
                         }
@@ -136,7 +138,7 @@ public class SegmentAssigner {
                     }
                 }
             } else {
-                try (Segment segment = fd.open(indexMemCache, packMemCache)) {
+                try (Segment segment = fd.open(indexMemCache, extIndexMemCache, packMemCache)) {
                     Preconditions.checkState(segment.isColumned());
                     if (rsFilter != null) {
                         rsFilter.materialize(segment.schema().getColumns());

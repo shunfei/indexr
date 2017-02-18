@@ -17,7 +17,9 @@ import java.util.Map;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
+import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSIndex;
+import io.indexr.segment.SegmentMode;
 import io.indexr.util.ByteBufferUtil;
 import io.indexr.util.IOUtil;
 import io.indexr.util.ObjectLoader;
@@ -28,7 +30,7 @@ import io.indexr.util.UTF8Util;
 public class Integrated {
     static SectionInfo write(StorageSegment segment, ByteBufferWriter.PredictSizeOpener writerOpener) throws IOException {
         List<StorageColumn> columns = segment.columns();
-        SectionInfo sectionInfo = new SectionInfo(segment.version(), segment.rowCount(), columns.size());
+        SectionInfo sectionInfo = new SectionInfo(segment.version(), segment.rowCount(), columns.size(), segment.mode().id);
         sectionInfo.sectionOffset = Version.INDEXR_SEG_FILE_FLAG_SIZE; // The first section, and the only one.
 
         for (int colId = 0; colId < columns.size(); colId++) {
@@ -37,15 +39,17 @@ public class Integrated {
 
             StorageColumn column = columns.get(colId);
             DataPackNode[] dpns = column.getDPNs();
-            int dpnSize = DataPackNode.SERIALIZED_SIZE * dpns.length;
+            int dpnSize = DataPackNode.serializedSize(segment.version()) * dpns.length;
             int indexSize = 0;
+            int extIndexSize = 0;
             long packSize = 0;
             for (DataPackNode dpn : dpns) {
                 indexSize += dpn.indexSize();
+                extIndexSize += dpn.extIndexSize();
                 packSize += dpn.packSize();
             }
 
-            ColumnInfo info = new ColumnInfo(column.name(), column.sqlType().id, dpnSize, indexSize, packSize);
+            ColumnInfo info = new ColumnInfo(column.name(), column.sqlType().id, dpnSize, indexSize, extIndexSize, packSize);
             sectionInfo.columnInfos[colId] = info;
         }
 
@@ -61,7 +65,7 @@ public class Integrated {
         long offset = sectionInfo.sectionOffset + 4 + sectionInfo.infoSize();
         for (int colId = 0; colId < columns.size(); colId++) {
             ColumnInfo columnInfo = sectionInfo.columnInfos[colId];
-            columnInfo.setDataOffset(offset);
+            columnInfo.setDataOffset(segment.version(), offset);
             offset += columnInfo.dataSize();
         }
 
@@ -88,6 +92,12 @@ public class Integrated {
                 if (index != null) {
                     index.write(writer);
                     index.free();
+                }
+
+                for (DataPackNode dpn : dpns) {
+                    PackExtIndex extIndex = column.loadExtIndex(dpn);
+                    extIndex.write(writer);
+                    extIndex.free();
                 }
 
                 for (DataPackNode dpn : dpns) {
@@ -128,20 +138,23 @@ public class Integrated {
         // We store version here because SectionInfo can be stored seperated besides segment file.
         public final int version;
 
-        public long sectionOffset;
-        public long sectionSize;
         public long rowCount;
         public int columnCount;
+        public int mode;
+
+        public long sectionOffset;
+        public long sectionSize;
 
         public ColumnNodeInfo[] columnNodeInfos;
         public ColumnInfo[] columnInfos;
 
-        SectionInfo(int version, long rowCount, int columnCount) {
+        SectionInfo(int version, long rowCount, int columnCount, int mode) {
             this.version = version;
             this.rowCount = rowCount;
             this.columnCount = columnCount;
             this.columnNodeInfos = new ColumnNodeInfo[columnCount];
             this.columnInfos = new ColumnInfo[columnCount];
+            this.mode = mode;
         }
 
         SectionInfo(int version) {
@@ -164,6 +177,9 @@ public class Integrated {
             if (sectionSize != info.sectionSize) return false;
             if (rowCount != info.rowCount) return false;
             if (columnCount != info.columnCount) return false;
+            if (version >= Version.VERSION_6_ID) {
+                if (mode != info.mode) return false;
+            }
             if (!Arrays.equals(columnNodeInfos, info.columnNodeInfos)) return false;
             return Arrays.equals(columnInfos, info.columnInfos);
         }
@@ -178,7 +194,18 @@ public class Integrated {
                 colInfoSize += info.infoSize(version);
             }
             int size = 8 + 8 + 8 + 4 + cniSize + colInfoSize;
-            return version == Version.VERSION_0_ID ? size : size + 8 + 4;
+
+            switch (version) {
+                case Version.VERSION_0_ID:
+                    return size;
+                case Version.VERSION_1_ID:
+                case Version.VERSION_2_ID:
+                case Version.VERSION_4_ID:
+                case Version.VERSION_5_ID:
+                    return size + 8 + 4;
+                default:
+                    return size + 8 + 4 + 4;
+            }
         }
 
         static void write(SectionInfo si, ByteBuffer buffer) {
@@ -190,6 +217,9 @@ public class Integrated {
             buffer.putLong(si.sectionSize);
             buffer.putLong(si.rowCount);
             buffer.putInt(si.columnCount);
+            if (si.version >= Version.VERSION_6_ID) {
+                buffer.putInt(si.mode);
+            }
 
             for (ColumnNodeInfo cni : si.columnNodeInfos) {
                 ColumnNodeInfo.write(cni, buffer);
@@ -216,6 +246,11 @@ public class Integrated {
             info.sectionSize = buffer.getLong();
             info.rowCount = buffer.getLong();
             info.columnCount = buffer.getInt();
+            if (version >= Version.VERSION_6_ID) {
+                info.mode = buffer.getInt();
+            } else {
+                info.mode = SegmentMode.DEFAULT.id;
+            }
 
             info.columnNodeInfos = new ColumnNodeInfo[info.columnCount];
             for (int i = 0; i < info.columnCount; i++) {
@@ -281,6 +316,7 @@ public class Integrated {
             merge.columnCount = columnCount;
             merge.columnNodeInfos = allColumnNodeInfos;
             merge.columnInfos = allColumnInfos;
+            merge.mode = sectionInfos.get(0).mode;
             return merge;
         }
 
@@ -388,19 +424,22 @@ public class Integrated {
 
         public long dpnOffset;
         public long indexOffset;
+        public long extIndexOffset;
         public long packOffset;
 
         // Those will not store.
         private int dpnSize;
         private int indexSize;
+        private int extIndexSize;
         private long packSize;
 
-        ColumnInfo(String name, int sqlType, int dpnSize, int indexSize, long packSize) {
+        ColumnInfo(String name, int sqlType, int dpnSize, int indexSize, int extIndexSize, long packSize) {
             nameSize = UTF8Util.toUtf8(name).length;
             this.name = name.intern();
             this.sqlType = sqlType;
             this.dpnSize = dpnSize;
             this.indexSize = indexSize;
+            this.extIndexSize = extIndexSize;
             this.packSize = packSize;
         }
 
@@ -417,26 +456,34 @@ public class Integrated {
                     && sqlType == info.sqlType
                     && dpnOffset == info.dpnOffset
                     && indexOffset == info.indexOffset
+                    && extIndexOffset == info.extIndexOffset
                     && packOffset == info.packOffset
                     && (name != null ? name.equals(info.name) : info.name == null);
         }
 
-        void setDataOffset(long dataOffset) {
+        void setDataOffset(int version, long dataOffset) {
             dpnOffset = dataOffset;
-            indexOffset = dataOffset + dpnSize;
-            packOffset = dataOffset + dpnSize + indexSize;
+            indexOffset = dpnOffset + dpnSize;
+            if (version < Version.VERSION_6_ID) {
+                packOffset = indexOffset + indexSize;
+            } else {
+                extIndexOffset = indexOffset + indexSize;
+                packOffset = extIndexOffset + extIndexSize;
+            }
         }
 
         int infoSize(int version) {
             if (version < Version.VERSION_5_ID) {
                 return 4 + nameSize + 1 + 8 + 8 + 8;
-            } else {
+            } else if (version == Version.VERSION_5_ID) {
                 return 4 + nameSize + 4 + 8 + 8 + 8;
+            } else {
+                return 4 + nameSize + 4 + 8 + 8 + 8 + 8;
             }
         }
 
         long dataSize() {
-            return (long) dpnSize + (long) indexSize + packSize;
+            return (long) dpnSize + (long) indexSize + (long) extIndexSize + packSize;
         }
 
         static void write(int version, ColumnInfo ci, ByteBuffer buffer) {
@@ -451,6 +498,9 @@ public class Integrated {
             }
             buffer.putLong(ci.dpnOffset);
             buffer.putLong(ci.indexOffset);
+            if (version >= Version.VERSION_6_ID) {
+                buffer.putLong(ci.extIndexOffset);
+            }
             buffer.putLong(ci.packOffset);
 
             assert buffer.position() - pos == ci.infoSize(version);
@@ -470,6 +520,9 @@ public class Integrated {
             }
             info.dpnOffset = buffer.getLong();
             info.indexOffset = buffer.getLong();
+            if (version >= Version.VERSION_6_ID) {
+                info.extIndexOffset = buffer.getLong();
+            }
             info.packOffset = buffer.getLong();
 
             assert buffer.position() - pos == info.infoSize(version);

@@ -15,7 +15,6 @@ import java.util.List;
 
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.io.ByteSlice;
-import io.indexr.util.Pair;
 
 public class DataPackTest {
     static {
@@ -101,49 +100,49 @@ public class DataPackTest {
 
     private void test_pack(int version) throws IOException {
         int[] int_vals = new int[]{1, 2, 3, 5, 6, 7, 8, 9, -1111, 333, 0};
-        Pair<DataPack, DataPackNode> dpn = DataPack_N.from(version, int_vals, 0, int_vals.length, null);
-        cmpNumber(dpn.first, int_vals);
-        testNumber(dpn.second, dpn.first);
+        PackBundle p = DataPack_N.from(version, int_vals, 0, int_vals.length);
+        cmpNumber(p.dataPack, int_vals);
+        testNumber(p.dpn, p.dataPack);
 
         int[] int_vals1 = new int[]{0};
-        dpn = DataPack_N.from(version, int_vals1, 0, int_vals1.length, null);
-        cmpNumber(dpn.first, int_vals1);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, int_vals1, 0, int_vals1.length);
+        cmpNumber(p.dataPack, int_vals1);
+        testNumber(p.dpn, p.dataPack);
 
         int[] int_vals2 = new int[]{10, 10, 10, 10};
-        dpn = DataPack_N.from(version, int_vals2, 0, int_vals2.length, null);
-        cmpNumber(dpn.first, int_vals2);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, int_vals2, 0, int_vals2.length);
+        cmpNumber(p.dataPack, int_vals2);
+        testNumber(p.dpn, p.dataPack);
 
         long[] long_vals = new long[]{1, Long.MAX_VALUE, 3, Long.MIN_VALUE, 6, 7, 8, 9, 1111, 333, 0};
-        dpn = DataPack_N.from(version, long_vals, 0, long_vals.length, null);
-        cmpNumber(dpn.first, long_vals);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, long_vals, 0, long_vals.length);
+        cmpNumber(p.dataPack, long_vals);
+        testNumber(p.dpn, p.dataPack);
 
         float[] float_vals = new float[]{1, 2, 3, 5, 6, 7, 8, 9, 1111.4666F, 333, 0};
-        dpn = DataPack_N.from(version, float_vals, 0, float_vals.length, null);
-        cmpNumber(dpn.first, float_vals);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, float_vals, 0, float_vals.length);
+        cmpNumber(p.dataPack, float_vals);
+        testNumber(p.dpn, p.dataPack);
 
         float_vals = new float[]{1.1f, 1.1f};
-        dpn = DataPack_N.from(version, float_vals, 0, float_vals.length, null);
-        cmpNumber(dpn.first, float_vals);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, float_vals, 0, float_vals.length);
+        cmpNumber(p.dataPack, float_vals);
+        testNumber(p.dpn, p.dataPack);
 
         double[] double_vals = new double[]{1, 2, 3, 5, Double.MIN_VALUE, 7, Double.MAX_VALUE, 9, 1111, -333.4444444, 0};
-        dpn = DataPack_N.from(version, double_vals, 0, double_vals.length, null);
-        cmpNumber(dpn.first, double_vals);
-        testNumber(dpn.second, dpn.first);
+        p = DataPack_N.from(version, double_vals, 0, double_vals.length);
+        cmpNumber(p.dataPack, double_vals);
+        testNumber(p.dpn, p.dataPack);
 
         List<String> str_vals = Lists.newArrayList("qwfwrfwe", "121343%$#22342342", "2211", "sdfdsgkwkek00-\t\t\5\3\1\bsdaasds", "");
-        Pair<DataPack, DataPackNode> dpr = DataPack_R.fromJavaString(version, str_vals, null);
-        cmpStr(dpr.first, str_vals);
-        testRaw(dpr.second, dpr.first, str_vals);
+        PackBundle ps = DataPack_R.fromJavaString(version, str_vals);
+        cmpStr(ps.dataPack, str_vals);
+        testRaw(ps.dpn, ps.dataPack, str_vals);
 
         List<String> str_vals2 = Lists.newArrayList("", "", "", "");
-        Pair<DataPack, DataPackNode> dpr2 = DataPack_R.fromJavaString(version, str_vals2, null);
-        cmpStr(dpr2.first, str_vals2);
-        testRaw(dpr2.second, dpr2.first, str_vals2);
+        PackBundle ps2 = DataPack_R.fromJavaString(version, str_vals2);
+        cmpStr(ps2.dataPack, str_vals2);
+        testRaw(ps2.dpn, ps2.dataPack, str_vals2);
     }
 
     @Test
@@ -169,9 +168,9 @@ public class DataPackTest {
     private void test_str(int version) {
         String[] strs = {"121343%$#22342342", "#$%#%242rwef23r23dfsdf", "", "2211", "sdfdsgkwkek00-\t\t\5\3\1\bsdaasds", "", "323weewew", "[][][][[]]", "windows", "mac", "linux", "android", "windows", "mac", "linux", "android", "windows", "mac", "linux", "android", "qwfwrfwe"};
         List<String> str_vals = Lists.newArrayList(strs);
-        Pair<DataPack, DataPackNode> dpr = DataPack_R.fromJavaString(version, str_vals, null);
-        DataPack pr = dpr.first;
-        DataPackNode view = dpr.second;
+        PackBundle dpr = DataPack_R.fromJavaString(version, str_vals);
+        DataPack pr = dpr.dataPack;
+        DataPackNode view = dpr.dpn;
 
         pr.compress(view);
         pr.decompress(view);

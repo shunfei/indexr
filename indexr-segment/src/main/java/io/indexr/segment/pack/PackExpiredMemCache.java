@@ -42,9 +42,9 @@ public class PackExpiredMemCache extends ExpiredMemCache implements PackMemCache
     }
 
     @Override
-    public DataPack getPack(long segmentId, int columnId, int packId, Callable<DataPack> indexLoader) {
+    public DataPack getPack(long segmentId, int columnId, int packId, Callable<DataPack> loader) {
         try {
-            ItemWrapper iw = cache.get(MemCache.genKey(segmentId, columnId, packId), () -> new ItemWrapper(indexLoader.call()));
+            ItemWrapper iw = cache.get(MemCache.genKey(segmentId, columnId, packId), () -> new ItemWrapper(loader.call()));
             return iw == null ? null : iw.get();
         } catch (ExecutionException e) {
             throw new RuntimeException(e);

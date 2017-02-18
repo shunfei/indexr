@@ -9,8 +9,8 @@ import java.util.List;
 
 import io.indexr.compress.bh.BHCompressor;
 import io.indexr.io.ByteSlice;
+import io.indexr.segment.PackExtIndexStr;
 import io.indexr.segment.PackRSIndexStr;
-import io.indexr.util.Pair;
 
 /**
  * data:
@@ -53,43 +53,61 @@ class DataPack_R {
         }
     }
 
-    public static Pair<DataPack, DataPackNode> fromJavaString(int version, List<? extends CharSequence> strings, PackRSIndexStr index) {
-        return from(version, Lists.transform(strings, s -> UTF8String.fromString(s.toString())), index);
+    public static PackBundle fromJavaString(int version, List<? extends CharSequence> strings) {
+        return from(version, Lists.transform(strings, s -> UTF8String.fromString(s.toString())));
     }
 
-    public static Pair<DataPack, DataPackNode> from(int version, List<UTF8String> strings, PackRSIndexStr index) {
+    public static PackBundle from(int version, List<UTF8String> strings, boolean... useExtIndex) {
+        boolean use = useExtIndex.length == 0 || useExtIndex[0];
         switch (version) {
             case Version.VERSION_0_ID:
-                index = index != null ? index : new EmptyRSIndexStr.EmptyPackIndex();
-                return _from_v0(version, strings, index);
+                return _from_v0(version, strings, new RSIndex_Str_Invalid.PackIndex());
             case Version.VERSION_1_ID:
             case Version.VERSION_2_ID:
-                index = index != null ? index : new RSIndex_CMap.CMapPackIndex();
-                return _from_v1(version, strings, index);
+                return _from_v1(version, strings, new RSIndex_CMap.PackIndex(), new PackExtIndex_Unused());
+            case Version.VERSION_4_ID:
+            case Version.VERSION_5_ID:
+                return _from_v1(version, strings, new RSIndex_CMap_V2.PackIndex(), new PackExtIndex_Unused());
             default:
-                index = index != null ? index : new RSIndex_CMap_V2.CMapPackIndex();
-                return _from_v1(version, strings, index);
+                return _from_v1(version, strings, new RSIndex_CMap_V2.PackIndex(),
+                        use ? new PackExtIndex_Str_Hash(strings.size()) : new PackExtIndex_Unused());
         }
     }
-
 
     /**
      * We encode the string as UTF-8.
      */
-    private static Pair<DataPack, DataPackNode> _from_v1(int version, List<UTF8String> strings, PackRSIndexStr index) {
+    private static PackBundle _from_v1(int version, List<UTF8String> strings, PackRSIndexStr index, PackExtIndexStr extIndex) {
         int size = strings.size();
         Preconditions.checkArgument(size > 0 && size <= DataPack.MAX_COUNT);
 
+        int minHashCode = 0;
+        int maxhashCode = 0;
+        int uniMaxHashCode = 0;
         int strTotalLen = 0;
-        for (UTF8String s : strings) {
+        for (int i = 0; i < size; i++) {
+            UTF8String s = strings.get(i);
             int byteCount = s.numBytes();
             Preconditions.checkState(byteCount <= MAX_STR_LEN_RAW, "string in utf-8 should be smaller than %s bytes", MAX_STR_LEN_RAW);
             strTotalLen += byteCount;
 
+            int hashCode = DataHasher.stringHash(s);
+            if (i == 0) {
+                minHashCode = hashCode;
+                maxhashCode = hashCode;
+                uniMaxHashCode = hashCode;
+            } else {
+                minHashCode = Math.min(minHashCode, hashCode);
+                maxhashCode = Math.max(maxhashCode, hashCode);
+                if (Integer.compareUnsigned(uniMaxHashCode, hashCode) < 0) {
+                    uniMaxHashCode = hashCode;
+                }
+            }
+
             index.putValue(s);
+            extIndex.putValue(i, s);
         }
         int indexLen = (size + 1) << 2;
-
         ByteSlice data = ByteSlice.allocateDirect(indexLen + strTotalLen);
 
         int offset = 0;
@@ -110,7 +128,12 @@ class DataPack_R {
         dpn.setPackType(DataPackType.Raw);
         dpn.setObjCount(size);
         dpn.setMaxObjLen(0); // Always 0
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        dpn.setMinValue(minHashCode);
+        dpn.setMaxValue(maxhashCode);
+        dpn.setNumType(NumType.NInt);
+        dpn.setUniformMin(0);
+        dpn.setUniformMax(uniMaxHashCode);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, extIndex);
     }
 
     //=======================================================================
@@ -119,13 +142,14 @@ class DataPack_R {
     /**
      * We encode the string as UTF-8.
      */
-    private static Pair<DataPack, DataPackNode> _from_v0(int version, List<UTF8String> strings, PackRSIndexStr index) {
+    private static PackBundle _from_v0(int version, List<UTF8String> strings, PackRSIndexStr index) {
         int size = strings.size();
         Preconditions.checkArgument(size > 0 && size <= DataPack.MAX_COUNT);
 
         int strTotalLen = 0;
         int strMaxLen = 0;
-        for (UTF8String s : strings) {
+        for (int i = 0; i < size; i++) {
+            UTF8String s = strings.get(i);
             int byteCount = s.numBytes();
             Preconditions.checkState(byteCount <= MAX_STR_LEN_RAW, "string in utf-8 should be smaller than %s bytes", MAX_STR_LEN_RAW);
             strTotalLen += byteCount;
@@ -158,6 +182,6 @@ class DataPack_R {
         dpn.setPackType(DataPackType.Raw);
         dpn.setObjCount(size);
         dpn.setMaxObjLen(strMaxLen);
-        return new Pair<>(new DataPack(data, null, dpn), dpn);
+        return new PackBundle(new DataPack(data, null, dpn), dpn, index, new PackExtIndex_Unused());
     }
 }

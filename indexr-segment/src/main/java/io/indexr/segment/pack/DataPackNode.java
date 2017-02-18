@@ -1,7 +1,5 @@
 package io.indexr.segment.pack;
 
-import com.google.common.base.Preconditions;
-
 import java.io.IOException;
 
 import io.indexr.io.ByteBufferWriter;
@@ -34,19 +32,33 @@ public class DataPackNode {
     private long minValue;
     private long maxValue;
 
+    //// Added on VERSION_6 ////
+
+    private long extIndexAddr;
+    private int extIndexSize;
+
     // ------------------------------
+
+    // Those not stored.
 
     private final int version;
 
-    public static final int SERIALIZED_SIZE = 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8;
 
     public DataPackNode(int version) {
         this.version = version;
         this.compress = true; // compress by default.
     }
 
+    public static int serializedSize(int version) {
+        if (version < Version.VERSION_6_ID) {
+            return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8;
+        } else {
+            return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8 + 8 + 4;
+        }
+    }
+
     public static DataPackNode from(int version, ByteSlice buffer) {
-        Preconditions.checkArgument(buffer.size() == SERIALIZED_SIZE);
+        //Preconditions.checkArgument(buffer.size() == SERIALIZED_SIZE);
 
         DataPackNode dpn = new DataPackNode(version);
         int offset = 0;
@@ -72,22 +84,24 @@ public class DataPackNode {
         dpn.indexSize = buffer.getInt(offset += 8);
         dpn.minValue = buffer.getLong(offset += 4);
         dpn.maxValue = buffer.getLong(offset += 8);
-        offset += 8;
+        if (version >= Version.VERSION_6_ID) {
+            dpn.extIndexAddr = buffer.getLong(offset += 8);
+            dpn.extIndexSize = buffer.getInt(offset += 8);
+        }
+        offset += 4;
 
         if (version <= Version.VERSION_1_ID) {
-            assert offset == SERIALIZED_SIZE - 4;
             // Try to do some fix.
             if (dpn.maxValue != 0 && dpn.uniformMax == 0) {
                 dpn.uniformMax = dpn.maxValue;
             }
-        } else {
-            assert offset == SERIALIZED_SIZE;
         }
+
         return dpn;
     }
 
     public void write(ByteBufferWriter writer) throws IOException {
-        ByteSlice tmp = ByteSlice.allocateDirect(SERIALIZED_SIZE);
+        ByteSlice tmp = ByteSlice.allocateDirect(serializedSize(version));
         int offset = 0;
         tmp.put(offset += 0, packType);
         tmp.putInt(offset += 1, objCount);
@@ -106,15 +120,13 @@ public class DataPackNode {
         tmp.putInt(offset += 8, indexSize);
         tmp.putLong(offset += 4, minValue);
         tmp.putLong(offset += 8, maxValue);
-        offset += 8;
-
-        if (version <= Version.VERSION_1_ID) {
-            assert offset == SERIALIZED_SIZE - 4;
-        } else {
-            assert offset == SERIALIZED_SIZE;
+        if (version >= Version.VERSION_6_ID) {
+            tmp.putLong(offset += 8, extIndexAddr);
+            tmp.putInt(offset += 8, extIndexSize);
         }
+        offset += 4;
 
-        writer.write(tmp.byteBuffer(), SERIALIZED_SIZE);
+        writer.write(tmp.byteBuffer(), serializedSize(version));
     }
 
     public DataPackNode clone() {
@@ -132,6 +144,8 @@ public class DataPackNode {
         newDPN.indexSize = this.indexSize;
         newDPN.minValue = this.minValue;
         newDPN.maxValue = this.maxValue;
+        newDPN.extIndexAddr = this.extIndexAddr;
+        newDPN.extIndexSize = this.extIndexSize;
         return newDPN;
     }
 
@@ -180,8 +194,12 @@ public class DataPackNode {
 
     public int version() { return version; }
 
-    // @formatter:on
+    public int extIndexSize() { return extIndexSize; }
+    public void setExtIndexSize(int size) { this.extIndexSize = size; }
 
+    public long extIndexAddr() { return extIndexAddr; }
+    public void setExtIndexAddr(long addr) { this.extIndexAddr = addr; }
+    // @formatter:on
 
     @Override
     public String toString() {
@@ -199,6 +217,9 @@ public class DataPackNode {
                 ", indexSize=" + indexSize +
                 ", minValue=" + minValue +
                 ", maxValue=" + maxValue +
+                ", extIndexAddr=" + extIndexAddr +
+                ", extIndexSize=" + extIndexSize +
+                ", version=" + version +
                 '}';
     }
 }

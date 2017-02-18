@@ -102,8 +102,9 @@ public class Between implements CmpOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         byte type = attr.dataType();
         int rowCount = pack.objCount();
         int hitCount = 0;
@@ -115,6 +116,7 @@ public class Between implements CmpOperator {
                     int v = pack.intValueAt(rowId);
                     if (v >= min && v <= max) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -126,6 +128,7 @@ public class Between implements CmpOperator {
                     long v = pack.longValueAt(rowId);
                     if (v >= min && v <= max) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -137,6 +140,7 @@ public class Between implements CmpOperator {
                     float v = pack.floatValueAt(rowId);
                     if (v >= min && v <= max) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -148,6 +152,7 @@ public class Between implements CmpOperator {
                     double v = pack.doubleValueAt(rowId);
                     if (v >= min && v <= max) {
                         hitCount++;
+                        break;
                     }
                 }
                 break;
@@ -165,8 +170,9 @@ public class Between implements CmpOperator {
     }
 
     @Override
-    public BitSet exactCheckOnRow(DataPack[] rowPacks) {
-        DataPack pack = rowPacks[attr.columnId()];
+    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+        Column column = segment.column(attr.columnId());
+        DataPack pack = column.pack(packId);
         int rowCount = pack.objCount();
         BitSet colRes = new BitSet(pack.objCount());
         switch (attr.dataType()) {

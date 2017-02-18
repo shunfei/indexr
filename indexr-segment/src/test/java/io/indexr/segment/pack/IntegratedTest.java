@@ -26,6 +26,7 @@ import io.indexr.io.ByteBufferWriter;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.pack.Integrated.SectionInfo;
 import io.indexr.segment.query.SegmentSelectHelper;
 
@@ -45,48 +46,26 @@ public class IntegratedTest {
     }
 
     @Test
-    public void testNotCache() throws IOException {
+    public void test() throws IOException {
         for (Version version : Version.values()) {
-            testNotCache(version.id);
+            for (SegmentMode mode : SegmentMode.values()) {
+                testCache(version.id, mode);
+            }
         }
     }
 
-    private void testNotCache(int version) throws IOException {
-        DPSegment segment = DPSegment.open(
-                version,
-                workDir.resolve("notcache" + version),
-                "test_segment_integrated",
-                DPSegmentTest.segmentSchema,
-                OpenOption.Overwrite).update();
-        DPSegmentTest.addRows(segment, DPSegmentTest.genRows(DataPack.MAX_COUNT * 3 + 99));
-        segment.seal();
-
-        StorageSegment segment1 = testIntegrated(segment, null, null);
-        segment.close();
-
-        StorageSegment segment2 = testIntegrated(segment1, null, null);
-        segment2.close();
-        segment1.close();
-    }
-
-    @Test
-    public void testCache() throws IOException {
-        for (Version version : Version.values()) {
-            testCache(version.id);
-        }
-    }
-
-    private void testCache(int version) throws IOException {
+    private void testCache(int version, SegmentMode mode) throws IOException {
         IndexMemCache indexMemCache = new IndexExpiredMemCache(TimeUnit.MINUTES.toMillis(10), 100 * 1024 * 1024);
         PackMemCache packMemCache = new PackExpiredMemCache(TimeUnit.MINUTES.toMillis(10), 100 * 1024 * 1024);
 
         DPSegment segment = DPSegment.open(
                 version,
+                mode,
                 workDir.resolve("cache" + version),
                 "test_segment_integrated",
-                DPSegmentTest.segmentSchema,
+                TestRows.segmentSchema,
                 OpenOption.Overwrite).update();
-        DPSegmentTest.addRows(segment, DPSegmentTest.genRows(DataPack.MAX_COUNT * 3 + 99));
+        DPSegmentTest.addRows(segment, TestRows.sampleRows.iterator());
         segment.seal();
 
         StorageSegment segment1 = testIntegrated(segment, indexMemCache, packMemCache);
@@ -97,7 +76,7 @@ public class IntegratedTest {
         segment1.close();
 
         indexMemCache.close();
-        packMemCache.capacity();
+        packMemCache.close();
     }
 
     private StorageSegment testIntegrated(StorageSegment segment, IndexMemCache indexMemCache, PackMemCache packMemCache) throws IOException {
@@ -118,7 +97,7 @@ public class IntegratedTest {
 
         Assert.assertEquals(sectionInfo, readSectionInfo);
 
-        IntegratedSegment newSegment = IntegratedSegment.Fd.create(segment.name, ByteBufferReader.Opener.create(fileChannel)).open(indexMemCache, packMemCache);
+        IntegratedSegment newSegment = IntegratedSegment.Fd.create(segment.name, ByteBufferReader.Opener.create(fileChannel)).open(indexMemCache, null, packMemCache);
 
         DPSegmentTest.rowsCmp(
                 segment.rowTraversal().iterator(),
@@ -134,30 +113,39 @@ public class IntegratedTest {
         List<SegmentFd> newSegmentFds = IntegratedSegment.Fd.loadFromLocalCache(cachePath, n -> ByteBufferReader.Opener.create(fileChannel));
 
         for (int i = 0; i < segmentFds.size(); i++) {
-            Segment s1 = segmentFds.get(i).open(indexMemCache, packMemCache);
-            Segment s2 = newSegmentFds.get(i).open(indexMemCache, packMemCache);
+            Segment s1 = segmentFds.get(i).open(indexMemCache, null, packMemCache);
+            Segment s2 = newSegmentFds.get(i).open(indexMemCache, null, packMemCache);
             DPSegmentTest.rowsCmp(
                     s1.rowTraversal().iterator(),
                     s2.rowTraversal().iterator());
             s1.close();
             s2.close();
         }
+
+
+        IntegratedSegment segmentNotCache = IntegratedSegment.Fd.create(segment.name, ByteBufferReader.Opener.create(fileChannel)).open();
+        RSIndexTest.checkIndex(segmentNotCache);
+        segmentNotCache.close();
+
         return newSegment;
     }
 
     @Test
     public void testUpdateColumn() throws IOException {
         for (Version version : Version.values()) {
-            testUpdateColumn(version.id);
+            for (SegmentMode mode : SegmentMode.values()) {
+                testUpdateColumn(version.id, mode);
+            }
         }
     }
 
-    private void testUpdateColumn(int version) throws IOException {
+    private void testUpdateColumn(int version, SegmentMode mode) throws IOException {
         DPSegment segment = DPSegment.open(
                 version,
+                mode,
                 workDir.resolve("updatecolumn" + version),
                 "test_segment_altercolumn",
-                DPSegmentTest.segmentSchema,
+                TestRows.segmentSchema,
                 OpenOption.Overwrite).update();
         DPSegmentTest.addRows(segment, DPSegmentTest.genRows(DataPack.MAX_COUNT * 3 + 99));
         segment.seal();
@@ -179,7 +167,7 @@ public class IntegratedTest {
 
         Assert.assertEquals(sectionInfo, readSectionInfo);
 
-        IntegratedSegment baseSegment = IntegratedSegment.Fd.create(segment.name, ByteBufferReader.Opener.create(fileChannel)).open(null, null);
+        IntegratedSegment baseSegment = IntegratedSegment.Fd.create(segment.name, ByteBufferReader.Opener.create(fileChannel)).open();
 
         System.out.println("baseSegment=============");
         SegmentSelectHelper.selectSegment(baseSegment, "select * from A limit 10", itr -> {

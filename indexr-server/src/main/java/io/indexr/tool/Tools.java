@@ -31,11 +31,13 @@ import java.util.List;
 import java.util.Set;
 
 import io.indexr.io.ByteBufferReader;
+import io.indexr.segment.Column;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.SegmentManager;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.Integrated;
+import io.indexr.segment.pack.DataPackNode;
 import io.indexr.segment.pack.IntegratedSegment;
+import io.indexr.segment.pack.StorageSegment;
 import io.indexr.segment.rt.RTSGroupInfo;
 import io.indexr.segment.rt.RealtimeHelper;
 import io.indexr.server.FileSegmentManager;
@@ -85,13 +87,15 @@ public class Tools {
                 "\n=====================================")
         String cmd;
 
+        @Option(name = "-v", usage = "verbose or not")
+        boolean verbose = false;
         @Option(name = "-t", metaVar = "<tableName>", usage = "table name(s), splited by `,`")
         String table;
         @Option(name = "-s", metaVar = "<segmentName>", usage = "segment name(s), splited by `,`")
         String segment;
         @Option(name = "-c", metaVar = "<schemaPath>", usage = "the path of table schema")
         String schemapath;
-        @Option(name = "-col", metaVar = "<columnName>", usage = "the column name")
+        @Option(name = "-col", metaVar = "<columnName>", usage = "the column name, splited by `,`")
         String columnName;
         @Option(name = "-hivetb", metaVar = "<hiveTableName>", usage = "the hive table name")
         String hiveTable;
@@ -257,15 +261,19 @@ public class Tools {
             if (hostInfo == null) {
                 continue;
             }
-            List<String> rtsegs = new ArrayList<>();
-            for (RTSGroupInfo info : hostInfo.rtsGroupInfos) {
-                rtsegs.add(info.name());
-            }
+            List<RTSGroupInfo> rtsegs = new ArrayList<>(hostInfo.rtsGroupInfos);
             if (!rtsegs.isEmpty()) {
-                System.out.printf("host [%s]:\n", host);
-                rtsegs.sort(String::compareTo);
-                rtsegs.forEach(System.out::println);
-                System.out.println();
+                rtsegs.sort((a, b) -> a.name().compareTo(b.name()));
+                for (RTSGroupInfo info : rtsegs) {
+                    System.out.println(info.name() + ":\n----------");
+                    System.out.println("host: " + host);
+                    System.out.println("rowCount: " + info.rowCount());
+                    if (options.verbose) {
+                        System.out.println("schema:\n" + JsonUtil.toJson(info.schema()));
+                        System.out.println("columnNodes:\n" + JsonUtil.toJson(info.columnNodes));
+                    }
+                    System.out.println();
+                }
             }
         }
         return true;
@@ -289,20 +297,40 @@ public class Tools {
                     fileSystem,
                     path,
                     fileStatus.getLen());
-            try (ByteBufferReader reader = readerOpener.open(0)) {
-                Integrated.SectionInfo sectionInfo = Integrated.read(reader);
-                if (sectionInfo == null) {
-                    System.out.printf("%s is not a legal segment!\n", segName);
-                    continue;
-                }
-                IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(segName, sectionInfo, readerOpener);
+            IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(segName, readerOpener);
+            if (fd == null) {
+                System.out.printf("%s is not a legal segment!\n", segName);
+                continue;
+            }
+            try (StorageSegment segment = fd.open()) {
                 InfoSegment infoSegment = fd.info();
                 SegmentSchema schema = infoSegment.schema();
                 long rowCount = infoSegment.rowCount();
                 System.out.println(segName + ":\n----------");
                 System.out.println("rowCount: " + rowCount);
-                System.out.println("schema:\n" + JsonUtil.toJson(schema));
-                System.out.println("sectionInfo:\n" + JsonUtil.toJson(fd.sectionInfo()));
+                System.out.println("size: " + fileStatus.getLen());
+                if (options.verbose) {
+                    System.out.println("version: " + segment.version());
+                    System.out.println("mode: " + segment.mode());
+                    System.out.println("schema:\n" + JsonUtil.toJson(schema));
+                    System.out.println("sectionInfo:\n" + JsonUtil.toJson(fd.sectionInfo()));
+                    System.out.println("columnInfo:");
+                    for (int colId = 0; colId < schema.getColumns().size(); colId++) {
+                        Column column = segment.column(colId);
+                        long dpnSize = 0;
+                        long indexSize = 0;
+                        long extIndexSize = 0;
+                        long dataSize = 0;
+                        for (int packId = 0; packId < column.packCount(); packId++) {
+                            DataPackNode dpn = column.dpn(packId);
+                            dpnSize += DataPackNode.serializedSize(dpn.version());
+                            indexSize += dpn.indexSize();
+                            extIndexSize += dpn.extIndexSize();
+                            dataSize += dpn.packSize();
+                        }
+                        System.out.printf("  %s: dpnSize: %s, indexSize: %s, extIndexSize: %s, dataSize: %s\n", column.name(), dpnSize, indexSize, extIndexSize, dataSize);
+                    }
+                }
                 System.out.println();
             }
         }
@@ -480,6 +508,7 @@ public class Tools {
                 Strings.isEmpty(options.hiveTable) ? options.table : options.hiveTable,
                 true,
                 schema.schema,
+                schema.mode,
                 IndexRConfig.segmentRootPath(config.getDataRoot(), options.table),
                 options.columnName
         );
