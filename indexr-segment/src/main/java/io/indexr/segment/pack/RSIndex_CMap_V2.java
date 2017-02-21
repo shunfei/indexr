@@ -195,7 +195,7 @@ class RSIndex_CMap_V2 implements RSIndexStr {
         private long bufferAddr;
 
         public CMapPackIndex() {
-            this.buffer = ByteSlice.allocateDirect(TOTAL_POSISTIONS << POSITION_BYTE_SHIFT + 1);
+            this.buffer = ByteSlice.allocateDirect(TOTAL_POSISTIONS << POSITION_BYTE_SHIFT);
             this.bufferAddr = buffer.address();
             clear();
         }
