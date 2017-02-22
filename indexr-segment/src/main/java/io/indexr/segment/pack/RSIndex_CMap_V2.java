@@ -68,7 +68,8 @@ class RSIndex_CMap_V2 implements RSIndexStr {
 
     @Override
     public PackRSIndex packIndex(int packId) {
-        return new CMapPackIndex();
+        long packAddr = bufferAddr + (packId * (TOTAL_POSISTIONS << POSITION_BYTE_SHIFT));
+        return new CMapPackIndex(packAddr);
     }
 
     public void putValue(int packId, UTF8String value) {
