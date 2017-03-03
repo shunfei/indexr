@@ -105,16 +105,56 @@ public class Equal extends ColCmpVal {
                 }
                 break;
             }
-            default: {
+            case ColumnType.INT: {
                 DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < pack.objCount(); rowId++) {
-                    if (pack.uniformValAt(rowId, type) == numValue) {
+                int value = (int) numValue;
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    int v = pack.intValueAt(rowId);
+                    if (v == value) {
                         hitCount++;
                         break;
                     }
                 }
                 break;
             }
+            case ColumnType.LONG: {
+                DataPack pack = column.pack(packId);
+                long value = numValue;
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    long v = pack.longValueAt(rowId);
+                    if (v == value) {
+                        hitCount++;
+                        break;
+                    }
+                }
+                break;
+            }
+            case ColumnType.FLOAT: {
+                DataPack pack = column.pack(packId);
+                float value = (float) Double.longBitsToDouble(numValue);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    float v = pack.floatValueAt(rowId);
+                    if (v == value) {
+                        hitCount++;
+                        break;
+                    }
+                }
+                break;
+            }
+            case ColumnType.DOUBLE: {
+                DataPack pack = column.pack(packId);
+                double value = Double.longBitsToDouble(numValue);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    double v = pack.doubleValueAt(rowId);
+                    if (v == value) {
+                        hitCount++;
+                        break;
+                    }
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         if (hitCount == rowCount) {
             return RSValue.All;
@@ -144,12 +184,41 @@ public class Equal extends ColCmpVal {
                 }
                 break;
             }
-            default: {
+
+            case ColumnType.INT: {
+                int value = (int) numValue;
                 for (int rowId = 0; rowId < rowCount; rowId++) {
-                    colRes.set(rowId, pack.uniformValAt(rowId, type) == numValue);
+                    int v = pack.intValueAt(rowId);
+                    colRes.set(rowId, v == value);
                 }
                 break;
             }
+            case ColumnType.LONG: {
+                long value = numValue;
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    long v = pack.longValueAt(rowId);
+                    colRes.set(rowId, v == value);
+                }
+                break;
+            }
+            case ColumnType.FLOAT: {
+                float value = (float) Double.longBitsToDouble(numValue);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    float v = pack.floatValueAt(rowId);
+                    colRes.set(rowId, v == value);
+                }
+                break;
+            }
+            case ColumnType.DOUBLE: {
+                double value = Double.longBitsToDouble(numValue);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    double v = pack.doubleValueAt(rowId);
+                    colRes.set(rowId, v == value);
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         return colRes;
     }

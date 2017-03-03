@@ -185,10 +185,23 @@ public class In implements CmpOperator {
                 }
                 break;
             }
-            default: {
+            case ColumnType.INT: {
                 DataPack pack = column.pack(packId);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
-                    long v = pack.uniformValAt(rowId, type);
+                    int v = pack.intValueAt(rowId);
+                    for (long value : numValues) {
+                        if (v == (int) value) {
+                            hitCount++;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case ColumnType.LONG: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    long v = pack.longValueAt(rowId);
                     for (long value : numValues) {
                         if (v == value) {
                             hitCount++;
@@ -198,6 +211,34 @@ public class In implements CmpOperator {
                 }
                 break;
             }
+            case ColumnType.FLOAT: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    float v = pack.floatValueAt(rowId);
+                    for (long value : numValues) {
+                        if (v == (float) Double.longBitsToDouble(value)) {
+                            hitCount++;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case ColumnType.DOUBLE: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    double v = pack.doubleValueAt(rowId);
+                    for (long value : numValues) {
+                        if (v == Double.longBitsToDouble(value)) {
+                            hitCount++;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         if (hitCount == rowCount) {
             return RSValue.All;
@@ -231,20 +272,68 @@ public class In implements CmpOperator {
                 }
                 break;
             }
-            default: {
+            case ColumnType.INT: {
                 DataPack pack = column.pack(packId);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
-                    long v = pack.uniformValAt(rowId, type);
+                    int v = pack.intValueAt(rowId);
                     boolean ok = false;
                     for (long value : numValues) {
-                        if (v == value) {
+                        if (v == (int) value) {
                             ok = true;
+                            break;
                         }
                     }
                     colRes.set(rowId, ok);
                 }
                 break;
             }
+            case ColumnType.LONG: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    long v = pack.longValueAt(rowId);
+                    boolean ok = false;
+                    for (long value : numValues) {
+                        if (v == value) {
+                            ok = true;
+                            break;
+                        }
+                    }
+                    colRes.set(rowId, ok);
+                }
+                break;
+            }
+            case ColumnType.FLOAT: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    float v = pack.floatValueAt(rowId);
+                    boolean ok = false;
+                    for (long value : numValues) {
+                        if (v == (float) Double.longBitsToDouble(value)) {
+                            ok = true;
+                            break;
+                        }
+                    }
+                    colRes.set(rowId, ok);
+                }
+                break;
+            }
+            case ColumnType.DOUBLE: {
+                DataPack pack = column.pack(packId);
+                for (int rowId = 0; rowId < rowCount; rowId++) {
+                    double v = pack.doubleValueAt(rowId);
+                    boolean ok = false;
+                    for (long value : numValues) {
+                        if (v == Double.longBitsToDouble(value)) {
+                            ok = true;
+                            break;
+                        }
+                    }
+                    colRes.set(rowId, ok);
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
         }
         return colRes;
     }

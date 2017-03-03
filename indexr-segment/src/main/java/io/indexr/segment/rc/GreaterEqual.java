@@ -105,7 +105,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             case ColumnType.FLOAT: {
-                float value = (float) numValue;
+                float value = (float) Double.longBitsToDouble(numValue);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     float v = pack.floatValueAt(rowId);
                     if (v >= value) {
@@ -116,7 +116,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             case ColumnType.DOUBLE: {
-                double value = (double) numValue;
+                double value = Double.longBitsToDouble(numValue);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     double v = pack.doubleValueAt(rowId);
                     if (v >= value) {
@@ -162,7 +162,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             case ColumnType.FLOAT: {
-                float value = (float) numValue;
+                float value = (float) Double.longBitsToDouble(numValue);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     float v = pack.floatValueAt(rowId);
                     colRes.set(rowId, v >= value);
@@ -170,7 +170,7 @@ public class GreaterEqual extends ColCmpVal {
                 break;
             }
             case ColumnType.DOUBLE: {
-                double value = (double) numValue;
+                double value = Double.longBitsToDouble(numValue);
                 for (int rowId = 0; rowId < rowCount; rowId++) {
                     double v = pack.doubleValueAt(rowId);
                     colRes.set(rowId, v >= value);

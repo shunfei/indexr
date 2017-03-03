@@ -101,10 +101,10 @@ public class SegmentAssigner {
             }
 
             long segmentRowCount = fd.info().rowCount();
-            totalRowCount += segmentRowCount;
 
             if (fd instanceof RTSGroupInfo) {
                 Preconditions.checkState(work.startPackId() == -1);
+                totalRowCount += segmentRowCount;
 
                 RTSGroupInfo rtsgInfo = (RTSGroupInfo) fd;
                 RTSGroup rtsg = rtsgInfo.getRTSGroup();
@@ -151,10 +151,13 @@ public class SegmentAssigner {
                         endPackId = segment.packCount();
                     }
                     for (int packId = startPackId; packId < endPackId; packId++) {
+                        int packRowCount = DataPack.packRowCount(segmentRowCount, packId);
+                        totalRowCount += packRowCount;
+
                         byte rsRes = RSValue.Some;
                         if (rsFilter == null || (rsRes = rsFilter.roughCheckOnPack(segment, packId)) != RSValue.None) {
                             validWorks.add(new SingleWork(segment.name(), packId));
-                            validRowCount += DataPack.packRowCount(segmentRowCount, packId);
+                            validRowCount += packRowCount;
                         } else {
                             log.debug("rs filter ignore segment {} pack {}", segment.name(), packId);
                         }
