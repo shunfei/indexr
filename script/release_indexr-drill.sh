@@ -36,6 +36,7 @@ cp_jar ${MAVEN_PATH}/net/sf/jopt-simple/jopt-simple/3.2/jopt-simple-3.2.jar
 cp_jar ${MAVEN_PATH}/org/scala-lang/scala-library/2.10.4/scala-library-2.10.4.jar
 cp_jar ${MAVEN_PATH}/org/apache/spark/spark-unsafe_2.10/1.6.0/spark-unsafe_2.10-1.6.0.jar
 cp_jar ${MAVEN_PATH}/com/esotericsoftware/kryo/kryo/2.21/kryo-2.21.jar
+cp_jar ${MAVEN_PATH}/net/java/dev/jna/jna/4.2.1/jna-4.2.1.jar
 
 mkdir -p ${RELEASE_PATH}/indexr-drill/conf
 cp -f ${ROOT_DIR}/indexr-server/config/indexr.config.properties ${RELEASE_PATH}/indexr-drill/conf/
