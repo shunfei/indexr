@@ -29,12 +29,17 @@ public class TestRows {
 
     public static final int ROW_COUNT = 70000;
     public static final SegmentSchema schema = segmentSchema;
-    public static List<Row> sampleRows = new ArrayList<>();
+    public static final List<Row> sampleRows;
 
     static {
+        sampleRows = genRows(ROW_COUNT);
+    }
+
+    public static List<Row> genRows(int count) {
+        ArrayList<Row> rows = new ArrayList<Row>(count);
         Random r = new Random();
         SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(schema.getColumns());
-        for (int i = 0; i < ROW_COUNT; i++) {
+        for (int i = 0; i < count; i++) {
             for (ColumnSchema cs : schema.getColumns()) {
                 switch (cs.getDataType()) {
                     case ColumnType.INT:
@@ -50,13 +55,14 @@ public class TestRows {
                         builder.appendDouble(r.nextDouble());
                         break;
                     case ColumnType.STRING:
-                        builder.appendString(RandomStringUtils.random(r.nextInt(100)));
+                        builder.appendString(RandomStringUtils.randomAlphabetic(r.nextInt(10)));
                         break;
                     default:
                         throw new RuntimeException();
                 }
             }
-            sampleRows.add(builder.buildAndReset());
+            rows.add(builder.buildAndReset());
         }
+        return rows;
     }
 }

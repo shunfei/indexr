@@ -44,7 +44,7 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
 
     private static final Random random = new Random();
     private static final long RefreshSegmentPeriod = TimeUnit.SECONDS.toMillis(10);
-    private static final long RefreshLocalityPeriod = TimeUnit.SECONDS.toMillis(30 * 60);
+    private static final long RefreshLocalityPeriod = TimeUnit.SECONDS.toMillis(10 * 60 + random.nextInt(60));
 
     private ScheduledFuture refreshSegment;
     private ScheduledFuture refreshLocality;

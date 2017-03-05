@@ -89,7 +89,7 @@ public class RealtimeConfig {
         this.nameToAlias = nameToAlias;
         this.tagSetting = tagSetting;
         this.ignoreStrategy = EventIgnoreStrategy.fromName(ignoreStrategy);
-        this.grouping = grouping == null ? true : grouping;
+        this.grouping = grouping == null ? false : grouping;
         this.savePeriodMinutes = savePeriodMinutes == null ? 20 : savePeriodMinutes;
         this.uploadPeriodMinutes = uploadPeriodMinutes == null ? 60 : uploadPeriodMinutes;
         this.maxRowInMemory = maxRowInMemory == null ? 500000 : maxRowInMemory;

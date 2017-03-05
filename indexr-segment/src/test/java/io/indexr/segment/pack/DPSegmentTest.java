@@ -81,7 +81,7 @@ public class DPSegmentTest {
         };
     }
 
-    static void rowsCmp(Iterator<Row> expected, Iterator<Row> actual) {
+    static void rowsCmp(Iterator<? extends Row> expected, Iterator<? extends Row> actual) {
         while (expected.hasNext()) {
             Assert.assertEquals(true, actual.hasNext());
             rowCmp(expected.next(), actual.next());

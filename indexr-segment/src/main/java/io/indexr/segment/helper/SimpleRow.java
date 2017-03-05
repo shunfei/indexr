@@ -3,11 +3,13 @@ package io.indexr.segment.helper;
 import com.google.common.base.Preconditions;
 
 import org.apache.directory.api.util.Strings;
+import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.indexr.data.BytePiece;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
@@ -15,6 +17,8 @@ import io.indexr.segment.SQLType;
 import io.indexr.util.DateTimeUtil;
 import io.indexr.util.Trick;
 import io.indexr.util.UTF8Util;
+
+import static org.apache.spark.unsafe.Platform.BYTE_ARRAY_OFFSET;
 
 /**
  * A simple row can only store simple values like int, double, string. But cannot store multi-value column.
@@ -214,5 +218,24 @@ public class SimpleRow implements Row {
         int offset = colId == 0 ? 0 : sums[colId - 1];
         int to = sums[colId];
         return UTF8String.fromBytes(data.array(), offset, to - offset);
+    }
+
+    @Override
+    public void getRaw(int colId, BytePiece bytes) {
+        int offset = colId == 0 ? 0 : sums[colId - 1];
+        int to = sums[colId];
+        bytes.base = data.array();
+        bytes.addr = BYTE_ARRAY_OFFSET + offset;
+        bytes.len = to - offset;
+    }
+
+    @Override
+    public byte[] getRaw(int colId) {
+        int offset = colId == 0 ? 0 : sums[colId - 1];
+        int to = sums[colId];
+        int len = to - offset;
+        byte[] bytes = new byte[len];
+        Platform.copyMemory(data.array(), BYTE_ARRAY_OFFSET + offset, bytes, BYTE_ARRAY_OFFSET, len);
+        return bytes;
     }
 }

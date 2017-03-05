@@ -1,5 +1,6 @@
 package io.indexr.hive;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
@@ -14,7 +15,6 @@ import org.apache.hadoop.util.Progressable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -36,25 +36,36 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         Path tableLocation = new Path(tableProperties.getProperty(Config.KEY_LOCATION));
         String compressStr = tableProperties.getProperty(Config.KEY_COMPRESS, "true");
         String modeStr = tableProperties.getProperty(Config.KEY_SEGMENT_MODE);
+        String sortColumnsStr = tableProperties.getProperty(Config.KEY_SORT_COLUMNS);
+
         boolean compress = Boolean.parseBoolean(compressStr);
         SegmentMode mode = SegmentMode.fromNameWithCompress(modeStr, compress);
 
-        List<String> columnNames;
-        List<TypeInfo> columnTypes;
 
-        if (columnNameProperty.length() == 0) {
-            columnNames = new ArrayList<String>();
-        } else {
-            columnNames = Arrays.asList(columnNameProperty.split(","));
+        List<String> columnNames = new ArrayList<>();
+        List<TypeInfo> columnTypes = new ArrayList<>();
+
+        if (!Strings.isEmpty(columnNameProperty)) {
+            for (String s : columnNameProperty.trim().split(",")) {
+                columnNames.add(s.trim().toLowerCase());
+            }
         }
 
-        if (columnTypeProperty.length() == 0) {
-            columnTypes = new ArrayList<TypeInfo>();
-        } else {
+        if (!Strings.isEmpty(columnTypeProperty)) {
             columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(columnTypeProperty);
         }
 
-        return new IndexRRecordWriter(jc, columnNames, columnTypes, finalOutPath, tableLocation, mode);
+        List<String> sortColumns = new ArrayList<>();
+        if (!Strings.isEmpty(sortColumnsStr)) {
+            String[] ss = sortColumnsStr.trim().split(",");
+            for (String s : ss) {
+                String col = s.trim().toLowerCase();
+                if (columnNames.contains(col)) {
+                    sortColumns.add(col);
+                }
+            }
+        }
+        return new IndexRRecordWriter(jc, columnNames, columnTypes, finalOutPath, tableLocation, mode, sortColumns);
     }
 
     @Override

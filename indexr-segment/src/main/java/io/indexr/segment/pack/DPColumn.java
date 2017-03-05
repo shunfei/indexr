@@ -238,7 +238,6 @@ public class DPColumn extends StorageColumn {
         cache.clear();
 
         // This pack instance will never used again, reclaim its memory.
-        // And packIndexBuffer is reclaimed when seal() is called.
         pack.free();
         index.free();
         extIndex.free();

@@ -28,19 +28,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.indexr.segment.ColumnSchema;
+import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
+import io.indexr.segment.pack.DataPack;
 import io.indexr.segment.pack.OpenOption;
+import io.indexr.segment.pack.SortedSegmentGenerator;
 import io.indexr.segment.pack.Version;
 import io.indexr.util.DateTimeUtil;
 
 public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, RecordWriter<Void, ArrayWritable> {
     private static final Log logger = LogFactory.getLog(IndexRRecordWriter.class);
 
-    private DPSegment segment;
+    private SegmentGen segmentGen;
     private SQLType[] sqlTypes;
     private SimpleRow.Builder rowBuilder;
     private FileSystem fileSystem;
@@ -55,7 +58,8 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
                               List<TypeInfo> columnTypes,
                               Path finalOutPath,
                               Path tableLocation,
-                              SegmentMode mode) throws IOException {
+                              SegmentMode mode,
+                              List<String> sortColumns) throws IOException {
         // Hive may ask to create a file located on local file system.
         // We have to get the real file system by path's schema.
         this.fileSystem = FileSystem.get(finalOutPath.toUri(), FileSystem.get(jobConf).getConf());
@@ -73,13 +77,47 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
         }
         this.rowBuilder = SimpleRow.Builder.createByColumnSchemas(schema.columns);
 
-        segment = DPSegment.open(
-                Version.LATEST_ID,
-                mode,
-                localSegmentPath,
-                segmentName,
-                schema,
-                OpenOption.Overwrite).update();
+        if (sortColumns.isEmpty()) {
+            DPSegment segment = DPSegment.open(
+                    Version.LATEST_ID,
+                    mode,
+                    localSegmentPath,
+                    segmentName,
+                    schema,
+                    OpenOption.Overwrite).update();
+            this.segmentGen = new SegmentGen() {
+                @Override
+                public void add(Row row) throws IOException {
+                    segment.add(row);
+                }
+
+                @Override
+                public DPSegment gen() throws IOException {
+                    segment.seal();
+                    return segment;
+                }
+            };
+        } else {
+            SortedSegmentGenerator generator = new SortedSegmentGenerator(
+                    Version.LATEST_ID,
+                    mode,
+                    localSegmentPath,
+                    segmentName,
+                    schema,
+                    sortColumns,
+                    DataPack.MAX_COUNT * 10);
+            this.segmentGen = new SegmentGen() {
+                @Override
+                public void add(Row row) throws IOException {
+                    generator.add(row);
+                }
+
+                @Override
+                public DPSegment gen() throws IOException {
+                    return generator.seal();
+                }
+            };
+        }
     }
 
     private SegmentSchema convertToIndexRSchema(List<String> columnNames, List<TypeInfo> columnTypes) throws IOException {
@@ -173,13 +211,14 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
                     throw new IOException("can't recognize this type [" + type + "]");
             }
         }
-        segment.add(rowBuilder.buildAndReset());
+        segmentGen.add(rowBuilder.buildAndReset());
     }
 
     @Override
     public void close(boolean abort) throws IOException {
+        DPSegment segment = null;
         try {
-            segment.seal();
+            segment = segmentGen.gen();
             rowBuilder = null;
             if (!abort) {
                 SegmentHelper.uploadSegment(segment, fileSystem, segmentOutPath, tableLocation);
@@ -199,4 +238,9 @@ public class IndexRRecordWriter implements FileSinkOperator.RecordWriter, Record
         close(true);
     }
 
+    private static interface SegmentGen {
+        void add(Row row) throws IOException;
+
+        DPSegment gen() throws IOException;
+    }
 }

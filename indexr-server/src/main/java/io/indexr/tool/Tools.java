@@ -204,6 +204,9 @@ public class Tools {
                 return false;
             }
         }
+        if (schema.sortColumns.isEmpty()) {
+            System.out.println("Warn: for better performance, please specify sort.columns");
+        }
         ZkTableManager tm = new ZkTableManager(config.getZkClient());
         tm.set(options.table, schema);
         System.out.println("OK");
@@ -509,6 +512,7 @@ public class Tools {
                 true,
                 schema.schema,
                 schema.mode,
+                schema.sortColumns,
                 IndexRConfig.segmentRootPath(config.getDataRoot(), options.table),
                 options.columnName
         );

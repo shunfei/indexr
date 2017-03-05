@@ -22,6 +22,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -104,10 +105,17 @@ public class Rt2HisOnHive {
             SegmentSchema schema = getSchema(createTable);
             Map<String, String> properties = getTableProperties(createTable);
             SegmentMode mode = SegmentMode.fromName(properties.get(HiveHelper.KEY_SEGMENT_MODE));
+            String sortColumnsStr = properties.getOrDefault(HiveHelper.KEY_SORT_COLUMNS, "");
+            List<String> sortColumns = new ArrayList<>();
+            for (String s : sortColumnsStr.trim().split(",")) {
+                sortColumns.add(s.trim());
+            }
+
             logger.debug("tableLocation: {}", tableLocation);
             logger.debug("tablePartitionColumn: {}", tablePartitionColumn);
             logger.debug("schema: {}", schema);
             logger.debug("mode: {}", mode);
+            logger.debug("sortColumns: {}", sortColumns);
             logger.debug("properties: {}", JsonUtil.toJson(properties));
 
             rtTableName = String.format(
@@ -121,7 +129,7 @@ public class Rt2HisOnHive {
                     time,
                     RandomStringUtils.randomAlphabetic(16));
 
-            return move(connection, schema, mode, tableLocation, tablePartitionColumn, rtTableName, segTmpTableName);
+            return move(connection, schema, mode, sortColumns, tableLocation, tablePartitionColumn, rtTableName, segTmpTableName);
         } catch (Exception e) {
             logger.error("", e);
             return false;
@@ -159,6 +167,7 @@ public class Rt2HisOnHive {
     private boolean move(Connection connection,
                          SegmentSchema schema,
                          SegmentMode mode,
+                         List<String> sortColumns,
                          String tableLocation,
                          String tablePartitionColumn,
                          String rtTableName,
@@ -180,8 +189,8 @@ public class Rt2HisOnHive {
         }
 
         String rt2hisPath = tableLocation + "/rt2his";
-        createTable(connection, rtTableName, true, schema, mode, rt2hisPath, null);
-        createTable(connection, segTmpTableName, false, schema, mode, null, tablePartitionColumn);
+        createTable(connection, rtTableName, true, schema, mode, Collections.emptyList(), rt2hisPath, null);
+        createTable(connection, segTmpTableName, false, schema, mode, sortColumns, null, tablePartitionColumn);
         String segTmpTableLocation = getHiveTableLocation(getHiveTableCreateSql(connection, segTmpTableName));
 
         // Move segments in /rt into /rt2his folder.
@@ -399,10 +408,18 @@ public class Rt2HisOnHive {
                                     boolean external,
                                     SegmentSchema schema,
                                     SegmentMode mode,
+                                    List<String> sortColumns,
                                     String location,
                                     String partitionColumn) throws Exception {
         try (Statement statement = connection.createStatement()) {
-            String createTableSql = HiveHelper.getHiveTableCreateSql(tableName, external, schema, mode, location, partitionColumn);
+            String createTableSql = HiveHelper.getHiveTableCreateSql(
+                    tableName,
+                    external,
+                    schema,
+                    mode,
+                    sortColumns,
+                    location,
+                    partitionColumn);
             logger.debug("create table:\n{}", createTableSql);
             statement.execute(createTableSql);
         }

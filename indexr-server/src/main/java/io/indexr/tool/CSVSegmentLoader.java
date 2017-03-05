@@ -2,9 +2,6 @@ package io.indexr.tool;
 
 import com.google.common.base.Preconditions;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -28,14 +25,18 @@ import java.util.List;
 import java.util.UUID;
 
 import io.indexr.segment.ColumnSchema;
+import io.indexr.segment.Row;
 import io.indexr.segment.SegmentMode;
-import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.pack.DPSegment;
+import io.indexr.segment.pack.DataPack;
 import io.indexr.segment.pack.OpenOption;
+import io.indexr.segment.pack.SortedSegmentGenerator;
 import io.indexr.segment.pack.Version;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
+import io.indexr.server.TableSchema;
+import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.util.IOUtil;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
@@ -44,7 +45,7 @@ import io.indexr.util.RuntimeUtil;
  * TODO handle the case when row number is larger then {@link io.indexr.segment.pack.StorageSegment#MAX_ROW_COUNT}.
  */
 public class CSVSegmentLoader {
-    private final SegmentSchema schema;
+    private final TableSchema schema;
     private final ColumnSchema[] columnSchemas;
     private final int[] valIndexes;
     private final List<String> csvPaths;
@@ -53,10 +54,16 @@ public class CSVSegmentLoader {
     private boolean interrupted;
     private long rowCount;
 
-    private DPSegment segment;
+    private SegmentGen segmentGen;
+
+    private static interface SegmentGen {
+        void add(Row row) throws IOException;
+
+        DPSegment gen() throws IOException;
+    }
 
     public CSVSegmentLoader(String name,
-                            SegmentSchema schema,
+                            TableSchema schema,
                             List<String> csvColNames,
                             List<String> csvPaths,
                             Path outPath,
@@ -65,10 +72,10 @@ public class CSVSegmentLoader {
         this.schema = schema;
         this.spliter = spliter;
         this.csvPaths = csvPaths;
-        this.columnSchemas = new ColumnSchema[schema.columns.size()];
-        this.valIndexes = new int[schema.columns.size()];
-        for (int colId = 0; colId < schema.columns.size(); colId++) {
-            ColumnSchema cs = schema.columns.get(colId);
+        this.columnSchemas = new ColumnSchema[schema.schema.columns.size()];
+        this.valIndexes = new int[schema.schema.columns.size()];
+        for (int colId = 0; colId < schema.schema.columns.size(); colId++) {
+            ColumnSchema cs = schema.schema.columns.get(colId);
             int valIndex = -1;
             if (csvColNames == null) {
                 valIndex = colId;
@@ -84,41 +91,74 @@ public class CSVSegmentLoader {
             columnSchemas[colId] = cs;
         }
 
-        this.segment = DPSegment.open(
-                Version.LATEST_ID,
-                SegmentMode.DEFAULT,
-                outPath,
-                name,
-                schema,
-                OpenOption.Overwrite);
+        if (schema.sortColumns.isEmpty()) {
+            DPSegment segment = DPSegment.open(
+                    Version.LATEST_ID,
+                    schema.mode,
+                    outPath,
+                    name,
+                    schema.schema,
+                    OpenOption.Overwrite).update();
+            this.segmentGen = new SegmentGen() {
+                @Override
+                public void add(Row row) throws IOException {
+                    segment.add(row);
+                }
+
+                @Override
+                public DPSegment gen() throws IOException {
+                    segment.seal();
+                    return segment;
+                }
+            };
+        } else {
+            SortedSegmentGenerator generator = new SortedSegmentGenerator(
+                    Version.LATEST_ID,
+                    schema.mode,
+                    outPath,
+                    name,
+                    schema.schema,
+                    schema.sortColumns,
+                    DataPack.MAX_COUNT * 10
+            );
+            this.segmentGen = new SegmentGen() {
+                @Override
+                public void add(Row row) throws IOException {
+                    generator.add(row);
+                }
+
+                @Override
+                public DPSegment gen() throws IOException {
+                    return generator.seal();
+                }
+            };
+        }
     }
 
-    public CSVSegmentLoader(String name, SegmentSchema schema, List<String> csvColNames, List<String> csvPaths, Path outPath) throws IOException {
+    public CSVSegmentLoader(String name, TableSchema schema, List<String> csvColNames, List<String> csvPaths, Path outPath) throws IOException {
         this(name, schema, csvColNames, csvPaths, outPath, ",", SegmentMode.DEFAULT);
     }
 
-    public DPSegment segment() {
-        return segment;
+    public DPSegment done() throws IOException {
+        return segmentGen.gen();
     }
 
     public void load() throws IOException {
         if (!csvPaths.isEmpty()) {
-            segment.update();
             for (String file : csvPaths) {
-                loadFile(segment, file);
+                loadFile(file);
             }
-            segment.seal();
         }
     }
 
-    private void loadFile(DPSegment segment, String path) throws IOException {
+    private void loadFile(String path) throws IOException {
         SimpleRow.Builder rowBuilder = SimpleRow.Builder.createByColumnSchemas(Arrays.asList(columnSchemas));
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"))) {
             String line;
             while (StringUtils.isNotEmpty(line = reader.readLine()) && !interrupted) {
                 String[] vals = line.split(spliter);
                 try {
-                    for (int colId = 0; colId < schema.columns.size(); colId++) {
+                    for (int colId = 0; colId < schema.schema.columns.size(); colId++) {
                         int valIndex = valIndexes[colId];
                         rowBuilder.appendStringFormVal(getValue(vals, valIndex));
                     }
@@ -126,7 +166,7 @@ public class CSVSegmentLoader {
                     System.out.printf("error csv line: [%s]", line);
                     e.printStackTrace();
                 }
-                segment.add(rowBuilder.buildAndReset());
+                segmentGen.add(rowBuilder.buildAndReset());
                 rowCount++;
             }
         }
@@ -175,6 +215,10 @@ public class CSVSegmentLoader {
             return;
         }
 
+        if (Strings.isEmpty(options.ouputPath)) {
+            System.out.println("Please specify output path by -s");
+        }
+
         Path tmpPath = Paths.get(options.tmpPath);
         IndexRConfig config = new IndexRConfig();
         int exitCode = 0;
@@ -200,19 +244,9 @@ public class CSVSegmentLoader {
         System.exit(exitCode);
     }
 
-    public static class MySchema {
-        @JsonProperty("schema")
-        public final SegmentSchema schema;
-
-        @JsonCreator
-        public MySchema(@JsonProperty("schema") SegmentSchema schema) {
-            this.schema = schema;
-        }
-    }
-
     private static void doLoad(IndexRConfig config, MyOptions options, String outputPath, Path tmpPath) throws Exception {
-        MySchema schema = options.schemaPath == null ? null : JsonUtil.load(Paths.get(options.schemaPath), MySchema.class);
-        Preconditions.checkState(options.schemaPath != null, "Please specify schema path");
+        TableSchema schema = options.schemaPath == null ? null : JsonUtil.load(Paths.get(options.schemaPath), TableSchema.class);
+        Preconditions.checkState(options.schemaPath != null, "Please specify schema path by -C");
         Preconditions.checkState(schema.schema != null, "Illegal schame");
 
         List<String> csvColNames = null;
@@ -223,14 +257,12 @@ public class CSVSegmentLoader {
 
         CSVSegmentLoader loader = new CSVSegmentLoader(
                 "tmp_gen_name",
-                schema.schema,
+                schema,
                 csvColNames,
                 csvPaths,
                 tmpPath,
                 options.spliter,
                 SegmentMode.fromNameWithCompress(options.mode, !options.notcompress));
-
-        DPSegment segment = loader.segment();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -248,6 +280,8 @@ public class CSVSegmentLoader {
             return;
         }
 
+        DPSegment segment = loader.done();
+
         URI uri = URI.create(outputPath);
         Configuration fsConfig = new Configuration();
         fsConfig.set("fs.hdfs.impl", DistributedFileSystem.class.getName());
@@ -264,5 +298,10 @@ public class CSVSegmentLoader {
         if (!options.quiet) {
             System.out.printf("Generated segment [%s]\n", fileSystem.resolvePath(realPath));
         }
+    }
+
+    static {
+        // TODO Remove this
+        RealtimeConfig.loadSubtypes();
     }
 }

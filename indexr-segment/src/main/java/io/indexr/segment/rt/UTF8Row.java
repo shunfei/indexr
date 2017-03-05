@@ -528,10 +528,14 @@ public class UTF8Row implements Row, Serializable {
         }
 
         public boolean onStringValue(long addr, int size) {
+            return onStringValue(null, addr, size);
+        }
+
+        public boolean onStringValue(Object base, long offset, int size) {
             if (curRowIsTagField) {
                 boolean ok = false;
                 for (byte[] tag : acceptTags) {
-                    if (UTF8Util.containsCommaSep(null, addr, size, tag)) {
+                    if (UTF8Util.containsCommaSep(base, offset, size, tag)) {
                         ok = true;
                         break;
                     }
@@ -546,7 +550,7 @@ public class UTF8Row implements Row, Serializable {
             putValue(curRowIndex, (((long) rawValueOffset) << 32) | (long) size);
 
             Platform.copyMemory(
-                    null, addr,
+                    base, offset,
                     rawValuesBuffer, BYTE_ARRAY_OFFSET + rawValueOffset,
                     size);
 
@@ -948,5 +952,41 @@ public class UTF8Row implements Row, Serializable {
         byte[] bytes = new byte[len];
         Platform.copyMemory(null, rowDataAddr + offset, bytes, BYTE_ARRAY_OFFSET, len);
         return bytes;
+    }
+
+    // ===================================
+    // Static methods
+    // ===================================
+
+    public static UTF8Row from(Creator creator, Row row) {
+        List<ColumnSchema> csList = creator.originalSchema;
+        BytePiece bp = new BytePiece();
+        creator.startRow();
+        for (int id = 0; id < csList.size(); id++) {
+            creator.onColumnId(id);
+
+            ColumnSchema cs = csList.get(id);
+            switch (cs.getDataType()) {
+                case ColumnType.INT:
+                    creator.onIntValue(row.getInt(id));
+                    break;
+                case ColumnType.LONG:
+                    creator.onLongValue(row.getLong(id));
+                    break;
+                case ColumnType.FLOAT:
+                    creator.onFloatValue(row.getFloat(id));
+                    break;
+                case ColumnType.DOUBLE:
+                    creator.onDoubleValue(row.getDouble(id));
+                    break;
+                case ColumnType.STRING:
+                    row.getRaw(id, bp);
+                    creator.onStringValue(bp.base, bp.addr, bp.len);
+                    break;
+                default:
+                    throw new IllegalStateException("Illegal type: " + cs.getDataType());
+            }
+        }
+        return creator.endRow();
     }
 }
