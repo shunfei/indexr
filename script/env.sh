@@ -2,7 +2,7 @@
 
 # local maven repo path
 export MAVEN_PATH=`mvn help:evaluate -Dexpression=settings.localRepository | grep -v '\[INFO\]'`
-export VERSION=0.3.0-SNAPSHOT
+export VERSION=0.4.0-SNAPSHOT
 
 # local c++ lib env
 export BOOST_INCLUDES=/usr/local/include
