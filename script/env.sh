@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # local maven repo path
-export MAVEN_PATH=`mvn help:evaluate -Dexpression=settings.localRepository | grep -v '\[INFO\]'`
+export MAVEN_PATH=`mvn help:evaluate -Dexpression=settings.localRepository | grep -v '^\[.'`
 export VERSION=0.3.0
 
 # local c++ lib env
