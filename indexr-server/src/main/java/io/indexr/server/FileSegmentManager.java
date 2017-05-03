@@ -14,7 +14,7 @@ import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentManager;
 import io.indexr.segment.SegmentUploader;
-import io.indexr.segment.pack.StorageSegment;
+import io.indexr.segment.storage.StorageSegment;
 
 public class FileSegmentManager implements SegmentManager, SegmentUploader {
     private static final Logger logger = LoggerFactory.getLogger(FileSegmentManager.class);

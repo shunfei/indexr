@@ -2,7 +2,6 @@ package io.indexr.server;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.directory.api.util.Strings;
 import org.apache.zookeeper.CreateMode;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -21,9 +20,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.indexr.segment.pack.PackDurationStat;
+import io.indexr.plugin.Plugins;
+import io.indexr.segment.PackDurationStat;
 import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.util.GlobalExecSrv;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 public class IndexRNode implements Closeable {
@@ -36,6 +37,7 @@ public class IndexRNode implements Closeable {
     private Future declareNode;
 
     public IndexRNode(String host) throws Exception {
+        Plugins.loadPlugins();
         RealtimeConfig.loadSubtypes();
         this.config = new IndexRConfig();
         CuratorFramework zkClient = config.getZkClient();
@@ -44,7 +46,9 @@ public class IndexRNode implements Closeable {
                 zkClient,
                 config.getFileSystem(),
                 config);
-        httpService();
+        if (config.getControlServerEnable()) {
+            httpService();
+        }
 
         String path = IndexRConfig.zkHostDeclarePath(host);
         ZkHelper.createIfNotExist(zkClient, path, CreateMode.EPHEMERAL);

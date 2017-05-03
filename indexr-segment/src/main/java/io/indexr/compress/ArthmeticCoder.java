@@ -10,7 +10,7 @@ import io.indexr.io.BitOutputStream;
 
 /**
  * Arithmetic coding.
- * 
+ *
  * <p> This code is based on <a href="https://github.com/nayuki/Arithmetic-Coding">Nayuki's
  * great code</a> .
  */
@@ -78,7 +78,7 @@ public abstract class ArthmeticCoder {
     abstract void underflow() throws IOException;
 
     /**
-     * The frequency of symbols. Symbol must be ranged from <code>0</code> to <code>objCount-1</code>.
+     * The frequency of symbols. Symbol must be ranged from <code>0</code> to <code>valueCount-1</code>.
      */
     public static interface Frequency {
         /**

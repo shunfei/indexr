@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -30,8 +29,9 @@ import io.indexr.io.ByteBufferReader;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.IntegratedSegment;
+import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.util.DateTimeUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.Trick;
 
 public class IndexRRecordReader implements RecordReader<Void, SchemaWritable> {
@@ -86,9 +86,14 @@ public class IndexRRecordReader implements RecordReader<Void, SchemaWritable> {
             for (int i = 0; i < ss.length; i++) {
                 String col = ss[i];
                 int colId = Trick.indexFirst(segColSchemas, c -> c.getName().equalsIgnoreCase(col));
-                Preconditions.checkState(colId >= 0, String.format("Column [%s] not found in segment [%s]", col, segment.name()));
-                projectCols[i] = segColSchemas.get(colId);
-                projectColIds[i] = colId;
+                //Preconditions.checkState(colId >= 0, String.format("Column [%s] not found in segment [%s]", col, segment.name()));
+                if (colId < 0) {
+                    projectCols[i] = null;
+                    projectColIds[i] = -1;
+                } else {
+                    projectCols[i] = segColSchemas.get(colId);
+                    projectColIds[i] = colId;
+                }
             }
         }
     }
@@ -107,6 +112,10 @@ public class IndexRRecordReader implements RecordReader<Void, SchemaWritable> {
         for (int i = 0; i < projectCols.length; i++) {
             ColumnSchema columnSchema = projectCols[i];
             int colId = projectColIds[i];
+            if (colId == -1 || columnSchema == null) {
+                writables[i] = null;
+                continue;
+            }
             switch (columnSchema.getSqlType()) {
                 case INT:
                     writables[i] = new IntWritable(current.getInt(colId));

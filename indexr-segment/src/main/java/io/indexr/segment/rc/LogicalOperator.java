@@ -8,4 +8,13 @@ public interface LogicalOperator extends RCOperator {
     default Collection<Attr> attr() {
         return Collections.emptySet();
     }
+
+    @Override
+    default public boolean isAccurate() {
+        boolean ok = true;
+        for (RCOperator op : children()) {
+            ok &= op.isAccurate();
+        }
+        return ok;
+    }
 }

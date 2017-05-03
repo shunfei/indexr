@@ -1,5 +1,5 @@
 package io.indexr.util;
 
-public class Wrapper {
-    public Object value;
+public class Wrapper<T> {
+    public T value;
 }

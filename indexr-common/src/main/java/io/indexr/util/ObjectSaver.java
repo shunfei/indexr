@@ -20,13 +20,13 @@ public class ObjectSaver {
 
     public static <T> T load(ByteBufferReader source, long offset, ObjReader<T> objReader) throws IOException {
         ByteBuffer sizeBuffer = ByteBufferUtil.allocateHeap(4);
-        source.read(offset, sizeBuffer, 4);
+        source.read(offset, sizeBuffer);
         sizeBuffer.flip();
         int size = sizeBuffer.getInt();
 
         ByteBuffer buffer = ByteBufferUtil.allocateDirect(size);
 
-        source.read(offset + 4, buffer, size);
+        source.read(offset + 4, buffer);
         buffer.flip();
         T obj = objReader.read(buffer);
 
@@ -35,15 +35,16 @@ public class ObjectSaver {
         return obj;
     }
 
-    public static <T> void save(ByteBufferWriter dst, T obj, int objSize, ObjWriter<T> objWriter) throws IOException {
+    public static <T> int save(ByteBufferWriter dst, T obj, int objSize, ObjWriter<T> objWriter) throws IOException {
         ByteBuffer buffer = ByteBufferUtil.allocateDirect(objSize + 4);
         buffer.putInt(objSize);
         objWriter.write(obj, buffer);
 
         assert buffer.remaining() == 0;
         buffer.flip();
-        dst.write(buffer, objSize + 4);
+        dst.write(buffer);
 
         ByteBufferUtil.free(buffer);
+        return 4 + objSize;
     }
 }

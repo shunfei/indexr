@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.apache.directory.api.util.Strings;
+import io.indexr.util.Strings;
 
 public class Metric {
     @JsonProperty("name")

@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 /**
- * Load data from file which stored in [size][data]
+ * Load data from file which stored in format: [size][data][size][data]....
  */
 public class ObjectLoader implements Closeable {
     private FileChannel file;
@@ -44,7 +44,8 @@ public class ObjectLoader implements Closeable {
                 done = true;
                 return false;
             }
-            IOUtil.readFully(file, fileOffset, buffer, toRead);
+            buffer.limit(toRead);
+            IOUtil.readFully(file, fileOffset, buffer);
             buffer.flip();
         }
         entrySize = buffer.getInt();
@@ -62,7 +63,8 @@ public class ObjectLoader implements Closeable {
                 done = true;
                 return false;
             }
-            IOUtil.readFully(file, fileOffset, buffer, toRead);
+            buffer.limit(toRead);
+            IOUtil.readFully(file, fileOffset, buffer);
             buffer.flip();
 
             // move 4 bytes forward.

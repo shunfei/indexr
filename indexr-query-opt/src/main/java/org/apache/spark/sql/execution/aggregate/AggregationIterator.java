@@ -105,7 +105,8 @@ public abstract class AggregationIterator implements Iterator<UnsafeRow> {
             List<Attribute> inputAttributes) {
         if (expressions.isEmpty()) {
             // Grouping only.
-            return (a, b) -> {};
+            return (a, b) -> {
+            };
         } else {
             List<Expression> processExpressions = new ArrayList<>();
             for (int i = 0; i < expressions.size(); i++) {

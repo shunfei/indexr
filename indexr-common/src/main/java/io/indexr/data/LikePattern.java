@@ -7,8 +7,11 @@ public class LikePattern {
     public final UTF8String original;
 
     public final int minMatchLen;
+    /** The real data, escaped characters have been removed. */
     public final byte[] analyzed;
+    /** This index is any mark or not. */
     public final boolean[] any;
+    /** This index is one mark or not. */
     public final boolean[] one;
     public final boolean hasAny;
     public final boolean hasOne;

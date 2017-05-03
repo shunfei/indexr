@@ -1,27 +1,66 @@
 package io.indexr.segment;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.directory.api.util.Strings;
+import io.indexr.plugin.Plugins;
+import io.indexr.segment.storage.VersionAdapter;
+import io.indexr.segment.storage.VersionAdapter_Basic;
+import io.indexr.util.Strings;
 
-public enum SegmentMode {
-    @JsonProperty("balance")
-    BALANCE(0, true, true),
-    @JsonProperty("storage")
-    STORAGE(1, true, false),
-    @JsonProperty("performance")
-    PERFORMANCE(2, false, false);
+public class SegmentMode {
+    public static final SegmentMode BASIC = new SegmentMode(new int[]{0, 1, 2}, new String[]{"basic", "balance", "storage", "performance"}, new VersionAdapter_Basic());
+    // Inner used.
+    public static final SegmentMode FAST = new SegmentMode(new int[]{3}, new String[]{"fast"}, new VersionAdapter_Basic(true));
+    public static SegmentMode DEFAULT;
+
+    private static final ArrayList<SegmentMode> modes = new ArrayList<>();
+
+    public static void addMode(SegmentMode mode) {
+        modes.add(mode);
+    }
+
+    public static void setDefault(SegmentMode mode) {
+        DEFAULT = mode;
+    }
+
+    static {
+        addMode(BASIC);
+        addMode(FAST);
+
+        setDefault(BASIC);
+
+        try {
+            Plugins.loadPlugins();
+        } catch (Exception e) {
+            throw new RuntimeException("Load plugins failed", e);
+        }
+    }
 
     public final int id;
-    public final boolean compress;
-    public final boolean useExtIndex;
+    public final int[] aliasIds;
+    public final String name;
+    public final String[] aliasNames;
+    public final VersionAdapter versionAdapter;
 
-    public static final SegmentMode DEFAULT = BALANCE;
+    public SegmentMode(int[] aliasIds, String[] aliasNames, VersionAdapter versionAdapter) {
+        this.id = aliasIds[0];
+        this.aliasIds = aliasIds;
+        this.name = aliasNames[0];
+        this.aliasNames = aliasNames;
+        this.versionAdapter = versionAdapter;
+    }
 
-    SegmentMode(int id, boolean compress, boolean useExtIndex) {
-        this.id = id;
-        this.compress = compress;
-        this.useExtIndex = useExtIndex;
+    public SegmentMode(int id, String name, VersionAdapter versionAdapter) {
+        this(new int[]{id}, new String[]{name}, versionAdapter);
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public static List<SegmentMode> values() {
+        return modes;
     }
 
     @Override
@@ -31,11 +70,11 @@ public enum SegmentMode {
 
     public static SegmentMode fromId(int id) {
         for (SegmentMode mode : values()) {
-            if (id == mode.id) {
+            if (id == mode.id || containsInt(mode.aliasIds, id)) {
                 return mode;
             }
         }
-        throw new RuntimeException("illegal segment mode id: " + id);
+        throw new RuntimeException("Unsupported segment mode id: " + id);
     }
 
     public static SegmentMode fromName(String name) {
@@ -43,21 +82,30 @@ public enum SegmentMode {
             return DEFAULT;
         }
         for (SegmentMode mode : values()) {
-            if (name.toUpperCase().equals(mode.name())) {
-                return mode;
+            for (String n : mode.aliasNames) {
+                if (n.equalsIgnoreCase(name)) {
+                    return mode;
+                }
             }
         }
-        throw new RuntimeException("illegal segment mode: " + name);
+        throw new RuntimeException("Unsupported segment mode: " + name);
     }
 
     public static SegmentMode fromNameWithCompress(String name, boolean compress) {
         if (Strings.isEmpty(name)) {
-            return compress ? BALANCE : PERFORMANCE;
+            return DEFAULT;
         }
         return fromName(name);
     }
 
     public static SegmentMode fromNameWithCompress(String name, Boolean compress) {
-        return fromNameWithCompress(name, compress == null ? DEFAULT.compress : compress);
+        return fromNameWithCompress(name, compress == null);
+    }
+
+    private static boolean containsInt(int[] arr, int v) {
+        for (int i : arr) {
+            if (i == v) return true;
+        }
+        return false;
     }
 }

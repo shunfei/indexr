@@ -22,8 +22,8 @@ import java.util.function.Consumer;
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.segment.SegmentFd;
-import io.indexr.segment.pack.IntegratedSegment;
-import io.indexr.segment.pack.StorageSegment;
+import io.indexr.segment.storage.itg.IntegratedSegment;
+import io.indexr.segment.storage.StorageSegment;
 import io.indexr.util.Try;
 
 public class SegmentHelper {

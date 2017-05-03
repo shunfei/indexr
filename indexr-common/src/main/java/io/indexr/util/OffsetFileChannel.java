@@ -17,7 +17,7 @@ public class OffsetFileChannel implements WritableByteChannel {
     @Override
     public int write(ByteBuffer src) throws IOException {
         int size = src.remaining();
-        IOUtil.writeFully(fileChannel, offset, src, size);
+        IOUtil.writeFully(fileChannel, offset, src);
         return size;
     }
 

@@ -1,8 +1,7 @@
 package io.indexr.segment;
 
-import org.apache.directory.api.util.Strings;
-
 import io.indexr.util.DateTimeUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.UTF8Util;
 
 public enum SQLType {

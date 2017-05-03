@@ -6,11 +6,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
-import java.util.BitSet;
 
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
+import io.indexr.util.BitMap;
 
 public class Less extends GreaterEqual {
     @JsonCreator
@@ -52,12 +52,7 @@ public class Less extends GreaterEqual {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
-        return RSValue.not(super.roughCheckOnRow(segment, packId));
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
-        return RCHelper.not(super.exactCheckOnRow(segment, packId));
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
+        return BitMap.not(super.exactCheckOnRow(segment, packId));
     }
 }

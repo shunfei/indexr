@@ -3,7 +3,6 @@ package io.indexr.segment.rt;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import org.apache.directory.api.util.Strings;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.array.ByteArrayMethods;
 import org.apache.spark.unsafe.types.UTF8String;
@@ -24,8 +23,11 @@ import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
 import io.indexr.util.ByteArrayWrapper;
+import io.indexr.util.ByteBufferUtil;
+import io.indexr.util.BytesUtil;
 import io.indexr.util.MemoryUtil;
 import io.indexr.util.Serializable;
+import io.indexr.util.Strings;
 import io.indexr.util.Trick;
 import io.indexr.util.UTF8JsonDeserializer;
 import io.indexr.util.UTF8Util;
@@ -319,7 +321,9 @@ public class UTF8Row implements Row, Serializable {
             // Use off-heap memory to store row data.
             // We don't want those rows stored in JVM headp as they can put too much pressure on GC.
             // Besides those rows' lifecycle can be easily managed.
-            long rowDataAddr = MemoryUtil.allocate(totalRowSize);
+            //long rowDataAddr = MemoryUtil.allocate(totalRowSize);
+            ByteBuffer rowDataBuffer = ByteBufferUtil.allocateDirect(totalRowSize);
+            long rowDataAddr = MemoryUtil.getAddress(rowDataBuffer);
             if (hasDims) {
                 // Put dims values and raw values together, convient for equal check.
                 int dimValueSize = dimCount << 3;
@@ -370,7 +374,7 @@ public class UTF8Row implements Row, Serializable {
                 }
 
                 long code = grouping ? 0 : nextRowId++;
-                return new UTF8Row(code, this, rowDataAddr, totalRowSize, dimDataSize);
+                return new UTF8Row(code, this, rowDataBuffer, totalRowSize, dimDataSize);
             } else {
                 int valueSize = columnCount << 3;
                 Platform.copyMemory(valuesBuffer, LONG_ARRAY_OFFSET, null, rowDataAddr, valueSize);
@@ -394,7 +398,7 @@ public class UTF8Row implements Row, Serializable {
                     }
                 }
 
-                return new UTF8Row(nextRowId++, this, rowDataAddr, totalRowSize, 0);
+                return new UTF8Row(nextRowId++, this, rowDataBuffer, totalRowSize, 0);
             }
         }
 
@@ -649,6 +653,7 @@ public class UTF8Row implements Row, Serializable {
     }
 
     private final Creator creator;
+    private ByteBuffer rowDataBuffer;
     private long rowDataAddr;
     private final int rowDataSize;
     private final int dimDataSize;
@@ -657,17 +662,19 @@ public class UTF8Row implements Row, Serializable {
     // This is used to stop comparator return 0 if grouping is disable.
     private final long code;
 
-    private UTF8Row(long code, Creator creator, long rowDataAddr, int rowDataSize, int dimDataSize) {
+    private UTF8Row(long code, Creator creator, ByteBuffer rowDataBuffer, int rowDataSize, int dimDataSize) {
         this.code = code;
         this.creator = creator;
-        this.rowDataAddr = rowDataAddr;
+        this.rowDataBuffer = rowDataBuffer;
+        this.rowDataAddr = MemoryUtil.getAddress(rowDataBuffer);
         this.rowDataSize = rowDataSize;
         this.dimDataSize = dimDataSize;
     }
 
     public void free() {
-        if (rowDataAddr != 0) {
-            MemoryUtil.free(rowDataAddr);
+        if (rowDataBuffer != null) {
+            ByteBufferUtil.free(rowDataBuffer);
+            rowDataBuffer = null;
             rowDataAddr = 0;
         }
     }
@@ -722,7 +729,7 @@ public class UTF8Row implements Row, Serializable {
                     int offset2 = (int) (word2 >>> 32);
                     int len2 = (int) word2 & ColumnType.MAX_STRING_UTF8_SIZE_MASK;
 
-                    res = compareBytes(rowDataAddr1 + offset1, len1, rowDataAddr2 + offset2, len2);
+                    res = BytesUtil.compareBytes(rowDataAddr1 + offset1, len1, rowDataAddr2 + offset2, len2);
                 } else {
                     res = Long.compare(word1, word2);
                 }
@@ -734,37 +741,6 @@ public class UTF8Row implements Row, Serializable {
             // If we don't do grouping we should never let it return zero.
             return Long.compare(r1.code, r2.code);
         };
-    }
-
-    private static int compareBytes(long addr1, int len1, long addr2, int len2) {
-        int len = Math.min(len1, len2);
-        int res;
-
-        long word1, word2;
-        int wordLen = len & 0xFFFF_FFF8;
-        for (int i = 0; i < wordLen; i += 8) {
-            word1 = MemoryUtil.getLong(addr1 + i);
-            word2 = MemoryUtil.getLong(addr2 + i);
-            res = Long.compare(word1, word2);
-            if (res != 0) {
-                return res;
-            }
-        }
-
-        if ((len & 0x07) != 0) {
-            long tail1 = 0;
-            long tail2 = 0;
-            for (int i = wordLen; i < len; i++) {
-                tail1 = (tail1 << 8) | (MemoryUtil.getByte(addr1 + i) & 0xFF);
-                tail2 = (tail2 << 8) | (MemoryUtil.getByte(addr2 + i) & 0xFF);
-            }
-            res = Long.compare(tail1, tail2);
-            if (res != 0) {
-                return res;
-            }
-        }
-
-        return len1 - len2;
     }
 
     @Override

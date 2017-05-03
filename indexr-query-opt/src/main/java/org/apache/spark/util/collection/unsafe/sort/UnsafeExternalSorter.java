@@ -332,9 +332,9 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
     /**
      * Write a key-value record to the sorter. The key and value will be put together in-memory,
      * using the following format:
-     * 
+     *
      * record length (4 bytes), key length (4 bytes), key data, value data
-     * 
+     *
      * record length = key length + value length + 4
      */
     public void insertKVRecord(Object keyBase, long keyOffset, int keyLen,
@@ -509,10 +509,10 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
 
     /**
      * Returns a iterator, which will return the rows in the order as inserted.
-     * 
+     *
      * It is the caller's responsibility to call `cleanupResources()`
      * after consuming this iterator.
-     * 
+     *
      * TODO: support forced spilling
      */
     public UnsafeSorterIterator getIterator() throws IOException {

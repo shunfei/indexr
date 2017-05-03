@@ -2,7 +2,7 @@ package io.indexr.segment.rt;
 
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.ColumnNode;
+import io.indexr.segment.storage.ColumnNode;
 
 public class RealtimeIndex {
     private int colCount;

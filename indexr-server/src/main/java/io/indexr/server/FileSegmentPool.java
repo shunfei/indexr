@@ -3,7 +3,6 @@ package io.indexr.server;
 import com.google.common.base.Preconditions;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,8 +34,10 @@ import io.indexr.io.ByteBufferReader;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentLocality;
 import io.indexr.segment.SegmentPool;
-import io.indexr.segment.pack.Integrated;
-import io.indexr.segment.pack.IntegratedSegment;
+import io.indexr.segment.storage.itg.Integrate;
+import io.indexr.segment.storage.itg.IntegratedSegment;
+import io.indexr.segment.storage.itg.SegmentMeta;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 public class FileSegmentPool extends FileSegmentManager implements SegmentPool, SegmentLocality {
@@ -49,6 +50,7 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
     private ScheduledFuture refreshSegment;
     private ScheduledFuture refreshLocality;
     private long lastRefreshTime = 0;
+    private boolean mustRefresh = false;
 
     private final FileSystem fileSystem;
     private final Path segmentRootPath;
@@ -93,9 +95,12 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
         }
 
         // Load segments before doing any query.
-        Try.on(this::loadFromLocalCache,
+        boolean ok = Try.on(this::loadFromLocalCache,
                 1, logger,
                 String.format("Load %s segmentFds from local cache failed", tableName));
+        if (!ok) {
+            mustRefresh = true;
+        }
 
         this.refreshSegment = notifyService.scheduleWithFixedDelay(
                 () -> this.refresh(false),
@@ -136,11 +141,14 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
 
     private void refreshSegments(boolean force) {
         try {
-            if (force) {
+            if (force || mustRefresh) {
                 doRefreshSegments();
                 return;
             }
 
+            if (!fileSystem.exists(updateFilePath)) {
+                return;
+            }
             FileStatus fileStatus = fileSystem.getFileStatus(updateFilePath);
             long modifyTime = fileStatus != null ? fileStatus.getModificationTime() : 0;
             boolean modifyTimeOk = lastRefreshTime < modifyTime;
@@ -196,9 +204,9 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
                     fileSystem,
                     segmentPath,
                     fileStatus.getLen());
-            Integrated.SectionInfo sectionInfo = null;
+            SegmentMeta sectionInfo = null;
             try (ByteBufferReader reader = readerOpener.open(0)) {
-                sectionInfo = Integrated.read(reader);
+                sectionInfo = Integrate.INSTANCE.read(reader);
                 if (sectionInfo == null) {
                     // Not a segment.
                     continue;
@@ -238,7 +246,8 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
         // Save to local cache.
         totalUpdateCount += updateCount;
         if (totalUpdateCount >= SaveCacheUpdateCount
-                || lastSaveCacheTime + SaveCachePeriod <= System.currentTimeMillis()) {
+                || lastSaveCacheTime + SaveCachePeriod <= System.currentTimeMillis()
+                || mustRefresh) {
             Try.on(this::saveToLocalCache,
                     1, logger,
                     String.format("Save %s segment fds to local cache failed", tableName));
@@ -246,6 +255,8 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
             totalUpdateCount = 0;
             lastSaveCacheTime = System.currentTimeMillis();
         }
+
+        mustRefresh = false;
         return !hasError;
     }
 
@@ -343,10 +354,10 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
     }
 
     public void loadFromLocalCache() throws IOException {
-        Map<String, Integrated.SectionInfo> sectionInfos = Integrated.SectionInfo.loadFromLocalFile(localCachePath);
-        for (Map.Entry<String, Integrated.SectionInfo> entry : sectionInfos.entrySet()) {
+        Map<String, SegmentMeta> sectionInfos = SegmentMeta.loadFromLocalFile(localCachePath);
+        for (Map.Entry<String, SegmentMeta> entry : sectionInfos.entrySet()) {
             String timeAndName = entry.getKey();
-            Integrated.SectionInfo info = entry.getValue();
+            SegmentMeta info = entry.getValue();
             String[] strs = StringUtils.split(timeAndName, "|", 3);
             long time = Long.parseLong(strs[0]);
             long fileSize = Long.parseLong(strs[1]);
@@ -365,13 +376,13 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
     }
 
     public void saveToLocalCache() throws IOException {
-        Map<String, Integrated.SectionInfo> sectionInfos = new HashMap<>(segmentFdMap.size());
+        Map<String, SegmentMeta> sectionInfos = new HashMap<>(segmentFdMap.size());
         for (Map.Entry<String, SegmentFdAndTime> entry : segmentFdMap.entrySet()) {
             String name = entry.getKey();
             SegmentFdAndTime st = entry.getValue();
             sectionInfos.put(st.modifyTime + "|" + st.fileSize + "|" + name, ((IntegratedSegment.Fd) st.fd).sectionInfo());
         }
-        Integrated.SectionInfo.saveToLocalFile(localCachePath, sectionInfos);
+        SegmentMeta.saveToLocalFile(localCachePath, sectionInfos);
     }
 
     private static class SegmentFdAndTime {

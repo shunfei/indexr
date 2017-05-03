@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.apache.directory.api.util.Strings;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -20,6 +19,7 @@ import io.indexr.segment.rt.Fetcher;
 import io.indexr.segment.rt.UTF8JsonRowCreator;
 import io.indexr.segment.rt.UTF8Row;
 import io.indexr.util.DateTimeUtil;
+import io.indexr.util.Strings;
 
 public class TestFetcher implements Fetcher {
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHH");

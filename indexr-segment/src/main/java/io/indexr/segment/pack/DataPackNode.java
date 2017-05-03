@@ -4,181 +4,62 @@ import java.io.IOException;
 
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.io.ByteSlice;
+import io.indexr.segment.SegmentMode;
 
-public class DataPackNode {
-    // If update any fields, remember to keep in sync with SERIALIZED_SIZE.
+public abstract class DataPackNode {
+    protected int objCount;
 
-    private byte packType;
-    private int objCount;
+    protected boolean compress;
 
-    private long packAddr;  // Pack offset in file.
-    private int packSize;   // Size of pack.
+    protected long packAddr;  // Pack offset in file.
+    protected int packSize;   // Size of pack in compressed status.
 
-    // For number type.
-    private byte numType;
-    // Min/max value in uniform value format. Only used in compression.
-    private long uniformMin;
-    private long uniformMax;
+    protected long indexAddr; // Index offset in file.
+    protected int indexSize;  // Size of index.
 
-    // For raw type. Only used in v0.
-    private int maxObjLen;
-
-    private boolean compress;
-
-    private long indexAddr; // Index offset in file.
-    private int indexSize;  // Size of index.
+    protected long extIndexAddr;
+    protected int extIndexSize;
 
     // Min/max value in original value format
-    private long minValue;
-    private long maxValue;
+    protected long minValue;
+    protected long maxValue;
 
-    //// Added on VERSION_6 ////
-
-    private long extIndexAddr;
-    private int extIndexSize;
-
-    // ------------------------------
+    // ======================
 
     // Those not stored.
+    protected final int version;
+    protected final SegmentMode mode;
 
-    private final int version;
-
-
-    public DataPackNode(int version) {
+    public DataPackNode(int version, SegmentMode mode) {
         this.version = version;
-        this.compress = true; // compress by default.
+        this.mode = mode;
     }
 
-    public static int serializedSize(int version) {
-        if (version < Version.VERSION_6_ID) {
-            return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8;
-        } else {
-            return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8 + 8 + 4;
-        }
-    }
+    //public static int serializedSize(int version) {
+    //    if (version < Version.VERSION_6_ID) {
+    //        return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8;
+    //    } else {
+    //        return 1 + 4 + 8 + 4 + 1 + 8 + 8 + 4 + 1 + 8 + 4 + 8 + 8 + 8 + 4;
+    //    }
+    //}
 
-    public static DataPackNode from(int version, ByteSlice buffer) {
-        //Preconditions.checkArgument(buffer.size() == SERIALIZED_SIZE);
+    public int version() { return version; }
 
-        DataPackNode dpn = new DataPackNode(version);
-        int offset = 0;
-        dpn.packType = buffer.get(offset += 0);
-        dpn.objCount = buffer.getInt(offset += 1);
-        dpn.packAddr = buffer.getLong(offset += 4);
-        dpn.packSize = buffer.getInt(offset += 8);
-        dpn.numType = buffer.get(offset += 4);
-        dpn.uniformMin = buffer.getLong(offset += 1);
-        dpn.uniformMax = buffer.getLong(offset += 8);
+    public SegmentMode mode() {return mode;}
 
-        if (version <= Version.VERSION_1_ID) {
-            // It is a very stupid bug exists only before version_1.
-            // The offset after uniformMax should plus 8 not 4.
-            // But lots of data already generated so we have to keep this code.
-            dpn.maxObjLen = buffer.getInt(offset += 4);
-        } else {
-            dpn.maxObjLen = buffer.getInt(offset += 8);
-        }
-
-        dpn.compress = (buffer.get(offset += 4) & 0x01) == 1;
-        dpn.indexAddr = buffer.getLong(offset += 1);
-        dpn.indexSize = buffer.getInt(offset += 8);
-        dpn.minValue = buffer.getLong(offset += 4);
-        dpn.maxValue = buffer.getLong(offset += 8);
-        if (version >= Version.VERSION_6_ID) {
-            dpn.extIndexAddr = buffer.getLong(offset += 8);
-            dpn.extIndexSize = buffer.getInt(offset += 8);
-        }
-        offset += 4;
-
-        if (version <= Version.VERSION_1_ID) {
-            // Try to do some fix.
-            if (dpn.maxValue != 0 && dpn.uniformMax == 0) {
-                dpn.uniformMax = dpn.maxValue;
-            }
-        }
-
-        return dpn;
-    }
-
-    public void write(ByteBufferWriter writer) throws IOException {
-        ByteSlice tmp = ByteSlice.allocateDirect(serializedSize(version));
-        int offset = 0;
-        tmp.put(offset += 0, packType);
-        tmp.putInt(offset += 1, objCount);
-        tmp.putLong(offset += 4, packAddr);
-        tmp.putInt(offset += 8, packSize);
-        tmp.put(offset += 4, numType);
-        tmp.putLong(offset += 1, uniformMin);
-        tmp.putLong(offset += 8, uniformMax);
-        if (version <= Version.VERSION_1_ID) {
-            tmp.putInt(offset += 4, maxObjLen);
-        } else {
-            tmp.putInt(offset += 8, maxObjLen);
-        }
-        tmp.put(offset += 4, (byte) (compress ? 1 : 0));
-        tmp.putLong(offset += 1, indexAddr);
-        tmp.putInt(offset += 8, indexSize);
-        tmp.putLong(offset += 4, minValue);
-        tmp.putLong(offset += 8, maxValue);
-        if (version >= Version.VERSION_6_ID) {
-            tmp.putLong(offset += 8, extIndexAddr);
-            tmp.putInt(offset += 8, extIndexSize);
-        }
-        offset += 4;
-
-        writer.write(tmp.byteBuffer(), serializedSize(version));
-    }
-
-    public DataPackNode clone() {
-        DataPackNode newDPN = new DataPackNode(this.version);
-        newDPN.packType = this.packType;
-        newDPN.objCount = this.objCount;
-        newDPN.packAddr = this.packAddr;
-        newDPN.packSize = this.packSize;
-        newDPN.numType = this.numType;
-        newDPN.uniformMin = this.uniformMin;
-        newDPN.uniformMax = this.uniformMax;
-        newDPN.maxObjLen = this.maxObjLen;
-        newDPN.compress = this.compress;
-        newDPN.indexAddr = this.indexAddr;
-        newDPN.indexSize = this.indexSize;
-        newDPN.minValue = this.minValue;
-        newDPN.maxValue = this.maxValue;
-        newDPN.extIndexAddr = this.extIndexAddr;
-        newDPN.extIndexSize = this.extIndexSize;
-        return newDPN;
-    }
+    public boolean isDictEncoded() {return false;}
 
     // @formatter:off
-
     public boolean isFull() { return objCount() >= DataPack.MAX_COUNT; }
 
     public int objCount() { return objCount; }
-    void setObjCount(int objCount) { this.objCount = objCount; }
-
-    public byte packType() { return packType; }
-    void setPackType(byte packType) { this.packType = packType; }
+    public void setObjCount(int objCount) { this.objCount = objCount; }
 
     public long packAddr() { return packAddr; }
-    void setPackAddr(long packAddr) { this.packAddr = packAddr; }
+    public void setPackAddr(long packAddr) { this.packAddr = packAddr; }
 
     public int packSize() { return packSize; }
-    void setPackSize(int packSize) { this.packSize = packSize; }
-
-    public byte numType() { return numType; }
-    void setNumType(byte numType) { this.numType = numType; }
-
-    public long uniformMin() { return uniformMin; }
-    void setUniformMin(long val) {  this.uniformMin = val; }
-
-    public long uniformMax() { return uniformMax; }
-    void setUniformMax(long val) { this.uniformMax = val; }
-
-    public int maxObjLen() { return maxObjLen; }
-    void setMaxObjLen(int val) { maxObjLen = val; }
-
-    public boolean compress() { return compress; }
-    void setCompress(boolean v){ compress = v; }
+    public void setPackSize(int packSize) { this.packSize = packSize; }
 
     public int indexSize() { return indexSize; }
     public void setIndexSize(int indexSize) { this.indexSize = indexSize; }
@@ -186,40 +67,29 @@ public class DataPackNode {
     public long indexAddr() { return indexAddr; }
     public void setIndexAddr(long indexAddr) { this.indexAddr = indexAddr; }
 
+    public int extIndexSize() { return extIndexSize; }
+    public void setExtIndexSize(int size) { this.extIndexSize = size; }
+
+    public long extIndexAddr() { return extIndexAddr; }
+    public void setExtIndexAddr(long addr) { this.extIndexAddr = addr; }
+
     public long minValue() { return minValue; }
     public void setMinValue(long minValue) { this.minValue = minValue; }
 
     public long maxValue() { return maxValue; }
     public void setMaxValue(long maxValue) { this.maxValue = maxValue; }
 
-    public int version() { return version; }
+    public boolean compress() { return compress; }
 
-    public int extIndexSize() { return extIndexSize; }
-    public void setExtIndexSize(int size) { this.extIndexSize = size; }
-
-    public long extIndexAddr() { return extIndexAddr; }
-    public void setExtIndexAddr(long addr) { this.extIndexAddr = addr; }
     // @formatter:on
 
-    @Override
-    public String toString() {
-        return "DataPackNode{" +
-                "packType=" + packType +
-                ", objCount=" + objCount +
-                ", packAddr=" + packAddr +
-                ", packSize=" + packSize +
-                ", numType=" + numType +
-                ", uniformMin=" + uniformMin +
-                ", uniformMax=" + uniformMax +
-                ", maxObjLen=" + maxObjLen +
-                ", compress=" + compress +
-                ", indexAddr=" + indexAddr +
-                ", indexSize=" + indexSize +
-                ", minValue=" + minValue +
-                ", maxValue=" + maxValue +
-                ", extIndexAddr=" + extIndexAddr +
-                ", extIndexSize=" + extIndexSize +
-                ", version=" + version +
-                '}';
+    public abstract DataPackNode clone();
+
+    public abstract void write(ByteBufferWriter writer) throws IOException;
+
+    public static interface Factory {
+        DataPackNode create(int version, SegmentMode mode);
+
+        DataPackNode create(int version, SegmentMode mode, ByteSlice buffer);
     }
 }

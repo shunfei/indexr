@@ -22,7 +22,6 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,9 +35,13 @@ import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
+import io.indexr.segment.rt.AggSchema;
+import io.indexr.segment.rt.Metric;
+import io.indexr.segment.rt.RealtimeHelper;
 import io.indexr.server.SegmentHelper;
 import io.indexr.util.IOUtil;
 import io.indexr.util.JsonUtil;
+import io.indexr.util.Trick;
 import io.indexr.util.Try;
 
 /**
@@ -105,17 +108,34 @@ public class Rt2HisOnHive {
             SegmentSchema schema = getSchema(createTable);
             Map<String, String> properties = getTableProperties(createTable);
             SegmentMode mode = SegmentMode.fromName(properties.get(HiveHelper.KEY_SEGMENT_MODE));
+
             String sortColumnsStr = properties.getOrDefault(HiveHelper.KEY_SORT_COLUMNS, "");
-            List<String> sortColumns = new ArrayList<>();
-            for (String s : sortColumnsStr.trim().split(",")) {
-                sortColumns.add(s.trim());
+            String aggGroupingStr = properties.getOrDefault(HiveHelper.KEY_AGG_GROUPING, "false");
+            String aggDimsStr = properties.getOrDefault(HiveHelper.KEY_AGG_DIMS, "");
+            String aggMetricsStr = properties.getOrDefault(HiveHelper.KEY_AGG_METRICS, "");
+
+            boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim().toLowerCase());
+            List<String> sortColumns = Trick.split(sortColumnsStr, ",", s -> s.trim().toLowerCase());
+            List<String> dims = Trick.split(aggDimsStr, ",", s -> s.trim().toLowerCase());
+            if (dims.isEmpty()) {
+                dims = sortColumns;
             }
+            List<Metric> metrics = Trick.split(aggMetricsStr, ",", s -> {
+                String[] ss = s.trim().split(":", 2);
+                return new Metric(ss[0].trim().toLowerCase(), ss[1].trim().toLowerCase());
+            });
+            AggSchema aggSchema = new AggSchema(
+                    grouping,
+                    dims,
+                    metrics);
+            String error = RealtimeHelper.validateSetting(schema.columns, dims, metrics, grouping);
+            Preconditions.checkState(error == null, error);
 
             logger.debug("tableLocation: {}", tableLocation);
             logger.debug("tablePartitionColumn: {}", tablePartitionColumn);
             logger.debug("schema: {}", schema);
             logger.debug("mode: {}", mode);
-            logger.debug("sortColumns: {}", sortColumns);
+            logger.debug("aggSchema: {}", aggSchema);
             logger.debug("properties: {}", JsonUtil.toJson(properties));
 
             rtTableName = String.format(
@@ -129,7 +149,7 @@ public class Rt2HisOnHive {
                     time,
                     RandomStringUtils.randomAlphabetic(16));
 
-            return move(connection, schema, mode, sortColumns, tableLocation, tablePartitionColumn, rtTableName, segTmpTableName);
+            return move(connection, schema, mode, aggSchema, tableLocation, tablePartitionColumn, rtTableName, segTmpTableName);
         } catch (Exception e) {
             logger.error("", e);
             return false;
@@ -167,7 +187,7 @@ public class Rt2HisOnHive {
     private boolean move(Connection connection,
                          SegmentSchema schema,
                          SegmentMode mode,
-                         List<String> sortColumns,
+                         AggSchema aggSchema,
                          String tableLocation,
                          String tablePartitionColumn,
                          String rtTableName,
@@ -189,8 +209,8 @@ public class Rt2HisOnHive {
         }
 
         String rt2hisPath = tableLocation + "/rt2his";
-        createTable(connection, rtTableName, true, schema, mode, Collections.emptyList(), rt2hisPath, null);
-        createTable(connection, segTmpTableName, false, schema, mode, sortColumns, null, tablePartitionColumn);
+        createTable(connection, rtTableName, true, schema, mode, aggSchema, rt2hisPath, null);
+        createTable(connection, segTmpTableName, false, schema, mode, aggSchema, null, tablePartitionColumn);
         String segTmpTableLocation = getHiveTableLocation(getHiveTableCreateSql(connection, segTmpTableName));
 
         // Move segments in /rt into /rt2his folder.
@@ -408,7 +428,7 @@ public class Rt2HisOnHive {
                                     boolean external,
                                     SegmentSchema schema,
                                     SegmentMode mode,
-                                    List<String> sortColumns,
+                                    AggSchema aggSchema,
                                     String location,
                                     String partitionColumn) throws Exception {
         try (Statement statement = connection.createStatement()) {
@@ -417,7 +437,7 @@ public class Rt2HisOnHive {
                     external,
                     schema,
                     mode,
-                    sortColumns,
+                    aggSchema,
                     location,
                     partitionColumn);
             logger.debug("create table:\n{}", createTableSql);

@@ -2,12 +2,14 @@ package io.indexr.util;
 
 import org.apache.spark.unsafe.array.ByteArrayMethods;
 
+import java.util.Comparator;
+
 import static org.apache.spark.unsafe.Platform.BYTE_ARRAY_OFFSET;
 
 /**
  * A bytes wrapper mainly used to correctly compare contents of two byte lists.
  */
-public class ByteArrayWrapper {
+public class ByteArrayWrapper implements Comparable<ByteArrayWrapper> {
     private static final Hasher32 HASHER = new Hasher32(0);
 
     private Object base;
@@ -70,4 +72,19 @@ public class ByteArrayWrapper {
     public int hashCode() {
         return hashCode;
     }
+
+    @Override
+    public int compareTo(ByteArrayWrapper o) {
+        return BytesUtil.compareBytes(base, offset, len, o.base, o.offset, o.len);
+    }
+
+    public static Comparator<ByteArrayWrapper> comparator() {
+        return new Comparator<ByteArrayWrapper>() {
+            @Override
+            public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
+                return o1.compareTo(o2);
+            }
+        };
+    }
+
 }

@@ -5,7 +5,6 @@ import com.google.common.base.Preconditions;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -24,15 +23,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import io.indexr.plugin.Plugins;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.helper.SimpleRow;
-import io.indexr.segment.pack.DPSegment;
 import io.indexr.segment.pack.DataPack;
-import io.indexr.segment.pack.OpenOption;
-import io.indexr.segment.pack.SortedSegmentGenerator;
-import io.indexr.segment.pack.Version;
+import io.indexr.segment.storage.DPSegment;
+import io.indexr.segment.storage.OpenOption;
+import io.indexr.segment.storage.SortedSegmentGenerator;
+import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.Version;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
 import io.indexr.server.TableSchema;
@@ -40,9 +41,11 @@ import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.util.IOUtil;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
+import io.indexr.util.Strings;
+import io.indexr.util.Trick;
 
 /**
- * TODO handle the case when row number is larger then {@link io.indexr.segment.pack.StorageSegment#MAX_ROW_COUNT}.
+ * TODO handle the case when row number is larger then {@link StorageSegment#MAX_ROW_COUNT}.
  */
 public class CSVSegmentLoader {
     private final TableSchema schema;
@@ -91,7 +94,7 @@ public class CSVSegmentLoader {
             columnSchemas[colId] = cs;
         }
 
-        if (schema.sortColumns.isEmpty()) {
+        if (Trick.isEmpty(schema.aggSchema.dims)) {
             DPSegment segment = DPSegment.open(
                     Version.LATEST_ID,
                     schema.mode,
@@ -118,7 +121,9 @@ public class CSVSegmentLoader {
                     outPath,
                     name,
                     schema.schema,
-                    schema.sortColumns,
+                    schema.aggSchema.grouping,
+                    schema.aggSchema.dims,
+                    schema.aggSchema.metrics,
                     DataPack.MAX_COUNT * 10
             );
             this.segmentGen = new SegmentGen() {
@@ -207,7 +212,7 @@ public class CSVSegmentLoader {
         String spliter = ",";
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         MyOptions options = new MyOptions();
         CmdLineParser parser = RuntimeUtil.parseArgs(args, options);
         if (options.help) {
@@ -219,6 +224,7 @@ public class CSVSegmentLoader {
             System.out.println("Please specify output path by -s");
         }
 
+        Plugins.loadPlugins();
         Path tmpPath = Paths.get(options.tmpPath);
         IndexRConfig config = new IndexRConfig();
         int exitCode = 0;

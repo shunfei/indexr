@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.indexr.segment.SegmentUploader;
-import io.indexr.segment.pack.Version;
+import io.indexr.segment.storage.Version;
 import io.indexr.util.DelayRepeatTask;
 import io.indexr.util.Trick;
 import io.indexr.util.Try;
@@ -355,7 +355,7 @@ public class RealtimeTable implements Closeable {
             }
         }
         if (count >= WarnRTSGroupSize) {
-            logger.warn("Too many rts groups! [table: {}, rtsg count: {}]", tableName, count);
+            logger.warn("Too many rts groups! [table: {}, rtsg valueCount: {}]", tableName, count);
         }
     }
 

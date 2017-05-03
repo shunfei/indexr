@@ -1,5 +1,6 @@
 package io.indexr.server.rt;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -7,10 +8,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import io.indexr.segment.SegmentMode;
+import io.indexr.segment.rt.AggSchema;
 import io.indexr.segment.rt.EventIgnoreStrategy;
 import io.indexr.segment.rt.Fetcher;
 import io.indexr.segment.rt.Metric;
@@ -43,60 +46,80 @@ public class RealtimeConfig {
 
     public static void loadSubtypes() {}
 
-    @JsonProperty("dims")
-    public List<String> dims;
-    @JsonProperty("metrics")
-    public List<Metric> metrics;
+    @JsonIgnore
+    public AggSchema aggSchema;
     @JsonProperty("name.alias")
-    public Map<String, String> nameToAlias;
+    public final Map<String, String> nameToAlias;
     @JsonProperty("tag.setting")
     public final TagSetting tagSetting;
     @JsonProperty("ignoreStrategy")
     public final EventIgnoreStrategy ignoreStrategy;
-    @JsonProperty("grouping")
-    public boolean grouping;
     @JsonProperty("save.period.minutes")
-    public long savePeriodMinutes;
+    public final long savePeriodMinutes;
     @JsonProperty("upload.period.minutes")
-    public long uploadPeriodMinutes;
+    public final long uploadPeriodMinutes;
     @JsonProperty("max.row.memory")
-    public int maxRowInMemory;
+    public final int maxRowInMemory;
     @JsonProperty("max.row.realtime")
-    public long maxRowInRealtime;
+    public final long maxRowInRealtime;
     @JsonProperty("ingest")
-    public boolean ingest;
+    public final boolean ingest;
     @JsonProperty("mode")
-    public SegmentMode mode;
+    public final String modeName;
+    @JsonIgnore
+    public final SegmentMode mode;
     @JsonProperty("fetcher")
-    public Fetcher fetcher;
+    public final Fetcher fetcher;
 
-    public RealtimeConfig(@JsonProperty("dims") List<String> dims,
+    public RealtimeConfig(@JsonProperty("grouping") Boolean grouping,
+                          @JsonProperty("dims") List<String> dims,
                           @JsonProperty("metrics") List<Metric> metrics,
                           @JsonProperty("name.alias") Map<String, String> nameToAlias,
                           @JsonProperty("tag.setting") TagSetting tagSetting,
                           @JsonProperty("ignoreStrategy") String ignoreStrategy,
-                          @JsonProperty("grouping") Boolean grouping,
                           @JsonProperty("save.period.minutes") Long savePeriodMinutes,
                           @JsonProperty("upload.period.minutes") Long uploadPeriodMinutes,
                           @JsonProperty("max.row.memory") Integer maxRowInMemory,
                           @JsonProperty("max.row.realtime") Long maxRowInRealtime,
                           @JsonProperty("ingest") Boolean ingest,
                           @JsonProperty("compress") Boolean compress,
-                          @JsonProperty("mode") String mode,
+                          @JsonProperty("mode") String modeName,
                           @JsonProperty("fetcher") Fetcher fetcher) {
-        this.dims = dims;
-        this.metrics = metrics;
-        this.nameToAlias = nameToAlias;
+        this.aggSchema = new AggSchema(grouping != null && grouping, dims, metrics);
+        //this.grouping = grouping == null ? false : grouping;
+        //if (dims == null) {
+        //    this.dims = null;
+        //} else {
+        //    this.dims = dims.stream().map(String::toLowerCase).collect(Collectors.toList());
+        //}
+        //if (metrics == null) {
+        //    this.metrics = null;
+        //} else {
+        //    this.metrics = metrics.stream().map(m -> new Metric(m.name.toLowerCase(), m.aggName().toLowerCase())).collect(Collectors.toList());
+        //}
+
+        if (nameToAlias == null) {
+            this.nameToAlias = null;
+        } else {
+            this.nameToAlias = new HashMap<>();
+            for (Map.Entry<String, String> e : nameToAlias.entrySet()) {
+                this.nameToAlias.put(e.getKey().toLowerCase(), e.getValue());
+            }
+        }
         this.tagSetting = tagSetting;
         this.ignoreStrategy = EventIgnoreStrategy.fromName(ignoreStrategy);
-        this.grouping = grouping == null ? false : grouping;
         this.savePeriodMinutes = savePeriodMinutes == null ? 20 : savePeriodMinutes;
         this.uploadPeriodMinutes = uploadPeriodMinutes == null ? 60 : uploadPeriodMinutes;
         this.maxRowInMemory = maxRowInMemory == null ? 500000 : maxRowInMemory;
         this.maxRowInRealtime = maxRowInRealtime == null ? 10000000 : maxRowInRealtime;
         this.ingest = ingest == null ? true : ingest;
-        this.mode = SegmentMode.fromNameWithCompress(mode, compress);
+        this.mode = SegmentMode.fromNameWithCompress(modeName, compress);
+        this.modeName = this.mode.name();
         this.fetcher = fetcher;
+    }
+
+    public void setAggSchema(AggSchema aggSchema) {
+        this.aggSchema = aggSchema;
     }
 
     @Override
@@ -106,22 +129,21 @@ public class RealtimeConfig {
 
         RealtimeConfig that = (RealtimeConfig) o;
 
-        if (grouping != that.grouping) return false;
         if (savePeriodMinutes != that.savePeriodMinutes) return false;
         if (uploadPeriodMinutes != that.uploadPeriodMinutes) return false;
         if (maxRowInMemory != that.maxRowInMemory) return false;
         if (maxRowInRealtime != that.maxRowInRealtime) return false;
         if (ingest != that.ingest) return false;
-        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
-        if (dims != null ? !dims.equals(that.dims) : that.dims != null) return false;
-        if (metrics != null ? !metrics.equals(that.metrics) : that.metrics != null) return false;
+        if (aggSchema != null ? !aggSchema.equals(that.aggSchema) : that.aggSchema != null)
+            return false;
         if (nameToAlias != null ? !nameToAlias.equals(that.nameToAlias) : that.nameToAlias != null)
             return false;
         if (tagSetting != null ? !tagSetting.equals(that.tagSetting) : that.tagSetting != null)
             return false;
-        if (ignoreStrategy != null ? !ignoreStrategy.equals(that.ignoreStrategy) : that.ignoreStrategy != null)
+        if (ignoreStrategy != that.ignoreStrategy) return false;
+        if (modeName != null ? !modeName.equals(that.modeName) : that.modeName != null)
             return false;
+        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
         return fetcher != null ? fetcher.equals(that.fetcher) : that.fetcher == null;
-
     }
 }

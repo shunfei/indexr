@@ -17,15 +17,15 @@ import io.indexr.util.UTF8Util;
 
 public class UTF8RowTest {
     static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", SQLType.INT),
-            new ColumnSchema("c1", SQLType.BIGINT, "456"),
-            new ColumnSchema("c2", SQLType.FLOAT, "3.14"),
-            new ColumnSchema("c3", SQLType.DOUBLE),
-            new ColumnSchema("c4", SQLType.VARCHAR, "c4_default"),
-            new ColumnSchema("c5", SQLType.INT),
-            new ColumnSchema("c6", SQLType.DATE),
-            new ColumnSchema("c7", SQLType.TIME),
-            new ColumnSchema("c8", SQLType.DATETIME)
+            new ColumnSchema("c0", SQLType.INT, false),
+            new ColumnSchema("c1", SQLType.BIGINT, false, "456"),
+            new ColumnSchema("c2", SQLType.FLOAT, false, "3.14"),
+            new ColumnSchema("c3", SQLType.DOUBLE, false),
+            new ColumnSchema("c4", SQLType.VARCHAR, false, "c4_default"),
+            new ColumnSchema("c5", SQLType.INT, false),
+            new ColumnSchema("c6", SQLType.DATE, false),
+            new ColumnSchema("c7", SQLType.TIME, false),
+            new ColumnSchema("c8", SQLType.DATETIME, false)
     );
     static List<String> dims = Arrays.asList("c1", "c4", "c6", "c7");
     static List<Metric> metrics = Arrays.asList(

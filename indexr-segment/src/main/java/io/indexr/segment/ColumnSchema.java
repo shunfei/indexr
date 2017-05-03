@@ -13,8 +13,8 @@ public class ColumnSchema {
     public final String name;
     @JsonIgnore
     public final SQLType sqlType;
-
-    // Those fields below only used by realtime ingestion.
+    @JsonIgnore
+    public final boolean isIndexed;
     @JsonIgnore
     public final long defaultNumberValue;
     @JsonIgnore
@@ -23,20 +23,28 @@ public class ColumnSchema {
     @JsonCreator
     public ColumnSchema(@JsonProperty("name") String name,
                         @JsonProperty("dataType") String sqlTypeName,
+                        @JsonProperty("index") Boolean isIndexed,
                         @JsonProperty("default") String defaultValue) {
-        this(name, SQLType.fromName(sqlTypeName), defaultValue);
+        this(name, SQLType.fromName(sqlTypeName), isIndexed != null ? isIndexed : false, defaultValue);
     }
 
-    public ColumnSchema(String name,
-                        SQLType sqlType) {
-        this(name, sqlType, "");
+    public ColumnSchema(String name, SQLType sqlType) {
+        this(name, sqlType, false);
     }
 
     public ColumnSchema(String name,
                         SQLType sqlType,
+                        boolean isIndexed) {
+        this(name, sqlType, isIndexed, "");
+    }
+
+    public ColumnSchema(String name,
+                        SQLType sqlType,
+                        boolean isIndexed,
                         String defaultValue) {
-        this.name = name.intern();
+        this.name = name.toLowerCase().intern();
         this.sqlType = sqlType;
+        this.isIndexed = isIndexed;
         this.defaultStringValue = defaultValue == null ? "" : defaultValue.intern();
         this.defaultNumberValue = sqlType.isNumber() ? SQLType.parseNumber(sqlType, defaultValue) : 0;
     }
@@ -71,6 +79,11 @@ public class ColumnSchema {
         return defaultNumberValue;
     }
 
+    @JsonProperty("index")
+    public boolean isIndexed() {
+        return isIndexed;
+    }
+
     @Override
     public String toString() {
         return JsonUtil.toJson(this);
@@ -87,5 +100,9 @@ public class ColumnSchema {
         ColumnSchema otherCS = (ColumnSchema) other;
         return StringUtils.equals(name, otherCS.name)
                 && sqlType == otherCS.sqlType;
+    }
+
+    public ColumnSchema withName(String name) {
+        return new ColumnSchema(name, this.sqlType, this.isIndexed, this.defaultStringValue);
     }
 }

@@ -14,7 +14,7 @@ import io.indexr.data.LongSetter;
  */
 public interface DPValues {
 
-    int count();
+    int valueCount();
 
     default long uniformValAt(int index, byte type) {
         switch (type) {

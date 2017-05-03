@@ -3,7 +3,6 @@ package io.indexr.hive;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.IOConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Properties;
 
 import io.indexr.segment.ColumnSchema;
+import io.indexr.util.Strings;
 
 public class IndexRSerde extends AbstractSerDe {
     private static final Log LOG = LogFactory.getLog(IndexRSerde.class);
@@ -181,7 +181,9 @@ public class IndexRSerde extends AbstractSerDe {
             int mapColId = -1;
             for (int colId = 0; colId < columnSchemas.length; colId++) {
                 ColumnSchema cs = columnSchemas[colId];
-                if (cs.getName().equalsIgnoreCase(name)) {
+                if (cs == null) {
+                    break;
+                } else if (cs.getName().equalsIgnoreCase(name)) {
                     mapColId = colId;
                     break;
                 }

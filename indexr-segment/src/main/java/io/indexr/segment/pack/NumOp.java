@@ -7,6 +7,7 @@ import io.indexr.io.ByteSlice;
 import io.indexr.util.MemoryUtil;
 
 public class NumOp {
+
     public static int getInt(long addr, int index) {
         return MemoryUtil.getInt(addr + (index << 2));
     }
@@ -20,7 +21,7 @@ public class NumOp {
     }
 
     public static double getDouble(long addr, int index) {
-        return MemoryUtil.getDoube(addr + (index << 3));
+        return MemoryUtil.getDouble(addr + (index << 3));
     }
 
     public static void putInt(long addr, int index, int v) {
@@ -56,7 +57,7 @@ public class NumOp {
         }
     }
 
-    public static ByteSlice compress(byte type, ByteSlice data, int itemSize, long minVal, long maxVal) {
+    public static ByteSlice bhcompress(byte type, ByteSlice data, int itemSize, long minVal, long maxVal) {
         switch (type) {
             case NumType.NZero:
                 return ByteSlice.empty();
@@ -73,7 +74,7 @@ public class NumOp {
         }
     }
 
-    public static ByteSlice decompress(byte type, ByteSlice cmpData, int itemSize, long minVal, long maxVal) {
+    public static ByteSlice bhdecompress(byte type, ByteSlice cmpData, int itemSize, long minVal, long maxVal) {
         switch (type) {
             case NumType.NZero:
                 return ByteSlice.empty();

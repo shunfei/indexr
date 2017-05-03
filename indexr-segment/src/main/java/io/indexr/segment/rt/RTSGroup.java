@@ -3,10 +3,10 @@ package io.indexr.segment.rt;
 import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.directory.api.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,16 +33,17 @@ import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.SegmentUploader;
-import io.indexr.segment.pack.ColumnNode;
-import io.indexr.segment.pack.ExtIndexMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.IntegratedSegment;
-import io.indexr.segment.pack.PackMemCache;
-import io.indexr.segment.pack.StorageSegment;
-import io.indexr.segment.pack.Version;
+import io.indexr.segment.cache.ExtIndexMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackMemCache;
+import io.indexr.segment.storage.ColumnNode;
+import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.Version;
+import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.util.DelayTask;
 import io.indexr.util.IOUtil;
 import io.indexr.util.JsonUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 public class RTSGroup implements InfoSegment, SegmentFd {
@@ -150,6 +151,8 @@ public class RTSGroup implements InfoSegment, SegmentFd {
         @JsonProperty("grouping")
         public final boolean grouping;
         @JsonProperty("mode")
+        public final String modeName;
+        @JsonIgnore
         public final SegmentMode mode;
 
         @JsonCreator
@@ -162,7 +165,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                         @JsonProperty("nameToAlias") Map<String, String> nameToAlias,
                         @JsonProperty("grouping") boolean grouping,
                         @JsonProperty("compress") Boolean compress,
-                        @JsonProperty("mode") String mode) {
+                        @JsonProperty("mode") String modeName) {
             this.version = version;
             this.name = name;
             this.schema = schema;
@@ -171,12 +174,13 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             this.metrics = metrics;
             this.nameToAlias = nameToAlias;
             this.grouping = grouping;
-            this.mode = SegmentMode.fromNameWithCompress(mode, compress);
+            this.mode = SegmentMode.fromNameWithCompress(modeName, compress);
+            this.modeName = this.mode.name();
         }
     }
 
     public static RTSGroup open(Path path, String tableName) throws IOException {
-        return open(path, tableName, null, null, null, null, null, false, SegmentMode.DEFAULT);
+        return open(path, tableName, null, null, null, null, null, false, null);
     }
 
     public static RTSGroup open(Path path,
@@ -215,7 +219,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                         metrics,
                         nameToAlias,
                         grouping,
-                        mode.compress,
+                        null,
                         mode.name()
                 );
                 JsonUtil.save(path.resolve("metadata.json"), metadata);
@@ -249,10 +253,6 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             default:
                 return null;
         }
-    }
-
-    public int version() {
-        return metadata.version;
     }
 
     public List<String> dims() {
@@ -687,6 +687,15 @@ public class RTSGroup implements InfoSegment, SegmentFd {
     // Segment interface implementation
     // ============================================
 
+    @Override
+    public int version() {
+        return metadata.version;
+    }
+
+    @Override
+    public SegmentMode mode() {
+        return metadata.mode;
+    }
 
     @Override
     public boolean isRealtime() {
@@ -711,7 +720,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
 
     @Override
     public long rowCount() {
-        // We always get row count from sub rts, as the merge segment could be less than sum of
+        // We always get row valueCount from sub rts, as the merge segment could be less than sum of
         // sub rts because of grouping.
         long rowCount = 0;
         for (RealtimeSegment rts : segments.values()) {
@@ -748,6 +757,16 @@ public class RTSGroup implements InfoSegment, SegmentFd {
                     indexMemCache,
                     packMemCache);
             SegmentFdRowIterator rt;
+
+            @Override
+            public int version() {
+                return metadata.version;
+            }
+
+            @Override
+            public SegmentMode mode() {
+                return metadata.mode;
+            }
 
             @Override
             public String name() {

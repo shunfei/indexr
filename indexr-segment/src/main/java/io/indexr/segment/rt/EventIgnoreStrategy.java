@@ -2,7 +2,7 @@ package io.indexr.segment.rt;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.apache.directory.api.util.Strings;
+import io.indexr.util.Strings;
 
 public enum EventIgnoreStrategy {
     @JsonProperty("no_ignore")

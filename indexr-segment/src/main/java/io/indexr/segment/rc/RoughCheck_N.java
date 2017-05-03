@@ -6,8 +6,8 @@ import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.RSIndexNum;
 import io.indexr.segment.RSValue;
-import io.indexr.segment.pack.ColumnNode;
 import io.indexr.segment.pack.DataPackNode;
+import io.indexr.segment.storage.ColumnNode;
 
 import static io.indexr.segment.RSValue.All;
 import static io.indexr.segment.RSValue.None;

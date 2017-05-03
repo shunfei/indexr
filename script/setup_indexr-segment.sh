@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 SCRIPT_DIR=$(cd $(dirname $0);echo $PWD)
 cd ${SCRIPT_DIR}/..
-ROOTDIR=$(echo $PWD)
-source ${ROOTDIR}/script/env.sh
+ROOT_DIR=$(echo $PWD)
+source ${ROOT_DIR}/script/env.sh
 
-cd ${ROOTDIR}/indexr-segment
+cd ${ROOT_DIR}/indexr-segment
 mvn jnaerator:generate

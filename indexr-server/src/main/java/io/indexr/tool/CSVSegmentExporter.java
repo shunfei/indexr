@@ -24,12 +24,14 @@ import java.util.Iterator;
 import java.util.List;
 
 import io.indexr.io.ByteBufferReader;
+import io.indexr.plugin.Plugins;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.Integrated;
-import io.indexr.segment.pack.IntegratedSegment;
+import io.indexr.segment.storage.itg.Integrate;
+import io.indexr.segment.storage.itg.IntegratedSegment;
+import io.indexr.segment.storage.itg.SegmentMeta;
 import io.indexr.util.RuntimeUtil;
 
 public class CSVSegmentExporter {
@@ -152,6 +154,7 @@ public class CSVSegmentExporter {
         }
 
         URI uri = URI.create(options.segmentPath);
+        Plugins.loadPlugins();
         Configuration fsConfig = new Configuration();
         fsConfig.set("fs.hdfs.impl", DistributedFileSystem.class.getName());
         org.apache.hadoop.fs.FileSystem fileSystem = org.apache.hadoop.fs.FileSystem.get(uri, fsConfig);
@@ -163,9 +166,9 @@ public class CSVSegmentExporter {
                 fileSystem,
                 segmentPath,
                 fileStatus.getLen());
-        Integrated.SectionInfo sectionInfo = null;
+        SegmentMeta sectionInfo = null;
         try (ByteBufferReader reader = readerOpener.open(0)) {
-            sectionInfo = Integrated.read(reader);
+            sectionInfo = Integrate.INSTANCE.read(reader);
             if (sectionInfo == null) {
                 // Not a segment.
                 System.err.printf("[%s] is not a valid segment", options.segmentPath);

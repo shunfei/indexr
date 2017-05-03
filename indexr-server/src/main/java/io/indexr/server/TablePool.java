@@ -112,10 +112,10 @@ public class TablePool extends ZkTableManager implements Closeable {
 
         for (String name : names) {
             if (!tables.containsKey(name)) {
-                HybridTable table = Try.on(() -> loadTable(name), 1, logger, "Load table failed");
+                HybridTable table = Try.on(() -> loadTable(name), 1, logger, "Load table [" + name + "] failed");
                 if (table == null) {
                     logger.error("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-                    logger.error("Load table failed, system in inconsistent state");
+                    logger.error("Load table [{}] failed, system in inconsistent state", name);
                     logger.error(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
                     continue;
                 }

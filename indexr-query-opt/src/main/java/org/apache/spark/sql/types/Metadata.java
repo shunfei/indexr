@@ -29,14 +29,13 @@ import io.indexr.util.JsonUtil;
 
 /**
  * :: DeveloperApi ::
- * 
+ *
  * Metadata is a wrapper over Map[STRING, Any] that limits the value type to simple ones: Boolean,
  * LONG, DOUBLE, STRING, Metadata, Array[Boolean], Array[LONG], Array[DOUBLE], Array[STRING], and
  * Array[Metadata]. JSON is used for serialization.
- * 
+ *
  * The default constructor is private. User should use either [[MetadataBuilder]] or
  * [[Metadata.fromJson()]] to create Metadata instances.
- *
  */
 public class Metadata {
     @JsonUnwrapped

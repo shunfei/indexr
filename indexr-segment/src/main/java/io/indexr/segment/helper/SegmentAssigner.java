@@ -2,7 +2,6 @@ package io.indexr.segment.helper;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.directory.api.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,21 +16,22 @@ import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentPool;
 import io.indexr.segment.SystemConfig;
+import io.indexr.segment.cache.ExtIndexMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackMemCache;
 import io.indexr.segment.pack.DataPack;
-import io.indexr.segment.pack.ExtIndexMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.PackMemCache;
 import io.indexr.segment.rc.RCOperator;
 import io.indexr.segment.rt.RTSGroup;
 import io.indexr.segment.rt.RTSGroupInfo;
 import io.indexr.segment.rt.RealtimeSegment;
+import io.indexr.util.Strings;
 
 public class SegmentAssigner {
     private static final int packSplit = 8;
     private static final long chunkRowCount = DataPack.MAX_COUNT / packSplit;
     private static final Logger log = LoggerFactory.getLogger(SegmentAssigner.class);
 
-    // not columned < columned, bigger row count < less row count.
+    // not columned < columned, bigger row valueCount < less row valueCount.
     private static Comparator<Segment> segmentCmp = new Comparator<Segment>() {
         @Override
         public int compare(Segment s1, Segment s2) {
@@ -71,7 +71,7 @@ public class SegmentAssigner {
 
         works = RangeWork.compact(works);
 
-        // approximate count.
+        // approximate valueCount.
         long totalRowCount = 0;
         long validRowCount = 0;
 

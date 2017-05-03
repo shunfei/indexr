@@ -18,18 +18,18 @@ import io.indexr.util.IOUtil;
 public interface ByteBufferReader extends Closeable {
     /**
      * Read exactly <i>size</i>s bytes from this ByteBufferReader from <i>offset</i> position into <i>dst</i>.
-     * 
+     *
      * Whether this function may or may not change the position of datasource is implementation specific.
      */
-    void read(long offset, ByteBuffer dst, int size) throws IOException;
+    void read(long offset, ByteBuffer dst) throws IOException;
 
     /**
      * Read exactly <i>size</i>s bytes.
-     * Normally used to fetch small info data. Slower than {@link #read(long, ByteBuffer, int)} is expected.
+     * Normally used to fetch small info data. Slower than {@link #read(long, ByteBuffer)} is expected.
      */
     default byte[] read(long offset, int size) throws IOException {
         ByteBuffer buffer = ByteBufferUtil.allocateHeap(size);
-        read(offset, buffer, size);
+        read(offset, buffer);
         return buffer.array();
     }
 
@@ -87,6 +87,7 @@ public interface ByteBufferReader extends Closeable {
                 FSDataInputStream stream = fileSystem.open(path);
                 ByteBufferReader bbr = ByteBufferReader.of(stream, status.getLen(), b, stream);
                 bbr.setName(path.toString());
+
                 return bbr;
             };
         }
@@ -96,6 +97,7 @@ public interface ByteBufferReader extends Closeable {
                 FSDataInputStream stream = fileSystem.open(path);
                 ByteBufferReader bbr = ByteBufferReader.of(stream, size, b, stream);
                 bbr.setName(path.toString());
+
                 return bbr;
             };
         }
@@ -104,8 +106,8 @@ public interface ByteBufferReader extends Closeable {
     public static ByteBufferReader of(ByteBufferReader reader, long readBase, Closeable close) throws IOException {
         return new ByteBufferReader() {
             @Override
-            public void read(long offset, ByteBuffer dst, int size) throws IOException {
-                reader.read(readBase + offset, dst, size);
+            public void read(long offset, ByteBuffer dst) throws IOException {
+                reader.read(readBase + offset, dst);
             }
 
             @Override
@@ -132,9 +134,9 @@ public interface ByteBufferReader extends Closeable {
             String name;
 
             @Override
-            public void read(long offset, ByteBuffer dst, int size) throws IOException {
+            public void read(long offset, ByteBuffer dst) throws IOException {
                 try {
-                    IOUtil.readFully(input, readBase + offset, dst, size);
+                    IOUtil.readFully(input, readBase + offset, dst);
                 } catch (Exception e) {
                     throw new IOException(String.format("name: %s", name), e);
                 }
@@ -175,9 +177,9 @@ public interface ByteBufferReader extends Closeable {
             String name;
 
             @Override
-            public void read(long offset, ByteBuffer dst, int size) throws IOException {
+            public void read(long offset, ByteBuffer dst) throws IOException {
                 try {
-                    IOUtil.readFully(file, readBase + offset, dst, size);
+                    IOUtil.readFully(file, readBase + offset, dst);
                 } catch (Exception e) {
                     throw new IOException(String.format("name: %s", name), e);
                 }
@@ -205,8 +207,8 @@ public interface ByteBufferReader extends Closeable {
     public static ByteBufferReader of(ByteBuffer buffer, int readBase, Closeable close) throws IOException {
         return new ByteBufferReader() {
             @Override
-            public void read(long offset, ByteBuffer dst, int size) throws IOException {
-                IOUtil.readFully(buffer, (int) (readBase + offset), dst, size);
+            public void read(long offset, ByteBuffer dst) throws IOException {
+                IOUtil.readFully(buffer, (int) (readBase + offset), dst, dst.remaining());
             }
 
             @Override

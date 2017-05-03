@@ -6,17 +6,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
-import java.util.BitSet;
 
 import io.indexr.data.LikePattern;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.ColumnNode;
-import io.indexr.segment.pack.DataPack;
-import io.indexr.util.SQLLike;
+import io.indexr.segment.storage.ColumnNode;
+import io.indexr.util.BitMap;
 
 public class Like extends ColCmpVal {
     private LikePattern pattern;
@@ -75,50 +74,9 @@ public class Like extends ColCmpVal {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
         Column column = segment.column(attr.columnId());
-        DataPack pack = column.pack(packId);
-        byte type = attr.dataType();
-        int rowCount = pack.objCount();
-        int hitCount = 0;
-        switch (type) {
-            case ColumnType.STRING: {
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    if (SQLLike.match(pack.stringValueAt(rowId), strValue)) {
-                        hitCount++;
-                    }
-                }
-                break;
-            }
-            default:
-                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
-        }
-        if (hitCount == rowCount) {
-            return RSValue.All;
-        } else if (hitCount > 0) {
-            return RSValue.Some;
-        } else {
-            return RSValue.None;
-        }
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
-        Column column = segment.column(attr.columnId());
-        DataPack pack = column.pack(packId);
-        int rowCount = pack.objCount();
-        BitSet colRes = new BitSet(pack.objCount());
-        byte type = attr.dataType();
-        switch (type) {
-            case ColumnType.STRING: {
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    colRes.set(rowId, SQLLike.match(pack.stringValueAt(rowId), strValue));
-                }
-                break;
-            }
-            default:
-                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
-        }
-        return colRes;
+        PackExtIndex extIndex = column.extIndex(packId);
+        return extIndex.like(column, packId, numValue, strValue);
     }
 }

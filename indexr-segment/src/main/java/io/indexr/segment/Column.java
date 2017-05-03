@@ -19,6 +19,8 @@ public interface Column {
 
     SQLType sqlType();
 
+    boolean isIndexed();
+
     int packCount();
 
     long rowCount() throws IOException;

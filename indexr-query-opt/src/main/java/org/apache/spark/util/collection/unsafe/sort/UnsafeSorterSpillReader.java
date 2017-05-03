@@ -44,7 +44,8 @@ public final class UnsafeSorterSpillReader extends UnsafeSorterIterator implemen
 
     private void fillBuffer(int atLeastBytes) throws IOException {
         buffer.clear();
-        IOUtil.readFully(file, buffer, atLeastBytes);
+        buffer.limit(atLeastBytes);
+        IOUtil.readFully(file, buffer);
         buffer.flip();
     }
 

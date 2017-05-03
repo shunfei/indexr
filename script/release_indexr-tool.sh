@@ -5,6 +5,7 @@ source ${ROOT_DIR}/script/env.sh
 
 RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 
+rm -rf ${RELEASE_PATH}/indexr-tool
 mkdir -p ${RELEASE_PATH}/indexr-tool
 cp -r -f ${ROOT_DIR}/indexr-tool/* ${RELEASE_PATH}/indexr-tool/
 cp -f ${ROOT_DIR}/lib/* ${RELEASE_PATH}/indexr-tool/lib/
@@ -30,10 +31,10 @@ function cp_jar {
     cp -f $1 ${RELEASE_PATH}/indexr-tool/jars/hadoop
 }
 
-cp_jar ${ROOT_DIR}/indexr-common/target/indexr-common-${VERSION}.jar
-cp_jar ${ROOT_DIR}/indexr-segment/target/indexr-segment-${VERSION}.jar
-cp_jar ${ROOT_DIR}/indexr-query-opt/target/indexr-query-opt-${VERSION}.jar
-cp_jar ${ROOT_DIR}/indexr-server/target/indexr-server-${VERSION}.jar
+cp_jar ${MAVEN_PATH}/io/indexr/indexr-common/${VERSION}/indexr-common-${VERSION}.jar
+cp_jar ${MAVEN_PATH}/io/indexr/indexr-segment/${VERSION}/indexr-segment-${VERSION}.jar
+cp_jar ${MAVEN_PATH}/io/indexr/indexr-server/${VERSION}/indexr-server-${VERSION}.jar
+cp_jar ${MAVEN_PATH}/io/indexr/indexr-query-opt/${VERSION}/indexr-query-opt-${VERSION}.jar
 
 # copy other depenencies
 
@@ -51,3 +52,5 @@ cp_jar ${MAVEN_PATH}/com/carrotsearch/hppc/0.7.1/hppc-0.7.1.jar
 cp_jar ${MAVEN_PATH}/org/antlr/antlr4-runtime/4.3/antlr4-runtime-4.3.jar
 cp_jar ${MAVEN_PATH}/org/antlr/antlr4-annotations/4.3/antlr4-annotations-4.3.jar
 cp_jar ${MAVEN_PATH}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar
+
+cp_jar ${MAVEN_PATH}/com/google/guava/guava/16.0.1/guava-16.0.1.jar

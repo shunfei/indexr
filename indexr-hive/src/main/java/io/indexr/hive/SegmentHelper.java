@@ -12,8 +12,8 @@ import java.io.IOException;
 import java.util.EnumSet;
 
 import io.indexr.io.ByteBufferWriter;
-import io.indexr.segment.pack.IntegratedSegment;
-import io.indexr.segment.pack.StorageSegment;
+import io.indexr.segment.storage.itg.IntegratedSegment;
+import io.indexr.segment.storage.StorageSegment;
 
 public class SegmentHelper {
     private static final Logger logger = LoggerFactory.getLogger(SegmentHelper.class);

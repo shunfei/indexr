@@ -5,6 +5,7 @@ import java.io.IOException;
 import io.indexr.data.Freeable;
 import io.indexr.data.Sizable;
 import io.indexr.io.ByteBufferWriter;
+import io.indexr.io.ByteSlice;
 
 /**
  * Rough set index.
@@ -15,7 +16,7 @@ public interface RSIndex extends Freeable, Sizable {
         throw new UnsupportedOperationException();
     }
 
-    default void write(ByteBufferWriter writer) throws IOException {
+    default int write(ByteBufferWriter writer) throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -24,4 +25,33 @@ public interface RSIndex extends Freeable, Sizable {
 
     @Override
     default long size() {return 0;}
+
+    public static interface Factory {
+
+        PackRSIndex createPack(byte dataType);
+
+        RSIndex create(byte dataType, ByteSlice buffer, int packCount);
+
+        public static Factory of(Factory stringTypeFactory, Factory numTypeFactory) {
+            return new Factory() {
+                @Override
+                public PackRSIndex createPack(byte dataType) {
+                    if (dataType == ColumnType.STRING) {
+                        return stringTypeFactory.createPack(dataType);
+                    } else {
+                        return numTypeFactory.createPack(dataType);
+                    }
+                }
+
+                @Override
+                public RSIndex create(byte dataType, ByteSlice buffer, int packCount) {
+                    if (dataType == ColumnType.STRING) {
+                        return stringTypeFactory.create(dataType, buffer, packCount);
+                    } else {
+                        return numTypeFactory.create(dataType, buffer, packCount);
+                    }
+                }
+            };
+        }
+    }
 }

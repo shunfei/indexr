@@ -2,7 +2,7 @@ package io.indexr.segment;
 
 import java.io.IOException;
 
-import io.indexr.segment.pack.StorageSegment;
+import io.indexr.segment.storage.StorageSegment;
 
 @FunctionalInterface
 public interface SegmentUploader {

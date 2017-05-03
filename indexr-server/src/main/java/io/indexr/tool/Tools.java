@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,15 +30,15 @@ import java.util.List;
 import java.util.Set;
 
 import io.indexr.io.ByteBufferReader;
+import io.indexr.plugin.Plugins;
 import io.indexr.segment.Column;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.SegmentManager;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.DataPackNode;
-import io.indexr.segment.pack.IntegratedSegment;
-import io.indexr.segment.pack.StorageSegment;
 import io.indexr.segment.rt.RTSGroupInfo;
-import io.indexr.segment.rt.RealtimeHelper;
+import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.server.FileSegmentManager;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
@@ -52,6 +51,7 @@ import io.indexr.server.rt2his.HiveHelper;
 import io.indexr.util.GenericCompression;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 public class Tools {
@@ -71,9 +71,9 @@ public class Tools {
                 "\nrmtb      - remove table. [-t]" +
                 "\ndctb      - describe table. [-t] " +
                 "\nlisths    - list all historical segments. [-t]" +
-                "\nlistrs    - list all realtime segments. [-t]" +
+                "\nlistrs    - list all realtime segments. [-t, -v]" +
                 "\nrmseg     - remove segments. [-t, -s]" +
-                "\ndchs      - describ historical segments. [-t, -s]" +
+                "\ndchs      - describ historical segments. [-t, -s, -v]" +
                 "\nstoprt    - stop realtime. [-host, -port]" +
                 "\nstartrt   - start realtime. [-host, -port]" +
                 "\nstopnode  - stop indexr node. [-host, -port]" +
@@ -83,7 +83,7 @@ public class Tools {
                 "\naddrtt    - add realtime table to hosts. [-t, -host]" +
                 "\nrmrtt     - remove realtime table from hosts. [-t, -host]" +
                 "\nnotifysu  - notify segment update. [-t]" +
-                "\nhivesql   - get the hive table creation sql. Specify the partition column of hive table by -column <columnName>. [-t, -c, -column, -hivetable]" +
+                "\nhivesql   - get the hive table creation sql. Specify the partition column of hive table by -column <columnName>. [-t, -c, -column, -hivetb]" +
                 "\n=====================================")
         String cmd;
 
@@ -106,7 +106,7 @@ public class Tools {
         int port = 9235;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         MyOptions options = new MyOptions();
         CmdLineParser parser = RuntimeUtil.parseArgs(args, options);
         if (options.help) {
@@ -114,6 +114,7 @@ public class Tools {
             return;
         }
 
+        Plugins.loadPlugins();
         IndexRConfig config = new IndexRConfig();
         boolean ok = false;
         try {
@@ -196,17 +197,14 @@ public class Tools {
         String[] tableNames = options.table.split(",");
         Preconditions.checkState(tableNames.length == 1, "Can only add one table one time!");
         TableSchema schema = JsonUtil.loadConfig(Paths.get(options.schemapath), TableSchema.class);
-        RealtimeConfig rtConfig = schema.realtimeConfig;
-        if (rtConfig != null) {
-            String error = RealtimeHelper.validateSetting(schema.schema.getColumns(), rtConfig.dims, rtConfig.metrics, rtConfig.grouping);
-            if (error != null) {
-                System.out.println(error);
-                return false;
-            }
-        }
-        if (schema.sortColumns.isEmpty()) {
-            System.out.println("Warn: for better performance, please specify sort.columns");
-        }
+        //RealtimeConfig rtConfig = schema.realtimeConfig;
+        //if (rtConfig != null) {
+        //    String error = RealtimeHelper.validateSetting(schema.schema.getColumns(), rtConfig.dims, rtConfig.metrics, rtConfig.grouping);
+        //    if (error != null) {
+        //        System.out.println(error);
+        //        return false;
+        //    }
+        //}
         ZkTableManager tm = new ZkTableManager(config.getZkClient());
         tm.set(options.table, schema);
         System.out.println("OK");
@@ -271,6 +269,8 @@ public class Tools {
                     System.out.println(info.name() + ":\n----------");
                     System.out.println("host: " + host);
                     System.out.println("rowCount: " + info.rowCount());
+                    System.out.println("version: " + info.version());
+                    System.out.println("mode: " + info.mode());
                     if (options.verbose) {
                         System.out.println("schema:\n" + JsonUtil.toJson(info.schema()));
                         System.out.println("columnNodes:\n" + JsonUtil.toJson(info.columnNodes));
@@ -312,9 +312,9 @@ public class Tools {
                 System.out.println(segName + ":\n----------");
                 System.out.println("rowCount: " + rowCount);
                 System.out.println("size: " + fileStatus.getLen());
+                System.out.println("version: " + segment.version());
+                System.out.println("mode: " + segment.mode());
                 if (options.verbose) {
-                    System.out.println("version: " + segment.version());
-                    System.out.println("mode: " + segment.mode());
                     System.out.println("schema:\n" + JsonUtil.toJson(schema));
                     System.out.println("sectionInfo:\n" + JsonUtil.toJson(fd.sectionInfo()));
                     System.out.println("columnInfo:");
@@ -326,12 +326,12 @@ public class Tools {
                         long dataSize = 0;
                         for (int packId = 0; packId < column.packCount(); packId++) {
                             DataPackNode dpn = column.dpn(packId);
-                            dpnSize += DataPackNode.serializedSize(dpn.version());
+                            dpnSize += segment.mode().versionAdapter.dpnSize(segment.version(), segment.mode());
                             indexSize += dpn.indexSize();
                             extIndexSize += dpn.extIndexSize();
                             dataSize += dpn.packSize();
                         }
-                        System.out.printf("  %s: dpnSize: %s, indexSize: %s, extIndexSize: %s, dataSize: %s\n", column.name(), dpnSize, indexSize, extIndexSize, dataSize);
+                        System.out.printf("  %s: dpn: %s, index: %s, extIndex: %s, data: %s, dict(0th): %s\n", column.name(), dpnSize, indexSize, extIndexSize, dataSize, column.dpn(0).isDictEncoded());
                     }
                 }
                 System.out.println();
@@ -512,7 +512,7 @@ public class Tools {
                 true,
                 schema.schema,
                 schema.mode,
-                schema.sortColumns,
+                schema.aggSchema,
                 IndexRConfig.segmentRootPath(config.getDataRoot(), options.table),
                 options.columnName
         );

@@ -2,7 +2,6 @@ package io.indexr.segment.helper;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.directory.api.util.Strings;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.UTF8String;
 
@@ -15,6 +14,7 @@ import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
 import io.indexr.util.DateTimeUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.Trick;
 import io.indexr.util.UTF8Util;
 

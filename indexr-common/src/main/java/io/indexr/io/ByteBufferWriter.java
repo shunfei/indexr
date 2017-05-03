@@ -14,10 +14,10 @@ public interface ByteBufferWriter extends Closeable {
     /**
      * Write exactly <i>size</i>s bytes from <i>src</i> into this writer.
      * The position of the writer is implementation specific and cannot be decided by client.
-     * 
+     *
      * Alfter return, position down there should move forward <i>size</i>s bytes.
      */
-    void write(ByteBuffer src, int size) throws IOException;
+    void write(ByteBuffer src) throws IOException;
 
     /**
      * Convenient method to write some bytes in byte array.
@@ -25,7 +25,7 @@ public interface ByteBufferWriter extends Closeable {
      */
     default void write(byte[] bytes) throws IOException {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        write(buffer, bytes.length);
+        write(buffer);
     }
 
     default void flush() throws IOException {}
@@ -51,8 +51,8 @@ public interface ByteBufferWriter extends Closeable {
     public static ByteBufferWriter of(ByteBufferWriter writer, Closeable close) throws IOException {
         return new ByteBufferWriter() {
             @Override
-            public void write(ByteBuffer src, int size) throws IOException {
-                writer.write(src, size);
+            public void write(ByteBuffer src) throws IOException {
+                writer.write(src);
             }
 
             @Override
@@ -78,9 +78,9 @@ public interface ByteBufferWriter extends Closeable {
             String name;
 
             @Override
-            public void write(ByteBuffer src, int size) throws IOException {
+            public void write(ByteBuffer src) throws IOException {
                 try {
-                    IOUtil.writeFully(ouput, src, size);
+                    IOUtil.writeFully(ouput, src);
                 } catch (Exception e) {
                     throw new IOException(String.format("name: %s", name), e);
                 }
@@ -115,9 +115,10 @@ public interface ByteBufferWriter extends Closeable {
             long curOffset = offset;
 
             @Override
-            public void write(ByteBuffer src, int size) throws IOException {
+            public void write(ByteBuffer src) throws IOException {
+                int size = src.remaining();
                 try {
-                    IOUtil.writeFully(file, curOffset, src, size);
+                    IOUtil.writeFully(file, curOffset, src);
                 } catch (Exception e) {
                     throw new IOException(String.format("name: %s", name), e);
                 }
@@ -150,8 +151,8 @@ public interface ByteBufferWriter extends Closeable {
     public static ByteBufferWriter of(WritableByteChannel channel, Closeable close) throws IOException {
         return new ByteBufferWriter() {
             @Override
-            public void write(ByteBuffer src, int size) throws IOException {
-                IOUtil.writeFully(channel, src, size);
+            public void write(ByteBuffer src) throws IOException {
+                IOUtil.writeFully(channel, src);
             }
 
             @Override

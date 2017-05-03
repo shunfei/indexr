@@ -35,7 +35,7 @@ public interface Serializable {
             }
             if (serializeOk) {
                 bb.flip();
-                byteBufferWriter.write(bb, bb.remaining());
+                byteBufferWriter.write(bb);
                 return;
             } else {
                 int nextCap = bb.capacity() << 1;

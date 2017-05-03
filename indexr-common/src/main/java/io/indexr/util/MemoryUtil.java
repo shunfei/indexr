@@ -34,14 +34,11 @@ public class MemoryUtil {
 
     private static final boolean BIG_ENDIAN = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
 
-    public static final boolean UNALIGNED;
-    public static final boolean INVERTED_ORDER;
-
     static {
+        if (BIG_ENDIAN) {
+            throw new RuntimeException("We only suppot littel endian platform!");
+        }
         String arch = System.getProperty("os.arch");
-        UNALIGNED = arch.equals("i386") || arch.equals("x86")
-                || arch.equals("amd64") || arch.equals("x86_64");
-        INVERTED_ORDER = UNALIGNED && !BIG_ENDIAN;
         try {
             Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             field.setAccessible(true);
@@ -99,31 +96,19 @@ public class MemoryUtil {
     }
 
     public static void setInt(long address, int l) {
-        if (UNALIGNED)
-            unsafe.putInt(address, l);
-        else
-            putIntByByte(address, l);
+        unsafe.putInt(address, l);
     }
 
     public static void setLong(long address, long l) {
-        if (UNALIGNED)
-            unsafe.putLong(address, l);
-        else
-            putLongByByte(address, l);
+        unsafe.putLong(address, l);
     }
 
     public static void setFloat(long address, float v) {
-        if (UNALIGNED)
-            unsafe.putFloat(address, v);
-        else
-            putIntByByte(address, Float.floatToRawIntBits(v));
+        unsafe.putFloat(address, v);
     }
 
     public static void setDouble(long address, double v) {
-        if (UNALIGNED)
-            unsafe.putDouble(address, v);
-        else
-            putLongByByte(address, Double.doubleToRawLongBits(v));
+        unsafe.putDouble(address, v);
     }
 
     public static byte getByte(long address) {
@@ -131,23 +116,23 @@ public class MemoryUtil {
     }
 
     public static int getShort(long address) {
-        return UNALIGNED ? unsafe.getShort(address) & 0xffff : getShortByByte(address);
+        return unsafe.getShort(address) & 0xffff;
     }
 
     public static int getInt(long address) {
-        return UNALIGNED ? unsafe.getInt(address) : getIntByByte(address);
+        return unsafe.getInt(address);
     }
 
     public static long getLong(long address) {
-        return UNALIGNED ? unsafe.getLong(address) : getLongByByte(address);
+        return unsafe.getLong(address);
     }
 
     public static float getFloat(long address) {
-        return UNALIGNED ? unsafe.getFloat(address) : Float.intBitsToFloat(getIntByByte(address));
+        return unsafe.getFloat(address);
     }
 
-    public static double getDoube(long address) {
-        return UNALIGNED ? unsafe.getDouble(address) : Double.longBitsToDouble(getLongByByte(address));
+    public static double getDouble(long address) {
+        return unsafe.getDouble(address);
     }
 
     private static class Deallocator implements Runnable {
@@ -176,6 +161,7 @@ public class MemoryUtil {
         } else {
             setByteBuffer(instance, address, length, null);
         }
+        instance.order(ByteOrder.nativeOrder());
         return instance;
     }
 

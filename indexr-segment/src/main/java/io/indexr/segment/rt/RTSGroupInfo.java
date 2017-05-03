@@ -9,13 +9,20 @@ import java.io.IOException;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.ColumnNode;
-import io.indexr.segment.pack.ExtIndexMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.PackMemCache;
+import io.indexr.segment.cache.ExtIndexMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackMemCache;
+import io.indexr.segment.storage.ColumnNode;
 
 public class RTSGroupInfo implements InfoSegment, SegmentFd {
+    @JsonProperty("version")
+    public final int version;
+    @JsonProperty("mode")
+    public final String modeName;
+    @JsonIgnore
+    public final SegmentMode mode;
     @JsonProperty("name")
     public final String name;
     @JsonProperty("rowCount")
@@ -25,22 +32,39 @@ public class RTSGroupInfo implements InfoSegment, SegmentFd {
     @JsonProperty("columnNodes")
     public final ColumnNode[] columnNodes;
     @JsonProperty("schema")
-    private SegmentSchema schema;
+    public final SegmentSchema schema;
 
     @JsonIgnore
     private RTSGroup rtsGroup;
 
     @JsonCreator
-    public RTSGroupInfo(@JsonProperty("name") String name,
+    public RTSGroupInfo(@JsonProperty("version") int version,
+                        @JsonProperty("mode") String modeName,
+                        @JsonProperty("name") String name,
                         @JsonProperty("schema") SegmentSchema schema,
                         @JsonProperty("rowCount") long rowCount,
                         @JsonProperty("columnNodes") ColumnNode[] columnNodes,
                         @JsonProperty("host") String host) {
+        this.version = version;
+        this.mode = SegmentMode.fromName(modeName);
+        this.modeName = this.mode.name();
         this.name = name;
         this.schema = schema;
         this.rowCount = rowCount;
         this.columnNodes = columnNodes;
         this.host = host;
+    }
+
+    @JsonIgnore
+    @Override
+    public int version() {
+        return version;
+    }
+
+    @JsonIgnore
+    @Override
+    public SegmentMode mode() {
+        return mode;
     }
 
     @JsonIgnore
@@ -63,6 +87,7 @@ public class RTSGroupInfo implements InfoSegment, SegmentFd {
         return rtsGroup;
     }
 
+    @JsonIgnore
     public String host() {
         return host;
     }

@@ -39,19 +39,28 @@ import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
+import io.indexr.segment.cache.IndexExpiredMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackExpiredMemCache;
+import io.indexr.segment.cache.PackMemCache;
+import io.indexr.segment.storage.DPSegment;
+import io.indexr.segment.storage.itg.IntegratedSegment;
+import io.indexr.segment.storage.OpenOption;
+import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.Version;
 import io.indexr.util.MemoryUtil;
 
 public class SegmentBenchmark {
 
     private static List<ColumnSchema> columnSchemas = Arrays.asList(
-            new ColumnSchema("c0", SQLType.INT),
-            new ColumnSchema("c1", SQLType.BIGINT),
-            new ColumnSchema("c2", SQLType.FLOAT),
-            new ColumnSchema("c3", SQLType.DOUBLE),
-            new ColumnSchema("c4", SQLType.VARCHAR),
-            new ColumnSchema("c5", SQLType.DATE),
-            new ColumnSchema("c6", SQLType.TIME),
-            new ColumnSchema("c5", SQLType.DATETIME)
+            new ColumnSchema("c0", SQLType.INT, false),
+            new ColumnSchema("c1", SQLType.BIGINT, false),
+            new ColumnSchema("c2", SQLType.FLOAT, false),
+            new ColumnSchema("c3", SQLType.DOUBLE, false),
+            new ColumnSchema("c4", SQLType.VARCHAR, false),
+            new ColumnSchema("c5", SQLType.DATE, false),
+            new ColumnSchema("c6", SQLType.TIME, false),
+            new ColumnSchema("c5", SQLType.DATETIME, false)
     );
     private static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
 
@@ -359,10 +368,12 @@ public class SegmentBenchmark {
                     for (int packId = 0; packId < packCount; packId++) {
                         DataPack pack = (DataPack) column.pack(packId);
                         if (version == Version.VERSION_0_ID) {
-                            int objCount = pack.count();
-                            pack.foreach(0, objCount, (int i, int v) -> {num.l += v;});
+                            int objCount = pack.valueCount();
+                            pack.foreach(0, objCount, (int i, int v) -> {
+                                num.l += v;
+                            });
                         } else {
-                            MemoryUtil.copyMemory(pack.dataAddr, buffer.address(), (int) pack.size());
+                            MemoryUtil.copyMemory(pack.dataAddr(), buffer.address(), (int) pack.data().size());
                         }
                     }
                     break;
@@ -370,10 +381,12 @@ public class SegmentBenchmark {
                     for (int packId = 0; packId < packCount; packId++) {
                         DataPack pack = (DataPack) column.pack(packId);
                         if (version == Version.VERSION_0_ID) {
-                            int objCount = pack.count();
-                            pack.foreach(0, objCount, (int i, long v) -> {num.l += v;});
+                            int objCount = pack.valueCount();
+                            pack.foreach(0, objCount, (int i, long v) -> {
+                                num.l += v;
+                            });
                         } else {
-                            MemoryUtil.copyMemory(pack.dataAddr, buffer.address(), (int) pack.size());
+                            MemoryUtil.copyMemory(pack.dataAddr(), buffer.address(), (int) pack.data().size());
                         }
                     }
                     break;
@@ -381,10 +394,12 @@ public class SegmentBenchmark {
                     for (int packId = 0; packId < packCount; packId++) {
                         DataPack pack = (DataPack) column.pack(packId);
                         if (version == Version.VERSION_0_ID) {
-                            int objCount = pack.count();
-                            pack.foreach(0, objCount, (int i, float v) -> {num.d += v;});
+                            int objCount = pack.valueCount();
+                            pack.foreach(0, objCount, (int i, float v) -> {
+                                num.d += v;
+                            });
                         } else {
-                            MemoryUtil.copyMemory(pack.dataAddr, buffer.address(), (int) pack.size());
+                            MemoryUtil.copyMemory(pack.dataAddr(), buffer.address(), (int) pack.data().size());
                         }
                     }
                     break;
@@ -392,18 +407,21 @@ public class SegmentBenchmark {
                     for (int packId = 0; packId < packCount; packId++) {
                         DataPack pack = (DataPack) column.pack(packId);
                         if (version == Version.VERSION_0_ID) {
-                            int objCount = pack.count();
-                            pack.foreach(0, objCount, (int i, double v) -> {num.d += v;});
+                            int objCount = pack.valueCount();
+                            pack.foreach(0, objCount, (int i, double v) -> {
+                                num.d += v;
+                            });
                         } else {
-                            MemoryUtil.copyMemory(pack.dataAddr, buffer.address(), (int) pack.size());
+                            MemoryUtil.copyMemory(pack.dataAddr(), buffer.address(), (int) pack.data().size());
                         }
                     }
                     break;
                 case ColumnType.STRING:
                     for (int packId = 0; packId < packCount; packId++) {
                         DPValues pack = column.pack(packId);
-                        int objCount = pack.count();
-                        pack.foreach(0, objCount, (int i, BytePiece bytes) -> {});
+                        int objCount = pack.valueCount();
+                        pack.foreach(0, objCount, (int i, BytePiece bytes) -> {
+                        });
                     }
                     break;
                 default:

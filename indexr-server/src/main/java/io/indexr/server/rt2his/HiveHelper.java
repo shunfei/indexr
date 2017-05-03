@@ -7,19 +7,26 @@ import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
+import io.indexr.segment.rt.AggSchema;
 
 public class HiveHelper {
-    public static final String KEY_SEGMENT_MODE = "indexr.segment.mode";
+    @Deprecated
     public static final String KEY_SORT_COLUMNS = "indexr.sort.columns";
+
+    public static final String KEY_SEGMENT_MODE = "indexr.segment.mode";
+    public static final String KEY_AGG_GROUPING = "indexr.agg.grouping";
+    public static final String KEY_AGG_DIMS = "indexr.agg.dims";
+    public static final String KEY_AGG_METRICS = "indexr.agg.metrics";
 
     public static String getHiveTableCreateSql(String tableName,
                                                boolean external,
                                                SegmentSchema schema,
                                                SegmentMode mode,
-                                               List<String> sortColumns,
+                                               AggSchema aggSchema,
                                                String location,
                                                String partitionColumn) throws Exception {
         String colDefStr = Joiner.on(",\n").join(Lists.transform(schema.getColumns(), sc -> {
@@ -63,7 +70,9 @@ public class HiveHelper {
         }
         createTableSql += "TBLPROPERTIES (\n";
         createTableSql += "'" + KEY_SEGMENT_MODE + "'='" + mode + "',\n";
-        createTableSql += "'" + KEY_SORT_COLUMNS + "'='" + StringUtils.join(sortColumns, ",") + "'";
+        createTableSql += "'" + KEY_AGG_GROUPING + "'='" + String.valueOf(aggSchema.grouping) + "',\n";
+        createTableSql += "'" + KEY_AGG_DIMS + "'='" + StringUtils.join(aggSchema.dims, ",") + "',\n";
+        createTableSql += "'" + KEY_AGG_METRICS + "'='" + StringUtils.join(aggSchema.metrics.stream().map(m -> m.name + ":" + m.aggName()).collect(Collectors.toList()), ",") + "'";
         createTableSql += "\n) \n";
 
         return createTableSql;

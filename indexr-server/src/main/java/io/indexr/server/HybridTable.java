@@ -22,7 +22,6 @@ import io.indexr.util.Try;
 public class HybridTable implements SegmentPool, SegmentLocality {
     private static final Logger logger = LoggerFactory.getLogger(HybridTable.class);
 
-
     private String name;
     private TableSchema schema;
     private String zkTablePath;
@@ -41,6 +40,8 @@ public class HybridTable implements SegmentPool, SegmentLocality {
         this.zkClient = indexRConfig.getZkClient();
         this.zkTablePath = IndexRConfig.zkTableDeclarePath(name);
 
+        logger.info("Starting table. [table: {}]", name);
+
         this.historySegmentPool = new FileSegmentPool(
                 name,
                 indexRConfig.getFileSystem(),
@@ -58,23 +59,20 @@ public class HybridTable implements SegmentPool, SegmentLocality {
                 rtHandleService);
 
         refreshSchema();
-        schemaWatcher = ZkWatcher.onData(zkClient, zkTablePath, null, this::refreshSchema);
+        schemaWatcher = ZkWatcher.onData(zkClient, zkTablePath, null,
+                () -> Try.on(this::refreshSchema, 3, logger, "Refresh table [" + name + "] schema failed"));
     }
 
-    private void refreshSchema() {
+    private void refreshSchema() throws Exception {
         logger.debug("refresh table schema. [table: {}]", name);
-        try {
-            byte[] bytes = zkClient.getData().forPath(zkTablePath);
-            if (bytes == null) {
-                return;
-            }
-            TableSchema newSchema = JsonUtil.fromJson(bytes, TableSchema.class);
-            if (schema == null || !schema.equals(newSchema)) {
-                schema = newSchema;
-                realtimeSegmentPool.updateSchema(newSchema);
-            }
-        } catch (Exception e) {
-            logger.error("Refresh schema failed.", e);
+        byte[] bytes = zkClient.getData().forPath(zkTablePath);
+        if (bytes == null) {
+            throw new IllegalStateException(String.format("Table [%s] schema not found", name));
+        }
+        TableSchema newSchema = JsonUtil.fromJson(bytes, TableSchema.class);
+        if (schema == null || !schema.equals(newSchema)) {
+            schema = newSchema;
+            realtimeSegmentPool.updateSchema(newSchema);
         }
     }
 
@@ -88,7 +86,7 @@ public class HybridTable implements SegmentPool, SegmentLocality {
 
     @Override
     public void close() {
-        logger.debug("Close table [{}]", name);
+        logger.info("Closing table [{}]", name);
 
         schemaWatcher.close();
 

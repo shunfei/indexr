@@ -4,14 +4,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.DataPack;
+import io.indexr.util.BitMap;
 
 public class UnknownOperator implements CmpOperator {
     @JsonProperty("content")
@@ -46,6 +45,11 @@ public class UnknownOperator implements CmpOperator {
     }
 
     @Override
+    public boolean isAccurate() {
+        return false;
+    }
+
+    @Override
     public RCOperator applyNot() {
         return new UnknownOperator(content, !not);
     }
@@ -61,16 +65,7 @@ public class UnknownOperator implements CmpOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
-        return RSValue.Some;
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
-        // We don't know what this op is, so just assume every rows is ok.
-        int rowCount = DataPack.MAX_COUNT;
-        BitSet res = new BitSet(rowCount);
-        res.set(0, rowCount, true);
-        return res;
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
+        return BitMap.SOME;
     }
 }

@@ -2,12 +2,16 @@ package io.indexr.segment;
 
 import java.io.IOException;
 
-import io.indexr.segment.pack.ColumnNode;
+import io.indexr.segment.storage.ColumnNode;
 
 /**
  * An info segment contains basic info of a real segment.
  */
 public interface InfoSegment {
+
+    int version();
+
+    SegmentMode mode();
 
     /**
      * Name of the segment. Unique in the whole system.
@@ -20,12 +24,12 @@ public interface InfoSegment {
     SegmentSchema schema();
 
     /**
-     * Row count.
+     * Row valueCount.
      */
     long rowCount();
 
     /**
-     * Get the pack count of this segment, return 0 if {@link #isColumned()} is false.
+     * Get the pack valueCount of this segment, return 0 if {@link #isColumned()} is false.
      */
     default int packCount() {
         return 0;

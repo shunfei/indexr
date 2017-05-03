@@ -2,6 +2,7 @@ package io.indexr.io;
 
 import com.sun.jna.Pointer;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -10,19 +11,20 @@ import io.indexr.util.ByteBufferUtil;
 import io.indexr.util.MemoryUtil;
 
 /**
- * A wrapper of {@link ByteBuffer}.
- * 
+ * A wrapper of {@link ByteBuffer}. A slice which slice option is forbidden!!!
+ *
  * The main reason of this class is to remove the position, mark and limit features of {@link ByteBuffer}.
  * i.e. the position is always <b>0</b>, the limit is always <b>equals</b> to capacity, and the mark is always <b>unused(-1)</b>.
  * You can think it is a pure byte array with slice ability!
  */
 public class ByteSlice implements Freeable {
+    private boolean ignoreFree;
     private ByteBuffer buffer;
 
     public static final ByteBuffer EmptyByteBuffer = ByteBufferUtil.allocateDirect(0);
     //public static final ByteBuffer EmptyByteBuffer = ByteBuffer.allocate(0);
 
-    public ByteSlice(ByteBuffer buffer) {
+    public ByteSlice(ByteBuffer buffer, boolean ignoreFree) {
         // Forget position, limit!
         assert buffer.position() == 0;
         assert buffer.limit() == buffer.capacity();
@@ -31,6 +33,11 @@ public class ByteSlice implements Freeable {
         buffer.order(ByteOrder.nativeOrder());
 
         this.buffer = buffer;
+        this.ignoreFree = ignoreFree;
+    }
+
+    public ByteSlice(ByteBuffer buffer) {
+        this(buffer, false);
     }
 
     public static ByteSlice empty() {
@@ -123,44 +130,20 @@ public class ByteSlice implements Freeable {
         return new ByteSlice(buffer.duplicate());
     }
 
-    // TODO slice should be faster, without duplicate
-
-    /**
-     * Slice a subsequence, i.e. [from, from + size)
-     */
-    public ByteSlice slice(int from, int size) {
-        ByteBuffer tmpBufer = buffer.duplicate();
-        tmpBufer.position(from);
-        tmpBufer.limit(from + size);
-        return new ByteSlice(tmpBufer.slice());
-    }
-
-    /**
-     * [from, endOfSlice)
-     */
-    public ByteSlice sliceFrom(int from) {
-        ByteBuffer tmpBufer = buffer.duplicate();
-        tmpBufer.position(from);
-        return new ByteSlice(tmpBufer.slice());
-    }
-
-    /**
-     * [0, to)
-     */
-    public ByteSlice sliceTo(int to) {
-        ByteBuffer tmpBufer = buffer.duplicate();
-        tmpBufer.limit(to);
-        return new ByteSlice(tmpBufer.slice());
-    }
-
     public ByteSlice asReadOnlySlice() {
         return new ByteSlice(buffer.asReadOnlyBuffer());
+    }
+
+    public ByteSlice copy() {
+        ByteSlice buffer = ByteSlice.allocateDirect(size());
+        MemoryUtil.copyMemory(address(), buffer.address(), size());
+        return buffer;
     }
 
     /**
      * Transform {@link ByteSlice} into {@link ByteBuffer}.
      * They will share the same underlying content. Modify anyone will affect to the other.
-     * 
+     *
      * The position is always <b>0</b>, the limit is always <b>equals</b> to capacity, and the mark is always <b>unused(-1)</b>.
      */
     public ByteBuffer toByteBuffer() {
@@ -195,14 +178,24 @@ public class ByteSlice implements Freeable {
 
     /**
      * This method is mean to free the allocated memory this instance held, especially the DirectByteBuffer.
-     * 
+     *
      * Altough the GC will automatically free the memory before the instance is reclaimed,
      * call free() before a ByteSlice dropped is a good manner which can really help save memory.
      */
     @Override
     public void free() {
+        if (ignoreFree) {
+            return;
+        }
+        if (buffer == EmptyByteBuffer) {
+            return;
+        }
         ByteBufferUtil.free(buffer);
         buffer = null;
+    }
+
+    public ByteSlice unfreeable() {
+        return new ByteSlice(buffer, true);
     }
 
     /**
@@ -214,23 +207,12 @@ public class ByteSlice implements Freeable {
 
     /**
      * Create ByteSlice from memory address and size.
-     * 
-     * After calling this method, this ByteSlice will take full control of this memory. e.g. You should not
-     * reclaim it, update it from outside. Otherwise errors will throw.
+     *
+     * @param autoFree true: After calling this method, this ByteSlice will take full control of this memory. e.g. You should not
+     *                 reclaim it, update it from outside. Otherwise errors will throw.
      */
-    public static ByteSlice fromAddress(long p, int size) {
-        return ByteSlice.wrap(MemoryUtil.getByteBuffer(p, size, true));
-    }
-
-    /**
-     * Create ByteSlice from memory address and size.
-     * 
-     * After calling this method, this ByteSlice will take full control of this memory. e.g. You should not
-     * reclaim it, update it from outside. Otherwise errors will throw.
-     */
-    public static ByteSlice fromPointer(Pointer p, int size) {
-        long native_p = Pointer.nativeValue(p);
-        return fromAddress(native_p, size);
+    public static ByteSlice fromAddress(long p, int size, boolean autoFree) {
+        return ByteSlice.wrap(MemoryUtil.getByteBuffer(p, size, autoFree));
     }
 
     public static ByteSlice wrap(ByteBuffer buffer) {
@@ -242,6 +224,9 @@ public class ByteSlice implements Freeable {
     }
 
     public static ByteSlice allocateDirect(int cap) {
+        if (cap == 0) {
+            return ByteSlice.wrap(EmptyByteBuffer);
+        }
         return ByteSlice.wrap(ByteBufferUtil.allocateDirect(cap));
     }
 
@@ -258,5 +243,9 @@ public class ByteSlice implements Freeable {
             }
         }
         return true;
+    }
+
+    public static interface Supplier {
+        ByteSlice get() throws IOException;
     }
 }

@@ -1,7 +1,6 @@
 package io.indexr.segment.rt;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.directory.api.util.Strings;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -11,6 +10,7 @@ import java.util.List;
 
 import io.indexr.segment.SegmentSchema;
 import io.indexr.util.ObjectLoader;
+import io.indexr.util.Strings;
 
 public class CommitLogFetcher implements Fetcher, ObjectLoader.EntryListener {
     private Path path;

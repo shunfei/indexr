@@ -255,6 +255,25 @@ public class Trick {
         return -1;
     }
 
+    public static boolean isEmpty(Collection<?> c) {
+        return c == null || c.isEmpty();
+    }
+
+    public static <R> List<R> split(String str, String p, F<String, R> f) {
+        if (Strings.isEmpty(str)) {
+            return Collections.emptyList();
+        }
+        List<R> list = new ArrayList<R>();
+        String[] ss = str.trim().split(p);
+        for (String s : ss) {
+            R r = f.f(s);
+            if (r != null) {
+                list.add(r);
+            }
+        }
+        return list;
+    }
+
     public static interface F<A, B> {
         B f(A a);
     }

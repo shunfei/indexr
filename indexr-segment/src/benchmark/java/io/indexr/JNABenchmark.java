@@ -131,7 +131,7 @@ public class JNABenchmark {
     @Benchmark
     public void memory_get_set_directbytebuffer() {
         long p = Native.malloc(1000);
-        ByteSlice slice = ByteSlice.fromAddress(p, 1000);
+        ByteSlice slice = ByteSlice.fromAddress(p, 1000, false);
         slice.put(10, (byte) 10);
         byte b = slice.get(10);
         Native.free(p);

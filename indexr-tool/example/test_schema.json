@@ -11,8 +11,7 @@
             {"name": "m4", "dataType": "double"}
         ]
     },
-    "mode": "balance",
-    "realtime":{
+    "agg":{
         "grouping": true,
         "dims": [
             "date",
@@ -24,7 +23,9 @@
             {"name": "m2", "agg": "min"},
             {"name": "m3", "agg": "max"},
             {"name": "m4", "agg": "first"}
-        ],
+        ]
+    },
+    "realtime":{
         "name.alias": {
             "date": "dt",
             "m1": "m1_alias"
@@ -33,7 +34,6 @@
         "upload.period.minutes": 60,
         "max.row.memory": 500000,
         "max.row.realtime": 10000000,
-        "mode": "performance",
         "fetcher": {
             "type": "kafka-0.8",
             "topic": "test_topic",

@@ -2,9 +2,9 @@ package io.indexr.segment;
 
 import java.io.IOException;
 
-import io.indexr.segment.pack.ExtIndexMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.PackMemCache;
+import io.indexr.segment.cache.ExtIndexMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackMemCache;
 
 /**
  * A segment pointer.

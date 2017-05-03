@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.directory.api.util.Strings;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.array.ByteArrayMethods;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,18 +28,19 @@ import io.indexr.segment.SegmentLocality;
 import io.indexr.segment.SegmentPool;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.SegmentUploader;
-import io.indexr.segment.pack.ColumnNode;
 import io.indexr.segment.rt.RTSGroup;
 import io.indexr.segment.rt.RTSGroupInfo;
 import io.indexr.segment.rt.RealtimeSegment;
 import io.indexr.segment.rt.RealtimeSetting;
 import io.indexr.segment.rt.RealtimeTable;
+import io.indexr.segment.storage.ColumnNode;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.TableSchema;
 import io.indexr.server.ZkHelper;
 import io.indexr.server.ZkHelper.ChildrenRefresher;
 import io.indexr.util.GenericCompression;
 import io.indexr.util.JsonUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 /**
@@ -130,8 +131,8 @@ public class RealtimeSegmentPool implements SegmentPool, SegmentLocality {
         }
         return new RealtimeSetting(
                 tableSchema.schema,
-                rtConf.dims,
-                rtConf.metrics,
+                rtConf.aggSchema.dims,
+                rtConf.aggSchema.metrics,
                 rtConf.nameToAlias,
                 rtConf.tagSetting,
                 rtConf.ignoreStrategy,
@@ -140,7 +141,7 @@ public class RealtimeSegmentPool implements SegmentPool, SegmentLocality {
                 rtConf.maxRowInMemory,
                 rtConf.maxRowInRealtime,
                 indexRConfig.getTimeZone(),
-                rtConf.grouping,
+                rtConf.aggSchema.grouping,
                 rtConf.ingest,
                 rtConf.mode,
                 rtConf.fetcher);
@@ -214,7 +215,7 @@ public class RealtimeSegmentPool implements SegmentPool, SegmentLocality {
                         for (int i = 0; i < columnNodes.length; i++) {
                             columnNodes[i] = rtsg.columnNode(i);
                         }
-                        return new RTSGroupInfo(rtsg.name(), schema, rtsg.rowCount(), columnNodes, hostName);
+                        return new RTSGroupInfo(rtsg.version(), rtsg.mode().name(), rtsg.name(), schema, rtsg.rowCount(), columnNodes, hostName);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -233,9 +234,13 @@ public class RealtimeSegmentPool implements SegmentPool, SegmentLocality {
             return;
         }
         // Replace.
-        if (zkClient.checkExists().forPath(zkPath) == null) {
-            zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(zkPath, rtsgInfo);
-        } else {
+        try {
+            if (zkClient.checkExists().forPath(zkPath) == null) {
+                zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(zkPath, rtsgInfo);
+            } else {
+                zkClient.setData().forPath(zkPath, rtsgInfo);
+            }
+        } catch (KeeperException.NodeExistsException e) {
             zkClient.setData().forPath(zkPath, rtsgInfo);
         }
         lastRTSGInfo = rtsgInfo;

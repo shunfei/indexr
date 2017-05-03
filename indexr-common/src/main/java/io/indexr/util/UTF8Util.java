@@ -25,6 +25,12 @@ public class UTF8Util {
     private final static ThreadLocal<SoftReference<CharsetEncoder>> encoder =
             new ThreadLocal<>();
 
+    public static String fromUtf8(Object base, long offset, int len) {
+        byte[] data = new byte[len];
+        MemoryUtil.copyMemory(base, offset, data, Platform.BYTE_ARRAY_OFFSET, len);
+        return fromUtf8(data);
+    }
+
     public static String fromUtf8(byte[] bytes) {
         try {
             return new String(bytes, UTF8_NAME);

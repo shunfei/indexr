@@ -3,7 +3,6 @@ package io.indexr.segment.rt;
 import com.google.common.base.Preconditions;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.directory.api.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,21 +29,23 @@ import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.ColumnNode;
-import io.indexr.segment.pack.DPSegment;
-import io.indexr.segment.pack.ExtIndexMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.IntegratedSegment;
-import io.indexr.segment.pack.OpenOption;
-import io.indexr.segment.pack.PackMemCache;
+import io.indexr.segment.cache.ExtIndexMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackMemCache;
+import io.indexr.segment.storage.ColumnNode;
+import io.indexr.segment.storage.DPSegment;
+import io.indexr.segment.storage.OpenOption;
+import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.util.ByteBufferUtil;
 import io.indexr.util.Holder;
 import io.indexr.util.IOUtil;
 import io.indexr.util.Serializable;
+import io.indexr.util.Strings;
 import io.indexr.util.Try;
 
 public class RealtimeSegment implements InfoSegment, SegmentFd {
     private static final Logger logger = LoggerFactory.getLogger(RealtimeSegment.class);
+
     private static final Map<UTF8Row, UTF8Row> zeroRows = new HashMap<>(0);
     private static final int ROW_BUFFER_SIZE = 1 << 16;
 
@@ -209,7 +210,7 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
      * @param maxRow         -1 means no limit.
      * @param maxPeriod      -1 means no limit.
      * @param writeCommitLog write commit log or not.
-     * @return The row count we got in realtime segment.
+     * @return The row valueCount we got in realtime segment.
      */
     private long ingestRows(
             List<String> dims,
@@ -530,6 +531,16 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
 
 
     @Override
+    public int version() {
+        return savedSegment != null ? savedSegment.info().version() : 0;
+    }
+
+    @Override
+    public SegmentMode mode() {
+        return savedSegment != null ? savedSegment.info().mode() : null;
+    }
+
+    @Override
     public boolean isRealtime() {
         return true;
     }
@@ -573,21 +584,35 @@ public class RealtimeSegment implements InfoSegment, SegmentFd {
         if (savedSegment != null) {
             return savedSegment.open(indexMemCache, extIndexMemCache, packMemCache);
         } else {
-            return new RTSeg(name, schema, rowsInMemory, rowInMemoryCount);
+            return new RTSeg(version(), mode(), name, schema, rowsInMemory, rowInMemoryCount);
         }
     }
 
     private static class RTSeg implements Segment {
+        final int version;
+        final SegmentMode mode;
         final String name;
         final SegmentSchema schema;
         final Map<UTF8Row, UTF8Row> rows;
         final long size;
 
-        public RTSeg(String name, SegmentSchema schema, Map<UTF8Row, UTF8Row> rows, long size) {
+        public RTSeg(int version, SegmentMode mode, String name, SegmentSchema schema, Map<UTF8Row, UTF8Row> rows, long size) {
+            this.version = version;
+            this.mode = mode;
             this.name = name;
             this.schema = schema;
             this.rows = rows;
             this.size = size;
+        }
+
+        @Override
+        public int version() {
+            return version;
+        }
+
+        @Override
+        public SegmentMode mode() {
+            return mode;
         }
 
         @Override

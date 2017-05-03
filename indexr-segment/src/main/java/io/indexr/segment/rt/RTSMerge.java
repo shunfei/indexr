@@ -18,10 +18,10 @@ import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.pack.DPSegment;
-import io.indexr.segment.pack.OpenOption;
-import io.indexr.segment.pack.StorageSegment;
-import io.indexr.segment.pack.Version;
+import io.indexr.segment.storage.DPSegment;
+import io.indexr.segment.storage.OpenOption;
+import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.Version;
 import io.indexr.util.Try;
 
 /**
@@ -125,7 +125,7 @@ public class RTSMerge {
 
         long itrRowCount = sortedMergeItr.checkDone();
         Preconditions.checkState(rowCount == totalRowCount && itrRowCount == totalRowCount,
-                "Row count: %s, itr rowCount: %s, expected: %s not match",
+                "Row valueCount: %s, itr rowCount: %s, expected: %s not match",
                 rowCount, itrRowCount, totalRowCount);
     }
 }

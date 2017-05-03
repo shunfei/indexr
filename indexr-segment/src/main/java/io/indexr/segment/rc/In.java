@@ -4,26 +4,23 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.apache.spark.unsafe.array.ByteArrayMethods;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.indexr.data.BytePiece;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
-import io.indexr.segment.PackExtIndexStr;
+import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
-import io.indexr.segment.pack.ColumnNode;
-import io.indexr.segment.pack.DataPack;
+import io.indexr.segment.storage.ColumnNode;
+import io.indexr.util.BitMap;
 
 public class In implements CmpOperator {
     @JsonProperty("attr")
@@ -149,193 +146,10 @@ public class In implements CmpOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
         Column column = segment.column(attr.columnId());
-        byte type = attr.dataType();
-        int rowCount = column.dpn(packId).objCount();
-        int hitCount = 0;
-        switch (type) {
-            case ColumnType.STRING: {
-                PackExtIndexStr extIndex = column.extIndex(packId);
-                byte res = RSValue.None;
-                _:
-                for (UTF8String value : strValues) {
-                    for (int rowId = 0; rowId < rowCount; rowId++) {
-                        res = extIndex.isValue(rowId, value);
-                        if (res != RSValue.None) {
-                            break _;
-                        }
-                    }
-                }
-                if (res == RSValue.None) {
-                    return RSValue.None;
-                }
-
-                DataPack pack = column.pack(packId);
-                BytePiece bp = new BytePiece();
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    pack.rawValueAt(rowId, bp);
-                    for (UTF8String value : strValues) {
-                        if (bp.len == value.numBytes()
-                                && ByteArrayMethods.arrayEquals(value.getBaseObject(), value.getBaseOffset(), bp.base, bp.addr, bp.len)) {
-                            hitCount++;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            case ColumnType.INT: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    int v = pack.intValueAt(rowId);
-                    for (long value : numValues) {
-                        if (v == (int) value) {
-                            hitCount++;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            case ColumnType.LONG: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    long v = pack.longValueAt(rowId);
-                    for (long value : numValues) {
-                        if (v == value) {
-                            hitCount++;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            case ColumnType.FLOAT: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    float v = pack.floatValueAt(rowId);
-                    for (long value : numValues) {
-                        if (v == (float) Double.longBitsToDouble(value)) {
-                            hitCount++;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            case ColumnType.DOUBLE: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    double v = pack.doubleValueAt(rowId);
-                    for (long value : numValues) {
-                        if (v == Double.longBitsToDouble(value)) {
-                            hitCount++;
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            default:
-                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
-        }
-        if (hitCount == rowCount) {
-            return RSValue.All;
-        } else if (hitCount > 0) {
-            return RSValue.Some;
-        } else {
-            return RSValue.None;
-        }
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
-        Column column = segment.column(attr.columnId());
-        int rowCount = column.dpn(packId).objCount();
-        BitSet colRes = new BitSet(rowCount);
-        byte type = attr.dataType();
-        switch (type) {
-            case ColumnType.STRING: {
-                DataPack pack = column.pack(packId);
-                BytePiece bp = new BytePiece();
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    pack.rawValueAt(rowId, bp);
-                    boolean ok = false;
-                    for (UTF8String value : strValues) {
-                        if (bp.len == value.numBytes()
-                                && ByteArrayMethods.arrayEquals(value.getBaseObject(), value.getBaseOffset(), bp.base, bp.addr, bp.len)) {
-                            ok = true;
-                        }
-                    }
-                    colRes.set(rowId, ok);
-                }
-                break;
-            }
-            case ColumnType.INT: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    int v = pack.intValueAt(rowId);
-                    boolean ok = false;
-                    for (long value : numValues) {
-                        if (v == (int) value) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    colRes.set(rowId, ok);
-                }
-                break;
-            }
-            case ColumnType.LONG: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    long v = pack.longValueAt(rowId);
-                    boolean ok = false;
-                    for (long value : numValues) {
-                        if (v == value) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    colRes.set(rowId, ok);
-                }
-                break;
-            }
-            case ColumnType.FLOAT: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    float v = pack.floatValueAt(rowId);
-                    boolean ok = false;
-                    for (long value : numValues) {
-                        if (v == (float) Double.longBitsToDouble(value)) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    colRes.set(rowId, ok);
-                }
-                break;
-            }
-            case ColumnType.DOUBLE: {
-                DataPack pack = column.pack(packId);
-                for (int rowId = 0; rowId < rowCount; rowId++) {
-                    double v = pack.doubleValueAt(rowId);
-                    boolean ok = false;
-                    for (long value : numValues) {
-                        if (v == Double.longBitsToDouble(value)) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    colRes.set(rowId, ok);
-                }
-                break;
-            }
-            default:
-                throw new IllegalStateException("column type " + attr.dataType() + " is illegal in " + getType().toUpperCase());
-        }
-        return colRes;
+        PackExtIndex extIndex = column.extIndex(packId);
+        return extIndex.in(column, packId, numValues, strValues);
     }
 
     @Override

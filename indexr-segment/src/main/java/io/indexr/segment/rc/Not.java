@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.Segment;
+import io.indexr.util.BitMap;
 
 public class Not implements LogicalOperator {
     @JsonProperty("child")
@@ -32,7 +32,7 @@ public class Not implements LogicalOperator {
 
     @Override
     public RCOperator applyNot() {
-        return child.applyNot();
+        return child.applyNot().applyNot();
     }
 
     @Override
@@ -52,12 +52,7 @@ public class Not implements LogicalOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
-        throw new IllegalStateException("Should not call this method!");
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
         throw new IllegalStateException("Should not call this method!");
     }
 

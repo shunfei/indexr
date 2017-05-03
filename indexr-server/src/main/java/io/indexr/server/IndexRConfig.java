@@ -27,10 +27,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 
-import io.indexr.segment.pack.IndexExpiredMemCache;
-import io.indexr.segment.pack.IndexMemCache;
-import io.indexr.segment.pack.PackExpiredMemCache;
-import io.indexr.segment.pack.PackMemCache;
+import io.indexr.segment.cache.IndexExpiredMemCache;
+import io.indexr.segment.cache.IndexMemCache;
+import io.indexr.segment.cache.PackExpiredMemCache;
+import io.indexr.segment.cache.PackMemCache;
 import io.indexr.segment.rt.RTResources;
 import io.indexr.util.MemoryUtil;
 
@@ -43,6 +43,7 @@ public class IndexRConfig implements Closeable {
     public static final String DATA_ROOT = "indexr.fs.data.root";
     public static final String LOCAL_DATA_ROOT = "indexr.local.data.root";
     public static final String TIME_ZONE = "indexr.timezone";
+    public static final String CONTROL_SERVER_ENABLE = "indexr.control.enable";
     public static final String CONTROL_POORT = "indexr.control.port";
 
     public static final String MEMCHACHE_EXPIRE_INDEX = "indexr.memory.indexcache.expire.minute";
@@ -54,9 +55,9 @@ public class IndexRConfig implements Closeable {
     public static final String MEMCHACHE_MAX_PACK = "indexr.memory.packcache.limit.mb";
     public static final String MEMCHACHE_MAX_RATE_PACK = "indexr.memory.packcache.limit.rate";
 
-    private static final String ENABLE_RT_MEMORY_LIMIT = "indexr.memory.rt.limit.enable";
-    private static final String MAX_RT_MEMORY = "indexr.memory.rt.limit.mb";
-    private static final String MAX_RT_MEMORY_RATE = "indexr.memory.rt.limit.rate";
+    private static final String RT_ENABLE_MEMORY_LIMIT = "indexr.memory.rt.limit.enable";
+    private static final String RT_MAX_MEMORY = "indexr.memory.rt.limit.mb";
+    private static final String RT_MAX_MEMORY_RATE = "indexr.memory.rt.limit.rate";
 
     public static Path localRTPath(Path localDataRoot) {
         return localDataRoot.resolve("rt/");
@@ -178,7 +179,7 @@ public class IndexRConfig implements Closeable {
         for (Map.Entry<Object, Object> e : systemProp.entrySet()) {
             String key = e.getKey().toString();
             if (key.startsWith("indexr.")) {
-                log.debug("{} = {}", key, e.getValue());
+                log.info("{} = {}", key, e.getValue());
             }
         }
 
@@ -198,6 +199,10 @@ public class IndexRConfig implements Closeable {
 
     public int getControlPort() {
         return Integer.parseInt(System.getProperty(CONTROL_POORT, "9235"));
+    }
+
+    public boolean getControlServerEnable() {
+        return Boolean.parseBoolean(System.getProperty(CONTROL_SERVER_ENABLE, "false"));
     }
 
     public String getZkAddr() {
@@ -329,13 +334,13 @@ public class IndexRConfig implements Closeable {
         if (rtResources != null) {
             return rtResources;
         }
-        boolean enable = Boolean.parseBoolean(System.getProperty(ENABLE_RT_MEMORY_LIMIT, "true"));
+        boolean enable = Boolean.parseBoolean(System.getProperty(RT_ENABLE_MEMORY_LIMIT, "true"));
         long maxMemory;
-        String maxMemoryStr = System.getProperty(MAX_RT_MEMORY);
+        String maxMemoryStr = System.getProperty(RT_MAX_MEMORY);
         if (maxMemoryStr != null) {
             maxMemory = Long.parseLong(maxMemoryStr) << 20;
         } else {
-            double rate = Double.parseDouble(System.getProperty(MAX_RT_MEMORY_RATE, "0.35"));
+            double rate = Double.parseDouble(System.getProperty(RT_MAX_MEMORY_RATE, "0.35"));
             maxMemory = (long) (rate * MemoryUtil.getTotalPhysicalMemorySize());
         }
         rtResources = new RTResources(enable, maxMemory);

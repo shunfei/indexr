@@ -6,7 +6,6 @@ import com.google.common.base.Preconditions;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.apache.directory.api.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,7 @@ import io.indexr.segment.rt.UTF8Row;
 import io.indexr.util.CombinedBlockingIterator;
 import io.indexr.util.IOUtil;
 import io.indexr.util.JsonUtil;
+import io.indexr.util.Strings;
 import io.indexr.util.UTF8Util;
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;

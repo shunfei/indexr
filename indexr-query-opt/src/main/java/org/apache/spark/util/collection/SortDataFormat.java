@@ -4,13 +4,12 @@ package org.apache.spark.util.collection;
  * Abstraction for sorting an arbitrary input buffer of data. This interface requires determining
  * the sort key for a given element index, as well as swapping elements and moving data from one
  * buffer to another.
- * 
+ *
  * Example format: an array of numbers, where each element is also the key.
  * See [[KVArraySortDataFormat]] for a more exciting format.
- * 
+ *
  * Note: Declaring and instantiating multiple subclasses of this class would prevent JIT inlining
  * overridden methods and hence decrease the shuffle performance.
- *
  */
 
 public abstract class SortDataFormat<K, Buffer> {

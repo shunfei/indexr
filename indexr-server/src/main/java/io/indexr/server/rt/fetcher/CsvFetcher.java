@@ -2,7 +2,6 @@ package io.indexr.server.rt.fetcher;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.apache.directory.api.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +17,7 @@ import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.rt.Fetcher;
 import io.indexr.segment.rt.UTF8JsonRowCreator;
 import io.indexr.segment.rt.UTF8Row;
+import io.indexr.util.Strings;
 import io.indexr.util.Trick;
 import io.indexr.util.Try;
 

@@ -2,26 +2,24 @@ package io.indexr.segment.pack;
 
 import org.apache.spark.unsafe.types.UTF8String;
 
-import java.util.Arrays;
-
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.DPValues;
 
-class VirtualDataPack implements DPValues {
+public class VirtualDataPack implements DPValues {
     private final byte dataType;
 
     private Object values;
     private int size;
 
-    VirtualDataPack(byte dataType, Object values, int size) {
+    public VirtualDataPack(byte dataType, Object values, int size) {
         this.dataType = dataType;
         this.values = values;
         this.size = size;
     }
 
-    VirtualDataPack(byte dataType, DataPack pack) {
+    public VirtualDataPack(byte dataType, DataPack pack) {
         this.dataType = dataType;
-        this.size = pack == null ? 0 : pack.objCount();
+        this.size = pack == null ? 0 : pack.valueCount();
         this.values = allocateValues(dataType, DataPack.MAX_COUNT);
         if (pack != null) {
             switch (dataType) {
@@ -76,6 +74,10 @@ class VirtualDataPack implements DPValues {
         }
     }
 
+    public Object cacheValues() {
+        return values;
+    }
+
     private static Object allocateValues(byte dataType, int cap) {
         switch (dataType) {
             case ColumnType.INT:
@@ -93,23 +95,6 @@ class VirtualDataPack implements DPValues {
         }
     }
 
-    PackBundle asPack(int version, boolean useExtIndex) {
-        switch (dataType) {
-            case ColumnType.INT:
-                return DataPack_N.from(version, (int[]) values, 0, size , useExtIndex);
-            case ColumnType.LONG:
-                return DataPack_N.from(version, (long[]) values, 0, size, useExtIndex);
-            case ColumnType.FLOAT:
-                return DataPack_N.from(version, (float[]) values, 0, size, useExtIndex);
-            case ColumnType.DOUBLE:
-                return DataPack_N.from(version, (double[]) values, 0, size, useExtIndex);
-            case ColumnType.STRING:
-                return DataPack_R.from(version, Arrays.asList((UTF8String[]) values).subList(0, size), useExtIndex);
-            default:
-                throw new IllegalArgumentException(String.format("Not support data type of %s", dataType));
-        }
-    }
-
     VirtualDataPack duplicate() {
         int curSize = size;
         Object tmpVals = allocateValues(dataType, curSize);
@@ -117,7 +102,7 @@ class VirtualDataPack implements DPValues {
         return new VirtualDataPack(dataType, tmpVals, curSize);
     }
 
-    void clear() {
+    public void clear() {
         size = 0;
     }
 
@@ -151,7 +136,7 @@ class VirtualDataPack implements DPValues {
     }
 
     @Override
-    public int count() {
+    public int valueCount() {
         return size;
     }
 

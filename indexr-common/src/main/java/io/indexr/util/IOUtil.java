@@ -65,7 +65,7 @@ public class IOUtil {
     }
 
     /**
-     * Slow function, should only used in test. Unless, you choose to optimize it :).
+     * Slow function, should only used in test. Unless, you choose to optimize it.
      * This function will not move the position of <i>from</i>.
      */
     public static void readFully(ByteBuffer from, int offset, ByteBuffer to, int size) {
@@ -74,56 +74,54 @@ public class IOUtil {
         }
     }
 
-    public static void readFully(FSDataInputStream reader, ByteBuffer buffer, int size) throws IOException {
-        readFully(reader, -1, buffer, size);
+    public static void readFully(FSDataInputStream reader, ByteBuffer buffer) throws IOException {
+        readFully(reader, -1, buffer);
     }
 
-    public static void readFully(FSDataInputStream reader, long offset, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
+    public static void readFully(FSDataInputStream reader, long offset, ByteBuffer buffer) throws IOException {
         if (offset >= 0) {
             reader.seek(offset);
         }
+        //reader.skip()
 
         InputStream is = reader.getWrappedStream();
         if (!(is instanceof ByteBufferReadable)) {
             logger.trace("Using read bytes method");
-            byte[] bytes = new byte[size];
+            byte[] bytes = new byte[buffer.remaining()];
             reader.readFully(bytes);
             buffer.put(bytes);
         } else {
-            int read = 0;
-            while (read < size) {
+            while (buffer.hasRemaining()) {
+                int pos = buffer.position();
                 int rt = reader.read(buffer);
                 if (rt < 0) {
                     throw new IOException("End of stream");
                 }
-                read += rt;
+                buffer.position(pos + rt);
             }
         }
+        Preconditions.checkState(!buffer.hasRemaining());
     }
 
-    public static void readFully(FileChannel file, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(file.size() - file.position() >= size && buffer.remaining() >= size,
-                "file.size() - file.position() >= size && buffer.remaining() >= size");
+    public static void readFully(FileChannel file, ByteBuffer buffer) throws IOException {
+        Preconditions.checkState(file.size() - file.position() >= buffer.remaining());
 
-        readFully((ReadableByteChannel) file, buffer, size);
+        readFully((ReadableByteChannel) file, buffer);
     }
 
-    public static void readFullyWithRE(FileChannel file, ByteBuffer buffer, int size) {
+    public static void readFullyWithRE(FileChannel file, ByteBuffer buffer) {
         try {
-            readFully(file, buffer, size);
+            readFully(file, buffer);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void readFully(FileChannel file, long offset, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(file.size() - offset >= size && buffer.remaining() >= size,
-                "file.size() - offset >= size && buffer.remaining() >= size");
+    public static void readFully(FileChannel file, long offset, ByteBuffer buffer) throws IOException {
+        Preconditions.checkState(file.size() - offset >= buffer.remaining());
 
         int read = 0;
-        while (read < size) {
+        while (buffer.hasRemaining()) {
             int rt = file.read(buffer, offset + read);
             if (rt < 0) {
                 throw new IOException("End of file");
@@ -132,85 +130,75 @@ public class IOUtil {
         }
     }
 
-    public static void readFullyWithRE(FileChannel file, long offset, ByteBuffer buffer, int size) {
+    public static void readFullyWithRE(FileChannel file, long offset, ByteBuffer buffer) {
         try {
-            readFully(file, offset, buffer, size);
+            readFully(file, offset, buffer);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void readFully(ReadableByteChannel channel, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
-
-        int read = 0;
-        while (read < size) {
+    public static void readFully(ReadableByteChannel channel, ByteBuffer buffer) throws IOException {
+        while (buffer.hasRemaining()) {
             int rt = channel.read(buffer);
             if (rt < 0) {
                 throw new IOException("End of channel");
             }
-            read += rt;
         }
     }
 
 
-    public static void writeFully(FileChannel file, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
-
-        int write = 0;
-        while (write < size) {
-            write += file.write(buffer);
+    public static void writeFully(FileChannel file, ByteBuffer buffer) throws IOException {
+        while (buffer.hasRemaining()) {
+            int rt = file.write(buffer);
+            if (rt < 0) {
+                throw new IOException("Failed to write");
+            }
         }
     }
 
-    public static void writeFullyWithRE(FileChannel file, ByteBuffer buffer, int size) {
+    public static void writeFullyWithRE(FileChannel file, ByteBuffer buffer) {
         try {
-            writeFully(file, buffer, size);
+            writeFully(file, buffer);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void writeFully(FSDataOutputStream ouput, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
-
+    public static void writeFully(FSDataOutputStream ouput, ByteBuffer buffer) throws IOException {
         byte[] bytes = new byte[2048];
         int count = 0;
+        int size = buffer.remaining();
         while (count < size) {
             int step = Math.min(2048, size - count);
             count += step;
             buffer.get(bytes, 0, step);
             ouput.write(bytes, 0, step);
         }
+        assert !buffer.hasRemaining();
     }
 
-    public static void writeFully(WritableByteChannel channel, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
-
-        int write = 0;
-        while (write < size) {
-            write += channel.write(buffer);
+    public static void writeFully(WritableByteChannel channel, ByteBuffer buffer) throws IOException {
+        while (buffer.hasRemaining()) {
+            int rt = channel.write(buffer);
+            if (rt < 0) {
+                throw new IOException("Failed to write");
+            }
         }
-        assert write == size;
     }
 
-    public static void writeFully(FileChannel file, long offset, ByteBuffer buffer, int size) throws IOException {
-        Preconditions.checkState(buffer.remaining() >= size,
-                "buffer.remaining() >= size");
-
+    public static void writeFully(FileChannel file, long offset, ByteBuffer buffer) throws IOException {
         int write = 0;
+        int size = buffer.remaining();
         while (write < size) {
             write += file.write(buffer, offset + write);
         }
+        assert !buffer.hasRemaining();
     }
 
-    public static void writeFullyWithRE(FileChannel file, long offset, ByteBuffer buffer, int size) {
+    public static void writeFullyWithRE(FileChannel file, long offset, ByteBuffer buffer) {
         try {
-            writeFully(file, offset, buffer, size);
+            writeFully(file, offset, buffer);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

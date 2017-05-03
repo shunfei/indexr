@@ -7,13 +7,13 @@ import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
+import io.indexr.util.BitMap;
 
 public class And implements LogicalOperator {
     @JsonProperty("children")
@@ -98,12 +98,49 @@ public class And implements LogicalOperator {
     }
 
     private RCOperator tryToBetween() {
+        And op = this;
+        while (true) {
+            And newOp = _tryToBetween(op);
+            if (newOp != null) {
+                op = newOp;
+            } else {
+                return op;
+            }
+        }
+    }
+
+    private static And _tryToBetween(And and) {
         // "a >= 10 and a <= 20" -> "a between(10, 20)"
-        if (children.size() != 2) {
+        if (and.children.size() < 2) {
             return null;
         }
-        RCOperator left = children.get(0);
-        RCOperator right = children.get(1);
+        RCOperator left = null, right = null;
+        RCOperator between = null;
+        L:
+        for (int i = 0; i < and.children.size(); i++) {
+            left = and.children.get(i);
+            for (int j = i + 1; j < and.children.size(); j++) {
+                right = and.children.get(j);
+                between = _tryToBetween(left, right);
+                if (between != null) {
+                    break L;
+                }
+            }
+        }
+        if (between != null) {
+            List<RCOperator> newChildren = new ArrayList<>(and.children.size() - 1);
+            newChildren.add(between);
+            for (RCOperator child : and.children) {
+                if (child != left && child != right) {
+                    newChildren.add(child);
+                }
+            }
+            return new And(newChildren);
+        }
+        return null;
+    }
+
+    private static RCOperator _tryToBetween(RCOperator left, RCOperator right) {
         if (left.getClass() == GreaterEqual.class && right.getClass() == LessEqual.class) {
             GreaterEqual ge = (GreaterEqual) left;
             LessEqual le = (LessEqual) right;
@@ -149,28 +186,18 @@ public class And implements LogicalOperator {
     }
 
     @Override
-    public byte roughCheckOnRow(Segment segment, int packId) throws IOException {
-        boolean hasSome = false;
+    public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
+        BitMap res = null;
         for (RCOperator op : children) {
-            byte v = op.roughCheckOnRow(segment, packId);
-            if (v == RSValue.None) {
-                return RSValue.None;
-            } else if (v == RSValue.Some) {
-                hasSome = true;
-            }
-        }
-        return hasSome ? RSValue.Some : RSValue.All;
-    }
-
-    @Override
-    public BitSet exactCheckOnRow(Segment segment, int packId) throws IOException {
-        BitSet res = null;
-        for (RCOperator op : children) {
-            BitSet bitSet = op.exactCheckOnRow(segment, packId);
-            if (res == null) {
+            BitMap bitSet = op.exactCheckOnRow(segment, packId);
+            if (bitSet == BitMap.NONE) {
+                return BitMap.NONE;
+            } else if (bitSet == BitMap.SOME) {
+                return BitMap.SOME;
+            } else if (res == null) {
                 res = bitSet;
             } else {
-                res.and(bitSet);
+                res = BitMap.and(res, bitSet);
             }
         }
         return res;
