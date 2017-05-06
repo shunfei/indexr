@@ -4,7 +4,9 @@
 
 IndexR is a distributed, columnar data warehouse based on HDFS, which focus on fast analyse, both for massive static(historical) data and rapidly ingesting realtime data. IndexR is designed for OLAP.
 
-**Document** : [https://github.com/shunfei/indexr/wiki](https://github.com/shunfei/indexr/wiki)
+#### Document
+
+[https://github.com/shunfei/indexr/wiki](https://github.com/shunfei/indexr/wiki)
 
 #### Links
 
@@ -15,8 +17,12 @@ Please feel free to file any issues.
 
 ## Contact
 
-* Email: <indexrdb@gmail.com>
+* Email: <519178957@qq.com>
 * QQ Group: 606666586 (IndexR讨论组)
+
+## Commercial Services
+
+[IndexREE](https://github.com/shunfei/indexr/wiki/indexree)
 
 ## License
 
