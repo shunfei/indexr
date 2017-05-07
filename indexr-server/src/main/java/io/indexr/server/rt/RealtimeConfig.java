@@ -65,9 +65,9 @@ public class RealtimeConfig {
     @JsonProperty("ingest")
     public final boolean ingest;
     @JsonProperty("mode")
-    public final String modeName;
+    public String modeName;
     @JsonIgnore
-    public final SegmentMode mode;
+    public SegmentMode mode;
     @JsonProperty("fetcher")
     public final Fetcher fetcher;
 
@@ -86,17 +86,6 @@ public class RealtimeConfig {
                           @JsonProperty("mode") String modeName,
                           @JsonProperty("fetcher") Fetcher fetcher) {
         this.aggSchema = new AggSchema(grouping != null && grouping, dims, metrics);
-        //this.grouping = grouping == null ? false : grouping;
-        //if (dims == null) {
-        //    this.dims = null;
-        //} else {
-        //    this.dims = dims.stream().map(String::toLowerCase).collect(Collectors.toList());
-        //}
-        //if (metrics == null) {
-        //    this.metrics = null;
-        //} else {
-        //    this.metrics = metrics.stream().map(m -> new Metric(m.name.toLowerCase(), m.aggName().toLowerCase())).collect(Collectors.toList());
-        //}
 
         if (nameToAlias == null) {
             this.nameToAlias = null;
@@ -120,6 +109,11 @@ public class RealtimeConfig {
 
     public void setAggSchema(AggSchema aggSchema) {
         this.aggSchema = aggSchema;
+    }
+
+    public void setMode(SegmentMode mode) {
+        this.modeName = mode.name();
+        this.mode = mode;
     }
 
     @Override

@@ -213,7 +213,7 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
                 }
                 IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(name, sectionInfo, readerOpener);
                 if (fd.info().rowCount() == 0) {
-                    logger.info("table [{}] ignore empty segment [{}]", tableName, name);
+                    logger.debug("table [{}] ignore empty segment [{}]", tableName, name);
                 } else {
                     segmentFdMap.put(name, new SegmentFdAndTime(fd, fileStatus.getModificationTime(), fileStatus.getLen()));
                     logger.info("table [{}] add new segment [{}]", tableName, name);

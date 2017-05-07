@@ -203,11 +203,17 @@ public class RealtimeTable implements Closeable {
 
     private long ingest() {
         synchronized (ingestThreadLock) {
-            if (state == State.CLOSE
-                    || (!isIngestState() || !setting.ingest)) {
+            if (!isIngestState()) {
                 if (Thread.currentThread() == ingestThread) {
                     ingestThread = null;
                 }
+                return -1;
+            }
+            if (!setting.ingest) {
+                if (Thread.currentThread() == ingestThread) {
+                    ingestThread = null;
+                }
+                state = State.STOP;
                 return -1;
             }
             if (Thread.currentThread() != ingestThread) {
@@ -419,8 +425,7 @@ public class RealtimeTable implements Closeable {
 
     // Wether this rtsg can be ingested or not.
     private boolean isRTSGIngestable(RTSGroup rtsGroup) {
-        return rtsGroup.version() == Version.LATEST_ID
-                && isRTSGSettingOk(rtsGroup)
+        return isRTSGSettingOk(rtsGroup)
                 && rtsGroup.allowAddSegment()
                 && !rtsGroup.timeToUpload(setting.uploadPeriodMS, setting.maxRowInRealtime);
     }
@@ -428,7 +433,9 @@ public class RealtimeTable implements Closeable {
     // Wether this rtsg holds the latest setting.
     private boolean isRTSGSettingOk(RTSGroup rtsGroup) {
         Path rtsgPath = rtsGroup.path();
-        return rtsgPath.getParent().equals(localDir)
+        return rtsGroup.version() == Version.LATEST_ID
+                && rtsGroup.mode().equals(setting.mode)
+                && rtsgPath.getParent().equals(localDir)
                 && rtsGroup.schema().equals(setting.schema)
                 && rtsGroup.grouping() == setting.grouping
                 && Trick.equals(rtsGroup.dims(), setting.dims)

@@ -69,7 +69,6 @@ public class RealtimeSetting {
         if (maxRowInRealtime != that.maxRowInRealtime) return false;
         if (grouping != that.grouping) return false;
         if (ingest != that.ingest) return false;
-        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
         if (schema != null ? !schema.equals(that.schema) : that.schema != null) return false;
         if (dims != null ? !dims.equals(that.dims) : that.dims != null) return false;
         if (metrics != null ? !metrics.equals(that.metrics) : that.metrics != null) return false;
@@ -77,10 +76,10 @@ public class RealtimeSetting {
             return false;
         if (tagSetting != null ? !tagSetting.equals(that.tagSetting) : that.tagSetting != null)
             return false;
-        if (ignoreStrategy != null ? !ignoreStrategy.equals(that.ignoreStrategy) : that.ignoreStrategy != null)
-            return false;
+        if (ignoreStrategy != that.ignoreStrategy) return false;
         if (timeZone != null ? !timeZone.equals(that.timeZone) : that.timeZone != null)
             return false;
+        if (mode != null ? !mode.equals(that.mode) : that.mode != null) return false;
         return fetcher != null ? fetcher.equals(that.fetcher) : that.fetcher == null;
     }
 
