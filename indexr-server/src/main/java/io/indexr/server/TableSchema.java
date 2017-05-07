@@ -18,9 +18,9 @@ public class TableSchema {
     @JsonProperty("schema")
     public final SegmentSchema schema;
     @JsonProperty("mode")
-    public final String modeName;
+    public String modeName;
     @JsonIgnore
-    public final SegmentMode mode;
+    public SegmentMode mode;
     @JsonProperty("agg")
     public AggSchema aggSchema;
     @JsonProperty("realtime")
@@ -61,6 +61,11 @@ public class TableSchema {
                 this.aggSchema.metrics,
                 this.aggSchema.grouping);
         Preconditions.checkState(error == null, error);
+    }
+
+    public void setMode(SegmentMode mode) {
+        this.modeName = mode.name();
+        this.mode = mode;
     }
 
     @Override

@@ -64,6 +64,12 @@ public class SegmentMode {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        SegmentMode other = (SegmentMode) obj;
+        return id == other.id && Strings.equals(name, other.name);
+    }
+
+    @Override
     public String toString() {
         return name().toLowerCase();
     }

@@ -370,13 +370,14 @@ public class DPColumn extends StorageColumn {
                 PackExtIndex extIndex = column.loadExtIndex(dpn);
                 DataPack pack = new DataPack(null, column.loadPack(dpn), dpn);
                 if (dpn.version() == version
+                        && dpn.mode().equals(mode)
                         && dpn.objCount() != 0
                         && (dpn.objCount() & DataPack.MASK) == 0) {
                     // Copy full packs directly.
                     this.savePack(dpn.clone(), pack, packIndex, extIndex);
                     pack.free();
                 } else {
-                    // If pack is not full or the versions not match, then append values by rows.
+                    // If pack is not full or the versions/modes not match, then append values by rows.
                     pack.decompress(dataType(), dpn);
                     appendByRows.add(pack);
                 }

@@ -34,6 +34,7 @@ import io.indexr.plugin.Plugins;
 import io.indexr.segment.Column;
 import io.indexr.segment.InfoSegment;
 import io.indexr.segment.SegmentManager;
+import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.DataPackNode;
 import io.indexr.segment.rt.RTSGroupInfo;
@@ -84,6 +85,7 @@ public class Tools {
                 "\nrmrtt     - remove realtime table from hosts. [-t, -host]" +
                 "\nnotifysu  - notify segment update. [-t]" +
                 "\nhivesql   - get the hive table creation sql. Specify the partition column of hive table by -column <columnName>. [-t, -c, -column, -hivetb]" +
+                "\nupmode    - update table segment mode. [-t, -mode]" +
                 "\n=====================================")
         String cmd;
 
@@ -104,6 +106,9 @@ public class Tools {
         String host;
         @Option(name = "-port", metaVar = "<port>", usage = "control port of node")
         int port = 9235;
+
+        @Option(name = "-mode", metaVar = "<mode>", usage = "segment mode")
+        String mode = SegmentMode.DEFAULT.name();
     }
 
     public static void main(String[] args) throws Exception {
@@ -173,6 +178,8 @@ public class Tools {
                 return notifySegmentUpdate(options, config);
             case "hivesql":
                 return hiveCreateSql(options, config);
+            case "upmode":
+                return updateMode(options, config);
             default:
                 System.out.println("Illegal cmd: " + options.cmd);
                 return false;
@@ -523,4 +530,27 @@ public class Tools {
         return true;
     }
 
+    private static boolean updateMode(MyOptions options, IndexRConfig config) throws Exception {
+        Preconditions.checkState(!Strings.isEmpty(options.table), "Please specify table name! -t <name>");
+        Preconditions.checkState(!Strings.isEmpty(options.mode), "Please specify segment mode by -mode <mode>");
+        SegmentMode newMode = SegmentMode.fromName(options.mode);
+
+        String[] tables = options.table.trim().split(",");
+        for (String table : tables) {
+            table = table.trim();
+            ZkTableManager tm = new ZkTableManager(config.getZkClient());
+            TableSchema schema = tm.getTableSchema(table);
+            if (schema == null) {
+                System.out.printf("Table [%s] schema not found in system.\n", table);
+                return false;
+            }
+
+            schema.setMode(newMode);
+            schema.realtimeConfig.setMode(newMode);
+
+            tm.set(table, schema);
+        }
+
+        return true;
+    }
 }
