@@ -22,7 +22,7 @@ Please feel free to file any issues.
 
 ## Commercial Services
 
-[IndexREE](https://github.com/shunfei/indexr/wiki/indexree)
+[IndexREE](https://github.com/shunfei/indexr/wiki/IndexREE) - Enterprise Edition of IdnexR.
 
 ## License
 
