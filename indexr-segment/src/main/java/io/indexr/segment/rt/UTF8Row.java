@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.indexr.data.BytePiece;
 import io.indexr.segment.ColumnSchema;
@@ -138,6 +139,17 @@ public class UTF8Row implements Row, Serializable {
             if (dims != null && metrics != null) {
                 Trick.notRepeated(Trick.concatToList(dims, Lists.transform(metrics, m -> m.name)), s -> s);
             }
+
+            // Ignore the cases.
+            dims = dims == null ? null : dims.stream().map(String::toLowerCase).collect(Collectors.toList());
+            if (nameToAlias != null) {
+                Map<String, String> newNameToAlias = new HashMap<>();
+                for (Map.Entry<String, String> e : nameToAlias.entrySet()) {
+                    newNameToAlias.put(e.getKey().toLowerCase(), e.getValue());
+                }
+                nameToAlias = newNameToAlias;
+            }
+
 
             this.ignoreStrategy = ignoreStrategy.id;
 

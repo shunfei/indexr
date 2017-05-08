@@ -18,7 +18,7 @@ public class Metric {
         assert name != null;
         assert aggType != null;
 
-        this.name = name;
+        this.name = name.toLowerCase().trim();
         this.aggType = AggType.forName(aggType);
     }
 
