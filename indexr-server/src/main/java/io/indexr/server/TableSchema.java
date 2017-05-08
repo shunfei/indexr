@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
@@ -43,6 +44,7 @@ public class TableSchema {
             aggSchema = this.realtimeConfig.aggSchema;
         }
         if ((aggSchema == null || Trick.isEmpty(aggSchema.dims)) && !Trick.isEmpty(sortColumns)) {
+            sortColumns = sortColumns.stream().map(c -> c.toLowerCase().trim()).collect(Collectors.toList());
             aggSchema = new AggSchema(false, sortColumns, null);
         }
         if (aggSchema == null) {
