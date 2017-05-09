@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.rt.AggSchema;
+import io.indexr.util.Trick;
 
 public class HiveHelper {
     @Deprecated
@@ -30,21 +31,23 @@ public class HiveHelper {
                                                String location,
                                                String partitionColumn) throws Exception {
         String colDefStr = Joiner.on(",\n").join(Lists.transform(schema.getColumns(), sc -> {
+            // Hive is case unsensitive.
+            String name = sc.getName().toLowerCase();
             switch (sc.getSqlType()) {
                 case INT:
-                    return String.format("  `%s` int", sc.getName());
+                    return String.format("  `%s` int", name);
                 case BIGINT:
-                    return String.format("  `%s` bigint", sc.getName());
+                    return String.format("  `%s` bigint", name);
                 case FLOAT:
-                    return String.format("  `%s` float", sc.getName());
+                    return String.format("  `%s` float", name);
                 case DOUBLE:
-                    return String.format("  `%s` double", sc.getName());
+                    return String.format("  `%s` double", name);
                 case VARCHAR:
-                    return String.format("  `%s` string", sc.getName());
+                    return String.format("  `%s` string", name);
                 case DATE:
-                    return String.format("  `%s` date", sc.getName());
+                    return String.format("  `%s` date", name);
                 case DATETIME:
-                    return String.format("  `%s` timestamp", sc.getName());
+                    return String.format("  `%s` timestamp", name);
                 default:
                     throw new IllegalStateException("Illegal type :" + sc.getSqlType());
             }
@@ -69,10 +72,19 @@ public class HiveHelper {
             createTableSql += "LOCATION '" + location + "' \n";
         }
         createTableSql += "TBLPROPERTIES (\n";
-        createTableSql += "'" + KEY_SEGMENT_MODE + "'='" + mode + "',\n";
-        createTableSql += "'" + KEY_AGG_GROUPING + "'='" + String.valueOf(aggSchema.grouping) + "',\n";
-        createTableSql += "'" + KEY_AGG_DIMS + "'='" + StringUtils.join(aggSchema.dims, ",") + "',\n";
-        createTableSql += "'" + KEY_AGG_METRICS + "'='" + StringUtils.join(aggSchema.metrics.stream().map(m -> m.name + ":" + m.aggName()).collect(Collectors.toList()), ",") + "'";
+        createTableSql += "'" + KEY_SEGMENT_MODE + "'='" + mode + "'";
+        if (aggSchema.grouping) {
+            createTableSql += ",\n'" + KEY_AGG_GROUPING + "'='" + String.valueOf(aggSchema.grouping) + "'";
+        }
+        if (!Trick.isEmpty(aggSchema.dims)) {
+            // Hive is case unsensitive.
+            List<String> dims = aggSchema.dims.stream().map(String::toLowerCase).collect(Collectors.toList());
+            createTableSql += ",\n'" + KEY_AGG_DIMS + "'='" + StringUtils.join(dims, ",") + "'";
+        }
+        if (!Trick.isEmpty(aggSchema.metrics)) {
+            // Hive is case unsensitive.
+            createTableSql += ",\n'" + KEY_AGG_METRICS + "'='" + StringUtils.join(aggSchema.metrics.stream().map(m -> m.name.toLowerCase() + ":" + m.aggName()).collect(Collectors.toList()), ",") + "'";
+        }
         createTableSql += "\n) \n";
 
         return createTableSql;

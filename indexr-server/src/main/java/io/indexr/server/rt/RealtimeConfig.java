@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,15 +85,7 @@ public class RealtimeConfig {
                           @JsonProperty("mode") String modeName,
                           @JsonProperty("fetcher") Fetcher fetcher) {
         this.aggSchema = new AggSchema(grouping != null && grouping, dims, metrics);
-
-        if (nameToAlias == null) {
-            this.nameToAlias = null;
-        } else {
-            this.nameToAlias = new HashMap<>();
-            for (Map.Entry<String, String> e : nameToAlias.entrySet()) {
-                this.nameToAlias.put(e.getKey().toLowerCase(), e.getValue());
-            }
-        }
+        this.nameToAlias = nameToAlias;
         this.tagSetting = tagSetting;
         this.ignoreStrategy = EventIgnoreStrategy.fromName(ignoreStrategy);
         this.savePeriodMinutes = savePeriodMinutes == null ? 20 : savePeriodMinutes;

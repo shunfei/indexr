@@ -13,6 +13,7 @@ import io.indexr.util.Strings;
 import io.indexr.util.Trick;
 
 public class RealtimeHelper {
+
     public static String validateSetting(List<ColumnSchema> columnSchemas,
                                          List<String> dims,
                                          List<Metric> metrics,

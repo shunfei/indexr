@@ -114,15 +114,15 @@ public class Rt2HisOnHive {
             String aggDimsStr = properties.getOrDefault(HiveHelper.KEY_AGG_DIMS, "");
             String aggMetricsStr = properties.getOrDefault(HiveHelper.KEY_AGG_METRICS, "");
 
-            boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim().toLowerCase());
-            List<String> sortColumns = Trick.split(sortColumnsStr, ",", s -> s.trim().toLowerCase());
-            List<String> dims = Trick.split(aggDimsStr, ",", s -> s.trim().toLowerCase());
+            boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim());
+            List<String> sortColumns = Trick.split(sortColumnsStr, ",", String::trim);
+            List<String> dims = Trick.split(aggDimsStr, ",", String::trim);
             if (dims.isEmpty()) {
                 dims = sortColumns;
             }
             List<Metric> metrics = Trick.split(aggMetricsStr, ",", s -> {
                 String[] ss = s.trim().split(":", 2);
-                return new Metric(ss[0].trim().toLowerCase(), ss[1].trim().toLowerCase());
+                return new Metric(ss[0].trim(), ss[1].trim());
             });
             AggSchema aggSchema = new AggSchema(
                     grouping,

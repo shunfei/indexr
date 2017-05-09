@@ -51,7 +51,7 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         String aggDimsStr = tableProperties.getProperty(Config.KEY_AGG_DIMS, "");
         String aggMetricsStr = tableProperties.getProperty(Config.KEY_AGG_METRICS, "");
 
-        boolean compress = Boolean.parseBoolean(compressStr.trim().toLowerCase());
+        boolean compress = Boolean.parseBoolean(compressStr.trim());
         SegmentMode mode = SegmentMode.fromNameWithCompress(modeStr, compress);
 
 
@@ -60,7 +60,7 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
 
         if (!Strings.isEmpty(columnNameProperty)) {
             for (String s : columnNameProperty.trim().split(",")) {
-                columnNames.add(s.trim().toLowerCase());
+                columnNames.add(s.trim());
             }
         }
 
@@ -69,15 +69,15 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         }
         SegmentSchema schema = convertToIndexRSchema(columnNames, columnTypes);
 
-        boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim().toLowerCase());
-        List<String> sortColumns = Trick.split(sortColumnsStr, ",", s -> s.trim().toLowerCase());
-        List<String> dims = Trick.split(aggDimsStr, ",", s -> s.trim().toLowerCase());
+        boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim());
+        List<String> sortColumns = Trick.split(sortColumnsStr, ",", String::trim);
+        List<String> dims = Trick.split(aggDimsStr, ",", String::trim);
         if (dims.isEmpty()) {
             dims = sortColumns;
         }
         List<Metric> metrics = Trick.split(aggMetricsStr, ",", s -> {
             String[] ss = s.trim().split(":", 2);
-            return new Metric(ss[0].trim().toLowerCase(), ss[1].trim().toLowerCase());
+            return new Metric(ss[0].trim(), ss[1].trim());
         });
         AggSchema aggSchema = new AggSchema(
                 grouping,

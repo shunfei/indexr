@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -171,16 +170,9 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             this.name = name;
             this.schema = schema;
             this.createTime = createTime;
-            this.dims = dims == null ? null : dims.stream().map(String::toLowerCase).collect(Collectors.toList());
+            this.dims = dims;
             this.metrics = metrics;
-            if (nameToAlias == null) {
-                this.nameToAlias = null;
-            } else {
-                this.nameToAlias = new HashMap<>();
-                for (Map.Entry<String, String> e : nameToAlias.entrySet()) {
-                    this.nameToAlias.put(e.getKey().toLowerCase(), e.getValue());
-                }
-            }
+            this.nameToAlias = nameToAlias;
             this.grouping = grouping;
             this.mode = SegmentMode.fromNameWithCompress(modeName, compress);
             this.modeName = this.mode.name();
