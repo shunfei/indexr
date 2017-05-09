@@ -42,7 +42,7 @@ public class ColumnSchema {
                         SQLType sqlType,
                         boolean isIndexed,
                         String defaultValue) {
-        this.name = name.toLowerCase().intern();
+        this.name = name.intern();
         this.sqlType = sqlType;
         this.isIndexed = isIndexed;
         this.defaultStringValue = defaultValue == null ? "" : defaultValue.intern();
