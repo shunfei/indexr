@@ -9,6 +9,8 @@ import org.apache.spark.unsafe.types.UTF8String;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.misc.VM;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +25,6 @@ import io.indexr.segment.ColumnType;
 import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
 import io.indexr.util.ByteArrayWrapper;
-import io.indexr.util.ByteBufferUtil;
 import io.indexr.util.BytesUtil;
 import io.indexr.util.MemoryUtil;
 import io.indexr.util.Serializable;
@@ -321,9 +322,25 @@ public class UTF8Row implements Row, Serializable {
             // Use off-heap memory to store row data.
             // We don't want those rows stored in JVM headp as they can put too much pressure on GC.
             // Besides those rows' lifecycle can be easily managed.
-            //long rowDataAddr = MemoryUtil.allocate(totalRowSize);
-            ByteBuffer rowDataBuffer = ByteBufferUtil.allocateDirect(totalRowSize);
-            long rowDataAddr = MemoryUtil.getAddress(rowDataBuffer);
+
+            // Copied from java.nio.DirectByteBuffer
+
+            long rowDataMemoryBase;
+            long rowDataAddr;
+
+            boolean pa = VM.isDirectMemoryPageAligned();
+            int ps = MemoryUtil.pageSize();
+            long size = Math.max(1L, (long) totalRowSize + (pa ? ps : 0));
+            rowDataMemoryBase = MemoryUtil.allocate(size);
+            MemoryUtil.setMemory(rowDataMemoryBase, size, (byte) 0);
+
+            if (pa && (rowDataMemoryBase % ps != 0)) {
+                // Round up to page boundary
+                rowDataAddr = rowDataMemoryBase + ps - (rowDataMemoryBase & (ps - 1));
+            } else {
+                rowDataAddr = rowDataMemoryBase;
+            }
+
             if (hasDims) {
                 // Put dims values and raw values together, convient for equal check.
                 int dimValueSize = dimCount << 3;
@@ -374,7 +391,7 @@ public class UTF8Row implements Row, Serializable {
                 }
 
                 long code = grouping ? 0 : nextRowId++;
-                return new UTF8Row(code, this, rowDataBuffer, totalRowSize, dimDataSize);
+                return new UTF8Row(code, this, rowDataMemoryBase, rowDataAddr, totalRowSize, dimDataSize);
             } else {
                 int valueSize = columnCount << 3;
                 Platform.copyMemory(valuesBuffer, LONG_ARRAY_OFFSET, null, rowDataAddr, valueSize);
@@ -398,7 +415,7 @@ public class UTF8Row implements Row, Serializable {
                     }
                 }
 
-                return new UTF8Row(nextRowId++, this, rowDataBuffer, totalRowSize, 0);
+                return new UTF8Row(nextRowId++, this, rowDataMemoryBase, rowDataAddr, totalRowSize, 0);
             }
         }
 
@@ -653,7 +670,9 @@ public class UTF8Row implements Row, Serializable {
     }
 
     private final Creator creator;
-    private ByteBuffer rowDataBuffer;
+    // The memory where row data allocated. This value is used to free memory.
+    private long rowDataMemoryBase;
+    // The memory where row data actually begin.
     private long rowDataAddr;
     private final int rowDataSize;
     private final int dimDataSize;
@@ -662,19 +681,19 @@ public class UTF8Row implements Row, Serializable {
     // This is used to stop comparator return 0 if grouping is disable.
     private final long code;
 
-    private UTF8Row(long code, Creator creator, ByteBuffer rowDataBuffer, int rowDataSize, int dimDataSize) {
+    private UTF8Row(long code, Creator creator, long rowDataMemoryBase, long rowDataAddr, int rowDataSize, int dimDataSize) {
         this.code = code;
         this.creator = creator;
-        this.rowDataBuffer = rowDataBuffer;
-        this.rowDataAddr = MemoryUtil.getAddress(rowDataBuffer);
+        this.rowDataMemoryBase = rowDataMemoryBase;
+        this.rowDataAddr = rowDataAddr;
         this.rowDataSize = rowDataSize;
         this.dimDataSize = dimDataSize;
     }
 
     public void free() {
-        if (rowDataBuffer != null) {
-            ByteBufferUtil.free(rowDataBuffer);
-            rowDataBuffer = null;
+        if (rowDataMemoryBase != 0) {
+            MemoryUtil.free(rowDataMemoryBase);
+            rowDataMemoryBase = 0;
             rowDataAddr = 0;
         }
     }

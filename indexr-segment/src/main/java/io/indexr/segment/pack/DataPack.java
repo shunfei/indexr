@@ -495,9 +495,29 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public final UTF8String stringValueAt(int index) {
-        long[] startEnd = getRawValueStartEnd(index);
-        long startAddr = startEnd[0];
-        long endAddr = startEnd[1];
+        long startAddr, endAddr;
+        switch (version) {
+            case Version.VERSION_0_ID: {
+                if (maxObjLen == 0) {
+                    startAddr = 0;
+                    endAddr = 0;
+                } else {
+                    long indexAddr = dataAddr + (index << 3) + 4;
+                    int str_offset = (objCount << 3) + 4;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                }
+                break;
+            }
+            default: {
+                long indexAddr = dataAddr + (index << 2);
+                int str_offset = (objCount + 1) << 2;
+                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                break;
+            }
+        }
+
         if (startAddr == endAddr) {
             return UTF8String.EMPTY_UTF8;
         } else {
@@ -506,18 +526,58 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public final void rawValueAt(int index, BytePiece bytes) {
-        long[] startEnd = getRawValueStartEnd(index);
-        long startAddr = startEnd[0];
-        long endAddr = startEnd[1];
+        long startAddr, endAddr;
+        switch (version) {
+            case Version.VERSION_0_ID: {
+                if (maxObjLen == 0) {
+                    startAddr = 0;
+                    endAddr = 0;
+                } else {
+                    long indexAddr = dataAddr + (index << 3) + 4;
+                    int str_offset = (objCount << 3) + 4;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                }
+                break;
+            }
+            default: {
+                long indexAddr = dataAddr + (index << 2);
+                int str_offset = (objCount + 1) << 2;
+                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                break;
+            }
+        }
+
         bytes.base = null;
         bytes.addr = startAddr;
         bytes.len = (int) (endAddr - startAddr);
     }
 
     public final byte[] rawValueAt(int index) {
-        long[] startEnd = getRawValueStartEnd(index);
-        long startAddr = startEnd[0];
-        long endAddr = startEnd[1];
+        long startAddr, endAddr;
+        switch (version) {
+            case Version.VERSION_0_ID: {
+                if (maxObjLen == 0) {
+                    startAddr = 0;
+                    endAddr = 0;
+                } else {
+                    long indexAddr = dataAddr + (index << 3) + 4;
+                    int str_offset = (objCount << 3) + 4;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                }
+                break;
+            }
+            default: {
+                long indexAddr = dataAddr + (index << 2);
+                int str_offset = (objCount + 1) << 2;
+                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                break;
+            }
+        }
+
         if (startAddr == endAddr) {
             return new byte[0];
         } else {
@@ -529,9 +589,29 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public final ByteBuffer valueAt(int index) {
-        long[] startEnd = getRawValueStartEnd(index);
-        long startAddr = startEnd[0];
-        long endAddr = startEnd[1];
+        long startAddr, endAddr;
+        switch (version) {
+            case Version.VERSION_0_ID: {
+                if (maxObjLen == 0) {
+                    startAddr = 0;
+                    endAddr = 0;
+                } else {
+                    long indexAddr = dataAddr + (index << 3) + 4;
+                    int str_offset = (objCount << 3) + 4;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                }
+                break;
+            }
+            default: {
+                long indexAddr = dataAddr + (index << 2);
+                int str_offset = (objCount + 1) << 2;
+                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                break;
+            }
+        }
+
         if (startAddr == endAddr) {
             return ByteSlice.EmptyByteBuffer;
         } else {
@@ -542,14 +622,41 @@ public final class DataPack implements DPValues, Freeable {
     @Override
     public final void foreach(int start, int count, BytePieceSetter setter) {
         BytePiece bytes = new BytePiece();
-        for (int index = start; index < start + count; index++) {
-            long[] startEnd = getRawValueStartEnd(index);
-            long startAddr = startEnd[0];
-            long endAddr = startEnd[1];
-            bytes.addr = startAddr;
-            bytes.len = (int) (endAddr - startAddr);
-            setter.set(index, bytes);
+        switch (version) {
+            case Version.VERSION_0_ID:
+                for (int index = start; index < start + count; index++) {
+                    long startAddr, endAddr;
+
+                    if (maxObjLen == 0) {
+                        startAddr = 0;
+                        endAddr = 0;
+                    } else {
+                        long indexAddr = dataAddr + (index << 3) + 4;
+                        int str_offset = (objCount << 3) + 4;
+                        startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                        endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                    }
+
+                    bytes.addr = startAddr;
+                    bytes.len = (int) (endAddr - startAddr);
+                    setter.set(index, bytes);
+                }
+                break;
+            default:
+                for (int index = start; index < start + count; index++) {
+                    long startAddr, endAddr;
+
+                    long indexAddr = dataAddr + (index << 2);
+                    int str_offset = (objCount + 1) << 2;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+
+                    bytes.addr = startAddr;
+                    bytes.len = (int) (endAddr - startAddr);
+                    setter.set(index, bytes);
+                }
         }
+
     }
 
     public int foreach(BitMap position, BytePieceSetter setter) {
@@ -561,19 +668,53 @@ public final class DataPack implements DPValues, Freeable {
         int count = 0;
         BytePiece bytes = new BytePiece();
         int index;
-        while ((index = posIterator.nextSetBit()) != BitSetIterator.NO_MORE) {
-            if (index >= objCount) {
-                break;
-            }
-            long[] startEnd = getRawValueStartEnd(index);
-            long startAddr = startEnd[0];
-            long endAddr = startEnd[1];
-            bytes.addr = startAddr;
-            bytes.len = (int) (endAddr - startAddr);
-            setter.set(index, bytes);
 
-            count++;
+        switch (version) {
+            case Version.VERSION_0_ID:
+                while ((index = posIterator.nextSetBit()) != BitSetIterator.NO_MORE) {
+                    if (index >= objCount) {
+                        break;
+                    }
+
+                    long startAddr, endAddr;
+                    if (maxObjLen == 0) {
+                        startAddr = 0;
+                        endAddr = 0;
+                    } else {
+                        long indexAddr = dataAddr + (index << 3) + 4;
+                        int str_offset = (objCount << 3) + 4;
+                        startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                        endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                    }
+
+                    bytes.addr = startAddr;
+                    bytes.len = (int) (endAddr - startAddr);
+                    setter.set(index, bytes);
+
+                    count++;
+                }
+                break;
+            default:
+                while ((index = posIterator.nextSetBit()) != BitSetIterator.NO_MORE) {
+                    if (index >= objCount) {
+                        break;
+                    }
+
+                    long startAddr, endAddr;
+
+                    long indexAddr = dataAddr + (index << 2);
+                    int str_offset = (objCount + 1) << 2;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+
+                    bytes.addr = startAddr;
+                    bytes.len = (int) (endAddr - startAddr);
+                    setter.set(index, bytes);
+
+                    count++;
+                }
         }
+
         return count;
     }
 
