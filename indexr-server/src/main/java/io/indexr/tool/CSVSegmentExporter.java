@@ -161,11 +161,16 @@ public class CSVSegmentExporter {
 
         org.apache.hadoop.fs.Path segmentPath = new org.apache.hadoop.fs.Path(options.segmentPath);
         FileStatus fileStatus = fileSystem.getFileStatus(segmentPath);
-
+        if (fileStatus == null) {
+            System.out.printf("%s is not exists!\n", segmentPath);
+            System.exit(1);
+        }
+        int blockCount = fileSystem.getFileBlockLocations(fileStatus, 0, fileStatus.getLen()).length;
         ByteBufferReader.Opener readerOpener = ByteBufferReader.Opener.create(
                 fileSystem,
                 segmentPath,
-                fileStatus.getLen());
+                fileStatus.getLen(),
+                blockCount);
         SegmentMeta sectionInfo = null;
         try (ByteBufferReader reader = readerOpener.open(0)) {
             sectionInfo = Integrate.INSTANCE.read(reader);
