@@ -82,9 +82,9 @@ public class IOUtil {
         if (offset >= 0) {
             reader.seek(offset);
         }
-        //reader.skip()
 
         InputStream is = reader.getWrappedStream();
+
         if (!(is instanceof ByteBufferReadable)) {
             logger.trace("Using read bytes method");
             byte[] bytes = new byte[buffer.remaining()];

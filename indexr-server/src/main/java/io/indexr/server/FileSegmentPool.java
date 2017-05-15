@@ -187,7 +187,7 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
         while (files.hasNext()) {
             LocatedFileStatus fileStatus = files.next();
             String name = getSegmentName(fileStatus);
-            if (name == null) {
+            if (fileStatus.getLen() == 0 || name == null) {
                 continue;
             }
 
@@ -199,11 +199,17 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
                 // Segment exist and is up to dated.
                 continue;
             }
+            BlockLocation[] locations = fileStatus.getBlockLocations();
+            if (locations.length != 1) {
+                logger.error("A segment should only consisted by one block, now {}. Ignored: {}", locations.length, name);
+                continue;
+            }
             Path segmentPath = segmentPath(name);
             ByteBufferReader.Opener readerOpener = ByteBufferReader.Opener.create(
                     fileSystem,
                     segmentPath,
-                    fileStatus.getLen());
+                    fileStatus.getLen(),
+                    locations.length);
             SegmentMeta sectionInfo = null;
             try (ByteBufferReader reader = readerOpener.open(0)) {
                 sectionInfo = Integrate.INSTANCE.read(reader);
@@ -268,10 +274,6 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
         segmentFdList = newFds;
     }
 
-    private ByteBufferReader.Opener createBBROpener(String name) {
-        return ByteBufferReader.Opener.create(fileSystem, segmentPath(name));
-    }
-
     private String getSegmentName(FileStatus fileStatus) {
         if (!fileStatus.isFile()) {
             return null;
@@ -301,12 +303,18 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
             RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(segmentRootPath, true);
             while (files.hasNext()) {
                 LocatedFileStatus fileStatus = files.next();
+                if (fileStatus.getLen() == 0) {
+                    continue;
+                }
                 String name = getSegmentName(fileStatus);
                 if (name == null) {
                     continue;
                 }
                 BlockLocation[] locations = fileStatus.getBlockLocations();
-                Preconditions.checkState(locations.length == 1, "A segment should only consisted by one block");
+                if (locations.length != 1) {
+                    logger.error("A segment should only consisted by one block, now {}. Ignored: {}", locations.length, name);
+                    continue;
+                }
                 List<String> hosts = Arrays.asList(locations[0].getHosts());
                 newHostMap.put(name, hosts);
             }
@@ -365,7 +373,8 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
             ByteBufferReader.Opener reader = ByteBufferReader.Opener.create(
                     fileSystem,
                     segmentPath(name),
-                    fileSize);
+                    fileSize,
+                    1);
             IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(name, info, reader);
 
             logger.debug("table [{}] load cache segmentfd [{}]", tableName, fd.name());

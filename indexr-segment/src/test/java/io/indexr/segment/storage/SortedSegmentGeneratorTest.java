@@ -39,6 +39,7 @@ public class SortedSegmentGeneratorTest {
     public void test() throws IOException {
         for (Version version : Version.values()) {
             for (SegmentMode mode : SegmentMode.values()) {
+                log.info("{}, {}", version, mode);
                 _test(version.id, mode);
             }
         }

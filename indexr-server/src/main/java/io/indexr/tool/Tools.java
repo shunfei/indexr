@@ -299,14 +299,17 @@ public class Tools {
             Path path = config.segmentPath(options.table, segName);
             FileSystem fileSystem = config.getFileSystem();
             FileStatus fileStatus = fileSystem.getFileStatus(path);
+
             if (fileStatus == null) {
                 System.out.printf("%s is not exists!\n", segName);
                 continue;
             }
+            int blockCount = fileSystem.getFileBlockLocations(fileStatus, 0, fileStatus.getLen()).length;
             ByteBufferReader.Opener readerOpener = ByteBufferReader.Opener.create(
                     fileSystem,
                     path,
-                    fileStatus.getLen());
+                    fileStatus.getLen(),
+                    blockCount);
             IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(segName, readerOpener);
             if (fd == null) {
                 System.out.printf("%s is not a legal segment!\n", segName);
