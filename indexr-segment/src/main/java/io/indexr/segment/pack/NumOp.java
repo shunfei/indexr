@@ -1,7 +1,5 @@
 package io.indexr.segment.pack;
 
-import java.nio.ByteBuffer;
-
 import io.indexr.compress.bh.BHCompressor;
 import io.indexr.io.ByteSlice;
 import io.indexr.util.MemoryUtil;
@@ -147,13 +145,5 @@ public class NumOp {
             default:
                 throw new UnsupportedOperationException();
         }
-    }
-
-    public static void main(String[] args) {
-        ByteBuffer bb = ByteBuffer.allocateDirect(1000);
-        bb.putFloat(0, 1.1f);
-        int a = bb.getInt(0);
-        float f = (float) Double.longBitsToDouble((long) a);
-        System.out.println(f);
     }
 }

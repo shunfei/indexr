@@ -27,7 +27,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
         DataPack pack = column.pack(packId);
         DataPackNode dpn = column.dpn(packId);
         int rowCount = pack.valueCount();
-        BitMap res = new BitMap(rowCount);
+        BitMap res = new BitMap();
         switch (dataType) {
             case ColumnType.INT: {
                 int value = (int) numValue;
@@ -93,7 +93,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
         DataPack pack = column.pack(packId);
         DataPackNode dpn = column.dpn(packId);
         int rowCount = pack.valueCount();
-        BitMap res = new BitMap(rowCount);
+        BitMap res = new BitMap();
         switch (dataType) {
             case ColumnType.INT: {
                 for (int rowId = 0; rowId < rowCount; rowId++) {
@@ -170,7 +170,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
         DataPack pack = column.pack(packId);
         DataPackNode dpn = column.dpn(packId);
         int rowCount = pack.valueCount();
-        BitMap res = new BitMap(rowCount);
+        BitMap res = new BitMap();
         switch (dataType) {
             case ColumnType.INT: {
                 int value = (int) numValue;
@@ -238,7 +238,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
         DataPack pack = column.pack(packId);
         DataPackNode dpn = column.dpn(packId);
         int rowCount = pack.valueCount();
-        BitMap res = new BitMap(rowCount);
+        BitMap res = new BitMap();
         switch (dataType) {
             case ColumnType.INT: {
                 int value1 = (int) numValue1;

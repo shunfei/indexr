@@ -27,6 +27,7 @@ import io.indexr.segment.storage.PackBundle;
 import io.indexr.segment.storage.Version;
 import io.indexr.util.BitMap;
 import io.indexr.util.MemoryUtil;
+import io.indexr.util.OffheapBitMapIterator;
 import io.indexr.util.Wrapper;
 
 public final class DataPack implements DPValues, Freeable {
@@ -272,7 +273,7 @@ public final class DataPack implements DPValues, Freeable {
             foreach(0, objCount, setter);
             return objCount;
         }
-        BitSetIterator posIterator = position.iterator();
+        OffheapBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -323,7 +324,7 @@ public final class DataPack implements DPValues, Freeable {
             foreach(0, objCount, setter);
             return objCount;
         }
-        BitSetIterator posIterator = position.iterator();
+        OffheapBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -374,7 +375,7 @@ public final class DataPack implements DPValues, Freeable {
             foreach(0, objCount, setter);
             return objCount;
         }
-        BitSetIterator posIterator = position.iterator();
+        OffheapBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -425,7 +426,7 @@ public final class DataPack implements DPValues, Freeable {
             foreach(0, objCount, setter);
             return objCount;
         }
-        BitSetIterator posIterator = position.iterator();
+        OffheapBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -664,7 +665,7 @@ public final class DataPack implements DPValues, Freeable {
             foreach(0, objCount, setter);
             return objCount;
         }
-        BitSetIterator posIterator = position.iterator();
+        OffheapBitMapIterator posIterator = position.iterator();
         int count = 0;
         BytePiece bytes = new BytePiece();
         int index;

@@ -227,14 +227,13 @@ public class Or implements LogicalOperator {
         BitMap res = null;
         for (RCOperator op : children) {
             BitMap bitSet = op.exactCheckOnRow(segment, packId);
-            if (bitSet == BitMap.ALL) {
-                return BitMap.ALL;
-            } else if (bitSet == BitMap.SOME) {
-                return BitMap.SOME;
-            } else if (res == null) {
+            if (res == null) {
                 res = bitSet;
             } else {
-                res = BitMap.or(res, bitSet);
+                res = BitMap.or_free(res, bitSet);
+            }
+            if (res == BitMap.ALL || res == BitMap.SOME) {
+                return res;
             }
         }
         return res;
