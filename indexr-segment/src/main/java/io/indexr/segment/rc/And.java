@@ -190,14 +190,13 @@ public class And implements LogicalOperator {
         BitMap res = null;
         for (RCOperator op : children) {
             BitMap bitSet = op.exactCheckOnRow(segment, packId);
-            if (bitSet == BitMap.NONE) {
-                return BitMap.NONE;
-            } else if (bitSet == BitMap.SOME) {
-                return BitMap.SOME;
-            } else if (res == null) {
+            if (res == null) {
                 res = bitSet;
             } else {
-                res = BitMap.and(res, bitSet);
+                res = BitMap.and_free(res, bitSet);
+            }
+            if (res == BitMap.NONE || res == BitMap.SOME) {
+                return res;
             }
         }
         return res;
