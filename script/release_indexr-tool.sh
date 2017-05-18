@@ -28,7 +28,7 @@ function cp_jar {
         echo "$1 not exists!"
         exit 1
     fi
-    cp -f $1 ${RELEASE_PATH}/indexr-tool/jars/hadoop
+    cp -f $1 ${RELEASE_PATH}/indexr-tool/jars/hadoop/
 }
 
 cp_jar ${MAVEN_PATH}/io/indexr/indexr-common/${VERSION}/indexr-common-${VERSION}.jar
@@ -54,3 +54,7 @@ cp_jar ${MAVEN_PATH}/org/antlr/antlr4-annotations/4.3/antlr4-annotations-4.3.jar
 cp_jar ${MAVEN_PATH}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar
 
 cp_jar ${MAVEN_PATH}/com/google/guava/guava/16.0.1/guava-16.0.1.jar
+
+# copy vlt jars
+cp -f ${ROOT_DIR}/indexr-vlt/vltlib/indexr-vlt-segment-${VERSION}.jar ${RELEASE_PATH}/indexr-tool/jars/
+cp -f ${ROOT_DIR}/indexr-vlt/vltlib/indexr-vlt-segment-${VERSION}.jar ${RELEASE_PATH}/indexr-tool/jars/hadoop/
