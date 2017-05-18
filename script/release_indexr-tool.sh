@@ -8,6 +8,7 @@ RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 rm -rf ${RELEASE_PATH}/indexr-tool
 mkdir -p ${RELEASE_PATH}/indexr-tool
 cp -r -f ${ROOT_DIR}/indexr-tool/* ${RELEASE_PATH}/indexr-tool/
+mkdir -p ${RELEASE_PATH}/indexr-tool/lib
 cp -f ${ROOT_DIR}/lib/* ${RELEASE_PATH}/indexr-tool/lib/
 
 
