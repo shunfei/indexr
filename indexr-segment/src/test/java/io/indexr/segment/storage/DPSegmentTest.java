@@ -180,7 +180,6 @@ public class DPSegmentTest {
         segment.update();
         segment.seal();
         segment.update();
-        DPSegment _segment = segment;
         addRows(segment, genRows(rowCount));
         segment.seal();
 
