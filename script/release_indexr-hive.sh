@@ -38,3 +38,5 @@ cp_jar ${MAVEN_PATH}/net/java/dev/jna/jna/4.2.1/jna-4.2.1.jar
 cp_jar ${MAVEN_PATH}/org/jodd/jodd-core/3.6.7/jodd-core-3.6.7.jar
 
 
+# copy vlt jars
+cp -f ${ROOT_DIR}/indexr-vlt/vltlib/indexr-vlt-segment-${VERSION}.jar ${RELEASE_PATH}/indexr-hive/aux/

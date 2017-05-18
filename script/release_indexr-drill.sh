@@ -41,3 +41,6 @@ cp_jar ${MAVEN_PATH}/net/java/dev/jna/jna/4.2.1/jna-4.2.1.jar
 
 mkdir -p ${RELEASE_PATH}/indexr-drill/conf
 cp -f ${ROOT_DIR}/indexr-server/config/indexr.config.properties ${RELEASE_PATH}/indexr-drill/conf/
+
+# copy vlt jars
+cp -f ${ROOT_DIR}/indexr-vlt/vltlib/indexr-vlt-segment-${VERSION}.jar ${RELEASE_PATH}/indexr-drill/jars/3rdparty/
