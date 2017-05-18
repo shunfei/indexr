@@ -215,7 +215,7 @@ public class IntegrateV1 implements Integrate {
                 info.mode = buffer.getInt();
             } else {
                 // We don't have segment mode before v6.
-                info.mode = SegmentMode.DEFAULT.id;
+                info.mode = SegmentMode.BASIC.id;
             }
 
             info.columnNodeInfos = new ColumnNodeMeta[info.columnCount];
