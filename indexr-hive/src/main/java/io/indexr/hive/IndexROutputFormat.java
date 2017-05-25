@@ -17,8 +17,10 @@ import org.apache.hadoop.util.Progressable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.SQLType;
@@ -46,6 +48,7 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         Path tableLocation = new Path(tableProperties.getProperty(Config.KEY_LOCATION));
         String compressStr = tableProperties.getProperty(Config.KEY_COMPRESS, "true");
         String modeStr = tableProperties.getProperty(Config.KEY_SEGMENT_MODE);
+        String indexColumnsStr = tableProperties.getProperty(Config.KEY_INDEX_COLUMNS);
         String sortColumnsStr = tableProperties.getProperty(Config.KEY_SORT_COLUMNS, "");
         String aggGroupingStr = tableProperties.getProperty(Config.KEY_AGG_GROUPING, "false");
         String aggDimsStr = tableProperties.getProperty(Config.KEY_AGG_DIMS, "");
@@ -57,17 +60,22 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
 
         List<String> columnNames = new ArrayList<>();
         List<TypeInfo> columnTypes = new ArrayList<>();
+        Set<String> indexColumns = new HashSet<>();
 
         if (!Strings.isEmpty(columnNameProperty)) {
             for (String s : columnNameProperty.trim().split(",")) {
                 columnNames.add(s.trim());
             }
         }
-
         if (!Strings.isEmpty(columnTypeProperty)) {
             columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(columnTypeProperty);
         }
-        SegmentSchema schema = convertToIndexRSchema(columnNames, columnTypes);
+        if (!Strings.isEmpty(indexColumnsStr)) {
+            for (String s : indexColumnsStr.trim().split(",")) {
+                indexColumns.add(s.trim().toLowerCase());
+            }
+        }
+        SegmentSchema schema = convertToIndexRSchema(columnNames, columnTypes, indexColumns);
 
         boolean grouping = Boolean.parseBoolean(aggGroupingStr.trim());
         List<String> sortColumns = Trick.split(sortColumnsStr, ",", String::trim);
@@ -90,7 +98,9 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
         return new IndexRRecordWriter(jc, schema, finalOutPath, tableLocation, mode, aggSchema);
     }
 
-    private static SegmentSchema convertToIndexRSchema(List<String> columnNames, List<TypeInfo> columnTypes) throws IOException {
+    private static SegmentSchema convertToIndexRSchema(List<String> columnNames,
+                                                       List<TypeInfo> columnTypes,
+                                                       Set<String> indexColumns) throws IOException {
         List<ColumnSchema> schemas = new ArrayList<ColumnSchema>();
         for (int i = 0; i < columnNames.size(); i++) {
             String currentColumn = columnNames.get(i);
@@ -115,7 +125,8 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
                 throw new IOException("can't recognize this type [" + currentType.getTypeName() + "]");
             }
 
-            schemas.add(new ColumnSchema(currentColumn, convertedType));
+            boolean isIndexed = indexColumns.contains(currentColumn.toLowerCase());
+            schemas.add(new ColumnSchema(currentColumn, convertedType, isIndexed));
         }
         return new SegmentSchema(schemas);
     }

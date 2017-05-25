@@ -2,6 +2,7 @@ package io.indexr.segment;
 
 import java.io.IOException;
 
+import io.indexr.segment.index.OuterIndex_Invalid;
 import io.indexr.segment.pack.DataPackNode;
 
 public interface Column {
@@ -51,4 +52,11 @@ public interface Column {
      * Get the extend index of the pack.
      */
     <T extends PackExtIndex> T extIndex(int packId) throws IOException;
+
+    /**
+     * Get the outer index of the column.
+     */
+    default <T extends OuterIndex> T outerIndex() throws IOException {
+        return (T) new OuterIndex_Invalid();
+    }
 }

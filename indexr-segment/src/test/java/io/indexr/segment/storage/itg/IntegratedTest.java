@@ -18,11 +18,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
+import io.indexr.segment.Row;
 import io.indexr.segment.SQLType;
 import io.indexr.segment.Segment;
 import io.indexr.segment.SegmentFd;
@@ -63,12 +65,14 @@ public class IntegratedTest {
         for (Version version : Version.values()) {
             for (SegmentMode mode : SegmentMode.values()) {
                 log.info("{}, {}", version, mode);
-                testCache(version.id, mode);
+                long time = System.currentTimeMillis();
+                testCache(version.id, mode, TestRows.genRandomRows(TestRows.ROW_COUNT));
+                log.info("time: {}", System.currentTimeMillis() - time);
             }
         }
     }
 
-    private void testCache(int version, SegmentMode mode) throws IOException {
+    public void testCache(int version, SegmentMode mode, Iterator<Row> rows) throws IOException {
         IndexMemCache indexMemCache = new IndexExpiredMemCache(TimeUnit.MINUTES.toMillis(10), 100 * 1024 * 1024);
         PackMemCache packMemCache = new PackExpiredMemCache(TimeUnit.MINUTES.toMillis(10), 100 * 1024 * 1024);
 
@@ -79,7 +83,7 @@ public class IntegratedTest {
                 "test_segment_integrated",
                 TestRows.segmentSchema,
                 OpenOption.Overwrite).update();
-        DPSegmentTest.addRows(segment, TestRows.sampleRows.iterator());
+        DPSegmentTest.addRows(segment, rows);
         segment.seal();
 
         StorageSegment segment1 = testIntegrated(segment, indexMemCache, packMemCache);
@@ -148,12 +152,15 @@ public class IntegratedTest {
     public void testUpdateColumn() throws IOException {
         for (Version version : Version.values()) {
             for (SegmentMode mode : SegmentMode.values()) {
+                log.info("{}, {}", version, mode);
+                long time = System.currentTimeMillis();
                 testUpdateColumn(version.id, mode);
+                log.info("time: {}", System.currentTimeMillis() - time);
             }
         }
     }
 
-    private void testUpdateColumn(int version, SegmentMode mode) throws IOException {
+    public void testUpdateColumn(int version, SegmentMode mode) throws IOException {
         DPSegment segment = DPSegment.open(
                 version,
                 mode,

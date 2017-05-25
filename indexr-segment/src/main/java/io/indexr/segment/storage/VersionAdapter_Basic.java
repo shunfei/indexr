@@ -2,17 +2,21 @@ package io.indexr.segment.storage;
 
 import org.apache.spark.unsafe.types.UTF8String;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import io.indexr.data.DictStruct;
+import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteSlice;
 import io.indexr.segment.ColumnType;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.PackRSIndex;
 import io.indexr.segment.RSIndex;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.index.ExtIndex_SimpleBits;
 import io.indexr.segment.index.ExtIndex_Str_Hash;
+import io.indexr.segment.index.OuterIndex_Invalid;
 import io.indexr.segment.index.RSIndex_CMap;
 import io.indexr.segment.index.RSIndex_CMap_V2;
 import io.indexr.segment.index.RSIndex_Histogram;
@@ -61,6 +65,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             RSIF_V2, // v5
             RSIF_V3, // v6
             RSIF_V3, // v7
+            RSIF_V3, // v8
     };
 
     public static final DataPack.Factory DPF_Basic = new DataPack.Factory() {
@@ -93,6 +98,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             DPF_Basic, // v5
             DPF_Basic, // v6
             DPF_Basic, // v7
+            DPF_Basic, // v8
     };
 
     private static final int DPNS_V0_L_V6 = DataPackNode_Basic.SIZE_LE_V6;
@@ -106,6 +112,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             DPNS_V0_L_V6, // v5
             DPNS_V0_GE_V6, // v6
             DPNS_V0_GE_V6, // v7
+            DPNS_V0_GE_V6, // v8
     };
 
     private static final DataPackNode.Factory DPNF_V0 = DataPackNode_Basic.factory;
@@ -118,6 +125,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             DPNF_V0, // v5
             DPNF_V0, // v6
             DPNF_V0, // v7
+            DPNF_V0, // v8
     };
 
     private static final boolean[] VersionCompress = new boolean[]{
@@ -129,6 +137,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             true, // v5
             true, // v6
             true, // v7
+            true, // v8
     };
 
     private static final PackCompressor BH_V0 = PackCompressor.BH_V0;
@@ -142,6 +151,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
             BH_V1, // v5
             BH_V1, // v6
             BH_V1, // v7
+            BH_V1, // v8
     };
 
     public PackRSIndex createPackRSIndex(int version, SegmentMode mode, byte dataType) {
@@ -153,13 +163,7 @@ public class VersionAdapter_Basic implements VersionAdapter {
     }
 
     public PackExtIndex createExtIndex(int version, SegmentMode mode, byte dataType, boolean isIndexed, DataPackNode dpn, DataPack dataPack, Object extraInfo) {
-        if (dataType == ColumnType.STRING
-                && version >= Version.VERSION_6_ID
-                && dpn.extIndexSize() > 0) {
-            return new ExtIndex_Str_Hash(dataType, dpn, dataPack);
-        } else {
-            return new ExtIndex_SimpleBits(dataType);
-        }
+        return new ExtIndex_SimpleBits(dataType);
     }
 
     public PackExtIndex createExtIndex(int version, SegmentMode mode, byte dataType, boolean isIndexed, DataPackNode dpn, ByteSlice.Supplier data) {
@@ -170,6 +174,16 @@ public class VersionAdapter_Basic implements VersionAdapter {
         } else {
             return new ExtIndex_SimpleBits(dataType);
         }
+    }
+
+    @Override
+    public OuterIndex.Cache createOuterIndex(int version, SegmentMode mode, StorageColumn column) throws IOException {
+        return new OuterIndex_Invalid.Cache();
+    }
+
+    @Override
+    public OuterIndex loadOuterIndex(int version, SegmentMode mode, byte dataType, ByteBufferReader reader, long size) throws IOException {
+        return new OuterIndex_Invalid();
     }
 
     public PackBundle createPackBundle(int version, SegmentMode mode, byte dataType, boolean isIndexed, VirtualDataPack cache) {

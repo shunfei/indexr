@@ -14,6 +14,7 @@ public enum Version {
     VERSION_5(5, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '5'}),
     VERSION_6(6, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '6'}),
     VERSION_7(7, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '7'}),
+    VERSION_8(8, new byte[]{'I', 'X', 'R', 'S', 'E', 'G', '0', '8'}),
     //
     ;
 
@@ -25,9 +26,10 @@ public enum Version {
     public static final int VERSION_5_ID = 5;
     public static final int VERSION_6_ID = 6;
     public static final int VERSION_7_ID = 7;
+    public static final int VERSION_8_ID = 8;
 
     public static final int INDEXR_SEG_FILE_FLAG_SIZE = 8;
-    public static final Version LATEST = VERSION_7;
+    public static final Version LATEST = VERSION_8;
     public static final int LATEST_ID = LATEST.id;
 
     public final int id;
@@ -51,7 +53,8 @@ public enum Version {
         if (!reader.exists(INDEXR_SEG_FILE_FLAG_SIZE - 1)) {
             return null;
         }
-        byte[] magic = reader.read(0, INDEXR_SEG_FILE_FLAG_SIZE);
+        byte[] magic = new byte[INDEXR_SEG_FILE_FLAG_SIZE];
+        reader.read(0, magic, 0, INDEXR_SEG_FILE_FLAG_SIZE);
         for (Version v : Version.values()) {
             if (Arrays.equals(magic, v.flag)) {
                 return v;

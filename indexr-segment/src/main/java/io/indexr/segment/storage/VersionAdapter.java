@@ -1,7 +1,11 @@
 package io.indexr.segment.storage;
 
+import java.io.IOException;
+
 import io.indexr.data.DictStruct;
+import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteSlice;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.PackRSIndex;
 import io.indexr.segment.RSIndex;
@@ -20,6 +24,10 @@ public interface VersionAdapter {
     public PackExtIndex createExtIndex(int version, SegmentMode mode, byte dataType, boolean isIndexed, DataPackNode dpn, DataPack dataPack, Object extraInfo);
 
     public PackExtIndex createExtIndex(int version, SegmentMode mode, byte dataType, boolean isIndexed, DataPackNode dpn, ByteSlice.Supplier data);
+
+    public OuterIndex.Cache createOuterIndex(int version, SegmentMode mode, StorageColumn column) throws IOException;
+
+    public OuterIndex loadOuterIndex(int version, SegmentMode mode, byte dataType, ByteBufferReader reader, long size) throws IOException;
 
     public PackBundle createPackBundle(int version, SegmentMode mode, byte dataType, boolean isIndexed, VirtualDataPack cache);
 

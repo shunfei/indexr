@@ -10,6 +10,7 @@ import java.io.IOException;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
@@ -43,6 +44,16 @@ public class Greater extends ColCmpVal {
     @Override
     public RCOperator switchDirection() {
         return new Less(attr, numValue, strValue);
+    }
+
+    @Override
+    public BitMap exactCheckOnPack(Segment segment) throws IOException {
+        assert attr.checkCurrent(segment.schema().columns);
+
+        Column column = segment.column(attr.columnId());
+        try (OuterIndex outerIndex = column.outerIndex()) {
+            return outerIndex.greater(column, numValue, strValue, false, false);
+        }
     }
 
     @Override

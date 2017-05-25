@@ -11,6 +11,10 @@ import io.indexr.segment.InfoSegment;
 import io.indexr.segment.Segment;
 import io.indexr.util.BitMap;
 
+/**
+ * We push down NOT expressions into sub expressions, so we do not need to actually calculate NOT
+ * in real computation. NOT is difficult to handle when we have SOME status, especially in a bitmap.
+ */
 public class Not implements LogicalOperator {
     @JsonProperty("child")
     public final RCOperator child;
@@ -39,6 +43,11 @@ public class Not implements LogicalOperator {
     public RCOperator doOptimize() {
         RCOperator newOp = child.doOptimize();
         return newOp != child ? new Not(newOp) : this;
+    }
+
+    @Override
+    public BitMap exactCheckOnPack(Segment segment) throws IOException {
+        throw new IllegalStateException("Should not call this method!");
     }
 
     @Override

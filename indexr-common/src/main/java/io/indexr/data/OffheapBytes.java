@@ -9,8 +9,8 @@ import io.indexr.util.Hasher32;
 public class OffheapBytes implements Comparable<OffheapBytes> {
     private static final Hasher32 HASHER = new Hasher32(0);
 
-    private long addr;
-    private int len;
+    private long addr = 0;
+    private int len = 0;
 
     public OffheapBytes(long addr, int len) {
         this.addr = addr;

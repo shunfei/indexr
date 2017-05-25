@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.rt.AggSchema;
@@ -19,6 +20,7 @@ public class HiveHelper {
     public static final String KEY_SORT_COLUMNS = "indexr.sort.columns";
 
     public static final String KEY_SEGMENT_MODE = "indexr.segment.mode";
+    public static final String KEY_INDEX_COLUMNS = "indexr.index.columns";
     public static final String KEY_AGG_GROUPING = "indexr.agg.grouping";
     public static final String KEY_AGG_DIMS = "indexr.agg.dims";
     public static final String KEY_AGG_METRICS = "indexr.agg.metrics";
@@ -85,6 +87,12 @@ public class HiveHelper {
             // Hive is case unsensitive.
             createTableSql += ",\n'" + KEY_AGG_METRICS + "'='" + StringUtils.join(aggSchema.metrics.stream().map(m -> m.name.toLowerCase() + ":" + m.aggName()).collect(Collectors.toList()), ",") + "'";
         }
+
+        List<String> indexedColumns = schema.getColumns().stream().filter(ColumnSchema::isIndexed).map(ColumnSchema::getName).collect(Collectors.toList());
+        if (!indexedColumns.isEmpty()) {
+            createTableSql += ",\n'" + KEY_INDEX_COLUMNS + "'='" + StringUtils.join(indexedColumns, ",") + "'";
+        }
+
         createTableSql += "\n) \n";
 
         return createTableSql;

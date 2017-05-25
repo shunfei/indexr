@@ -39,6 +39,7 @@ import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.pack.DataPackNode;
 import io.indexr.segment.rt.RTSGroupInfo;
 import io.indexr.segment.storage.StorageSegment;
+import io.indexr.segment.storage.itg.IntegratedColumn;
 import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.server.FileSegmentManager;
 import io.indexr.server.IndexRConfig;
@@ -333,6 +334,7 @@ public class Tools {
                         long dpnSize = 0;
                         long indexSize = 0;
                         long extIndexSize = 0;
+                        long outerIndexSize = ((IntegratedColumn) column).outerIndexSize();
                         long dataSize = 0;
                         for (int packId = 0; packId < column.packCount(); packId++) {
                             DataPackNode dpn = column.dpn(packId);
@@ -341,7 +343,7 @@ public class Tools {
                             extIndexSize += dpn.extIndexSize();
                             dataSize += dpn.packSize();
                         }
-                        System.out.printf("  %s: dpn: %s, index: %s, extIndex: %s, data: %s, dict(0th): %s\n", column.name(), dpnSize, indexSize, extIndexSize, dataSize, column.dpn(0).isDictEncoded());
+                        System.out.printf("  %s: dpn: %s, index: %s, extIndex: %s, outerIndex: %s, data: %s, dict(0th): %s\n", column.name(), dpnSize, indexSize, extIndexSize, outerIndexSize, dataSize, column.dpn(0).isDictEncoded());
                     }
                 }
                 System.out.println();

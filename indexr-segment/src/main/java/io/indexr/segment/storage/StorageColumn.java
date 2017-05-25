@@ -20,7 +20,7 @@ public abstract class StorageColumn implements Column, Freeable {
     protected final int columnId;
     protected final String name;
     protected final SQLType sqlType;
-    protected final boolean isIndexed;
+    protected final boolean isIndexed; // Only meaningful in vlt mode.
 
     protected int packCount;
 

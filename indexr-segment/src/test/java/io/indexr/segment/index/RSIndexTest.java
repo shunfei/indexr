@@ -17,6 +17,7 @@ import io.indexr.data.LikePattern;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.ColumnType;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.PackRSIndexNum;
 import io.indexr.segment.PackRSIndexStr;
@@ -180,10 +181,14 @@ public class RSIndexTest {
         long now = System.currentTimeMillis();
         Random random = new Random();
 
+        long extIndexTime = 0;
+        long outerIndexTime = 0;
+
         int colId = 0;
         for (ColumnSchema cs : segment.schema().getColumns()) {
             Column column = segment.column(colId);
             RSIndex index = column.rsIndex();
+            OuterIndex outerIndex = column.outerIndex();
             byte dataType = cs.getDataType();
             if (ColumnType.STRING == dataType) {
                 RSIndexStr strIndex = (RSIndexStr) index;
@@ -196,7 +201,24 @@ public class RSIndexTest {
                         Assert.assertEquals(RSValue.Some, strIndex.isValue(packId, val));
                         if (rowId < 100) {
                             // It takes too long to check all values,
+                            long time1 = System.currentTimeMillis();
                             Assert.assertTrue(extIndex.equal(column, packId, 0, val).get(rowId));
+                            Assert.assertTrue(extIndex.in(column, packId, new long[]{0}, new UTF8String[]{val}).get(rowId));
+                            Assert.assertTrue(extIndex.greater(column, packId, 0, val, true).get(rowId));
+                            Assert.assertTrue(extIndex.between(column, packId, 0, 0, val, val).get(rowId));
+                            Assert.assertTrue(extIndex.like(column, packId, 0, val).get(rowId));
+                            long time2 = System.currentTimeMillis();
+                            extIndexTime += time2 - time1;
+
+                            if (outerIndex != null) {
+                                Assert.assertTrue(outerIndex.equal(column, 0, val, false).get(packId));
+                                Assert.assertTrue(outerIndex.in(column, new long[]{0}, new UTF8String[]{val}, false).get(packId));
+                                Assert.assertTrue(outerIndex.greater(column, 0, val, true, false).get(packId));
+                                Assert.assertTrue(outerIndex.between(column, 0, 0, val, val, false).get(packId));
+                                Assert.assertTrue(outerIndex.like(column, 0, val, false).get(packId));
+                            }
+                            long time3 = System.currentTimeMillis();
+                            outerIndexTime += time3 - time2;
                         }
                     }
                 }
@@ -210,7 +232,22 @@ public class RSIndexTest {
                         long val = pack.uniformValAt(rowId, dataType);
                         Assert.assertEquals(RSValue.Some, numIndex.isValue(packId, val, val, dpn.minValue(), dpn.maxValue()));
                         if (rowId < 100) {
+                            long time1 = System.currentTimeMillis();
                             Assert.assertTrue(extIndex.equal(column, packId, val, null).get(rowId));
+                            Assert.assertTrue(extIndex.in(column, packId, new long[]{val}, null).get(rowId));
+                            Assert.assertTrue(extIndex.greater(column, packId, val, null, true).get(rowId));
+                            Assert.assertTrue(extIndex.between(column, packId, val, val, null, null).get(rowId));
+                            long time2 = System.currentTimeMillis();
+                            extIndexTime += time2 - time1;
+
+                            if (outerIndex != null) {
+                                Assert.assertTrue(outerIndex.equal(column, val, null, false).get(packId));
+                                Assert.assertTrue(outerIndex.in(column, new long[]{val}, null, false).get(packId));
+                                Assert.assertTrue(outerIndex.greater(column, val, null, true, false).get(packId));
+                                Assert.assertTrue(outerIndex.between(column, val, val, null, null, false).get(packId));
+                            }
+                            long time3 = System.currentTimeMillis();
+                            outerIndexTime += time3 - time2;
                         }
                     }
                 }
@@ -218,6 +255,6 @@ public class RSIndexTest {
             colId++;
         }
 
-        System.out.println("checkIndex count: " + segment.rowCount() + ", time:" + (System.currentTimeMillis() - now));
+        System.out.printf("checkIndex count: %s, extIndexTime: %s, outerIndexTime: %s\n", segment.rowCount(), extIndexTime, outerIndexTime);
     }
 }

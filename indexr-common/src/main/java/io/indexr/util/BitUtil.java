@@ -4,18 +4,20 @@ package io.indexr.util;
  * Copied from com.carrotsearch.hppc.BitUtil and make it public,
  */
 
+import org.apache.spark.unsafe.Platform;
+
 /**
  * A variety of high efficiency bit twiddling routines.
  */
 public final class BitUtil {
     private BitUtil() {} // no instance
 
-    public static void fillZero(long arrAddr, int fromWord, int toWord) {
-        MemoryUtil.setMemory(arrAddr + (fromWord << 3), (toWord - fromWord) << 3, (byte) 0);
+    public static void fillZero(Object base, long arrAddr, int fromWord, int toWord) {
+        MemoryUtil.setMemory(base, arrAddr + (fromWord << 3), (toWord - fromWord) << 3, (byte) 0);
     }
 
-    public static void fillOne(long arrAddr, int fromWord, int toWord) {
-        MemoryUtil.setMemory(arrAddr + (fromWord << 3), (toWord - fromWord) << 3, (byte) 0xFF);
+    public static void fillOne(Object base, long arrAddr, int fromWord, int toWord) {
+        MemoryUtil.setMemory(base, arrAddr + (fromWord << 3), (toWord - fromWord) << 3, (byte) 0xFF);
     }
 
     // The pop methods used to rely on bit-manipulation tricks for speed but it
@@ -23,10 +25,10 @@ public final class BitUtil {
     // intrinsic since Java 6u18) in a naive loop, see LUCENE-2221
 
     /** Returns the number of set bits in an array of longs. */
-    public static long pop_array(long arrAddr, int wordOffset, int numWords) {
+    public static long pop_array(Object base, long arrAddr, int wordOffset, int numWords) {
         long popCount = 0;
         for (int i = wordOffset, end = wordOffset + numWords; i < end; ++i) {
-            popCount += Long.bitCount(MemoryUtil.getLong(arrAddr + (i << 3)));
+            popCount += Long.bitCount(Platform.getLong(base, arrAddr + (i << 3)));
         }
         return popCount;
     }
@@ -35,10 +37,10 @@ public final class BitUtil {
      * Returns the popcount or cardinality of the two sets after an intersection.
      * Neither array is modified.
      */
-    public static long pop_intersect(long arr1Addr, long arr2Addr, int wordOffset, int numWords) {
+    public static long pop_intersect(Object base1, long arr1Addr, Object base2, long arr2Addr, int wordOffset, int numWords) {
         long popCount = 0;
         for (int i = wordOffset, end = wordOffset + numWords; i < end; ++i) {
-            popCount += Long.bitCount(MemoryUtil.getLong(arr1Addr + (i << 3)) & MemoryUtil.getLong(arr2Addr + (i << 3)));
+            popCount += Long.bitCount(Platform.getLong(base1, arr1Addr + (i << 3)) & Platform.getLong(base2, arr2Addr + (i << 3)));
         }
         return popCount;
     }
@@ -47,10 +49,10 @@ public final class BitUtil {
      * Returns the popcount or cardinality of the union of two sets.
      * Neither array is modified.
      */
-    public static long pop_union(long arr1Addr, long arr2Addr, int wordOffset, int numWords) {
+    public static long pop_union(Object base1, long arr1Addr, Object base2, long arr2Addr, int wordOffset, int numWords) {
         long popCount = 0;
         for (int i = wordOffset, end = wordOffset + numWords; i < end; ++i) {
-            popCount += Long.bitCount(MemoryUtil.getLong(arr1Addr + (i << 3)) | MemoryUtil.getLong(arr2Addr + (i << 3)));
+            popCount += Long.bitCount(Platform.getLong(base1, arr1Addr + (i << 3)) | Platform.getLong(base2, arr2Addr + (i << 3)));
         }
         return popCount;
     }
@@ -59,10 +61,10 @@ public final class BitUtil {
      * Returns the popcount or cardinality of A & ~B.
      * Neither array is modified.
      */
-    public static long pop_andnot(long arr1Addr, long arr2Addr, int wordOffset, int numWords) {
+    public static long pop_andnot(Object base1, long arr1Addr, Object base2, long arr2Addr, int wordOffset, int numWords) {
         long popCount = 0;
         for (int i = wordOffset, end = wordOffset + numWords; i < end; ++i) {
-            popCount += Long.bitCount(MemoryUtil.getLong(arr1Addr + (i << 3)) & ~MemoryUtil.getLong(arr2Addr + (i << 3)));
+            popCount += Long.bitCount(Platform.getLong(base1, arr1Addr + (i << 3)) & ~Platform.getLong(base2, arr2Addr + (i << 3)));
         }
         return popCount;
     }
@@ -71,10 +73,10 @@ public final class BitUtil {
      * Returns the popcount or cardinality of A ^ B
      * Neither array is modified.
      */
-    public static long pop_xor(long arr1Addr, long arr2Addr, int wordOffset, int numWords) {
+    public static long pop_xor(Object base1, long arr1Addr, Object base2, long arr2Addr, int wordOffset, int numWords) {
         long popCount = 0;
         for (int i = wordOffset, end = wordOffset + numWords; i < end; ++i) {
-            popCount += Long.bitCount(MemoryUtil.getLong(arr1Addr + (i << 3)) ^ MemoryUtil.getLong(arr2Addr + (i << 3)));
+            popCount += Long.bitCount(Platform.getLong(base1, arr1Addr + (i << 3)) ^ Platform.getLong(base2, arr2Addr + (i << 3)));
         }
         return popCount;
     }

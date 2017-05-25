@@ -346,6 +346,8 @@ public class DPColumn extends StorageColumn {
 
         DataPackNode[] dpns = loadDPNs();
         assert dpns.length == packCount;
+
+        // The cache is not touched until writed in fragment rows.
         VirtualDataPack insertPack = this.cache;
 
         List<DataPack> appendByRows = new ArrayList<>(columns.size() + 1);

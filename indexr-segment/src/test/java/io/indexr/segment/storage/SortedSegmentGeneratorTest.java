@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -40,7 +41,9 @@ public class SortedSegmentGeneratorTest {
         for (Version version : Version.values()) {
             for (SegmentMode mode : SegmentMode.values()) {
                 log.info("{}, {}", version, mode);
+                long time = System.currentTimeMillis();
                 _test(version.id, mode);
+                log.info("time: {}", System.currentTimeMillis() - time);
             }
         }
     }
@@ -53,14 +56,14 @@ public class SortedSegmentGeneratorTest {
                 mode,
                 workDir,
                 "test",
-                TestRows.schema,
+                TestRows.segmentSchema,
                 false,
                 sortCols,
                 null,
                 100000);
-        List<Row> rows = TestRows.genRows(rowCount);
-        for (Row row : rows) {
-            generator.add(row);
+        Iterator<Row> rows = TestRows.genRows(rowCount);
+        while (rows.hasNext()) {
+            generator.add(rows.next());
         }
         DPSegment segment = generator.seal();
         Assert.assertEquals(rowCount, segment.rowCount());
@@ -74,8 +77,9 @@ public class SortedSegmentGeneratorTest {
                 null,
                 null,
                 EventIgnoreStrategy.NO_IGNORE);
-        for (Row row : rows) {
-            UTF8Row utf8Row = UTF8Row.from(creator, row);
+        rows = TestRows.genRows(rowCount);
+        while (rows.hasNext()) {
+            UTF8Row utf8Row = UTF8Row.from(creator, rows.next());
             sortMap.put(utf8Row, utf8Row);
         }
         DPSegmentTest.rowsCmp(sortMap.values().iterator(), segment.rowTraversal().iterator());

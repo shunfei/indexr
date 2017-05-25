@@ -4,6 +4,7 @@ import org.apache.commons.lang.RandomStringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -35,42 +36,82 @@ public class TestRows {
     );
     public static SegmentSchema segmentSchema = new SegmentSchema(columnSchemas);
 
-    public static final int ROW_COUNT = 70000;
-    public static final SegmentSchema schema = segmentSchema;
-    public static final List<Row> sampleRows;
+    private static String[][] rawRows = new String[][]{
+            {"89", "89", "222222", "222222", "4.5", "4.5", "9.1", "9.1", "windows", "windows", "2014-12-09", "2014-12-09", "00:00:00", "00:00:00", "2014-12-09T00:00:00", "2014-12-09T00:00:00"},
+            {"3", "3", String.valueOf(Long.MAX_VALUE), String.valueOf(Long.MAX_VALUE), "4.5", "4.5", "9.199", "9.199", "mac", "mac", "1901-03-24", "1901-03-24", "11:43:56", "11:43:56", "1901-03-24T11:43:56", "1901-03-24T11:43:56"},
+            {"14121", "14121", "99", "99", "2.5", "2.5", "11.1", "11.1", "linux", "linux", "9999-01-01", "9999-01-01", "12:59:59", "12:59:59", "9999-01-01T12:59:59", "9999-01-01T12:59:59"},
+            {String.valueOf(Integer.MAX_VALUE), String.valueOf(Integer.MAX_VALUE), "11", "11", String.valueOf(Float.MIN_VALUE), String.valueOf(Float.MIN_VALUE), "1.51", "1.51", "android", "android", "2741-01-03", "2741-01-03", "01:01:01", "01:01:01", "2741-01-03T01:01:01", "2741-01-03T01:01:01"},
+    };
+
+    static List<Row> sample_rows = new ArrayList<>(rawRows.length);
 
     static {
-        sampleRows = genRows(ROW_COUNT);
+        SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(columnSchemas);
+        for (int rowId = 0; rowId < rawRows.length; rowId++) {
+            builder.appendStringFormVals(Arrays.asList(rawRows[rowId]));
+            sample_rows.add(builder.buildAndReset());
+        }
     }
 
-    public static List<Row> genRows(int count) {
-        ArrayList<Row> rows = new ArrayList<Row>(count);
-        Random r = new Random();
-        SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(schema.getColumns());
-        for (int i = 0; i < count; i++) {
-            for (ColumnSchema cs : schema.getColumns()) {
-                switch (cs.getDataType()) {
-                    case ColumnType.INT:
-                        builder.appendInt(r.nextInt());
-                        break;
-                    case ColumnType.LONG:
-                        builder.appendLong(r.nextLong());
-                        break;
-                    case ColumnType.FLOAT:
-                        builder.appendFloat((float) r.nextDouble());
-                        break;
-                    case ColumnType.DOUBLE:
-                        builder.appendDouble(r.nextDouble());
-                        break;
-                    case ColumnType.STRING:
-                        builder.appendString(RandomStringUtils.randomAlphabetic(r.nextInt(10)));
-                        break;
-                    default:
-                        throw new RuntimeException();
-                }
+    public static final int ROW_COUNT = 70000;
+
+    public static Iterator<Row> genRows(final int theRowCount) {
+        return new Iterator<Row>() {
+            int curIndex;
+
+            @Override
+            public boolean hasNext() {
+                return curIndex < theRowCount;
             }
-            rows.add(builder.buildAndReset());
-        }
-        return rows;
+
+            @Override
+            public Row next() {
+                return sample_rows.get((curIndex++) % sample_rows.size());
+            }
+        };
+    }
+
+    public static Iterator<Row> genRandomRows(final int theRowCount) {
+        return genRandomRows(theRowCount, columnSchemas);
+    }
+
+    public static Iterator<Row> genRandomRows(final int theRowCount, List<ColumnSchema> schemas) {
+        return new Iterator<Row>() {
+            Random r = new Random();
+            int curIndex;
+
+            @Override
+            public boolean hasNext() {
+                return curIndex < theRowCount;
+            }
+
+            @Override
+            public Row next() {
+                SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(schemas);
+                for (ColumnSchema cs : schemas) {
+                    switch (cs.getDataType()) {
+                        case ColumnType.INT:
+                            builder.appendInt(r.nextInt());
+                            break;
+                        case ColumnType.LONG:
+                            builder.appendLong(r.nextLong());
+                            break;
+                        case ColumnType.FLOAT:
+                            builder.appendFloat((float) r.nextDouble());
+                            break;
+                        case ColumnType.DOUBLE:
+                            builder.appendDouble(r.nextDouble());
+                            break;
+                        case ColumnType.STRING:
+                            builder.appendString(RandomStringUtils.randomAlphabetic(r.nextInt(10)));
+                            break;
+                        default:
+                            throw new RuntimeException();
+                    }
+                }
+                curIndex++;
+                return builder.buildAndReset();
+            }
+        };
     }
 }

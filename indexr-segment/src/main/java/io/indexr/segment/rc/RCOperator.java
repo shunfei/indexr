@@ -53,7 +53,6 @@ public interface RCOperator {
     @JsonProperty("type")
     String getType();
 
-
     /**
      * The {@link Attr}s of this op. Return empty if no attr.
      */
@@ -83,6 +82,8 @@ public interface RCOperator {
         }
         return rsValues;
     }
+
+    BitMap exactCheckOnPack(Segment segment) throws IOException;
 
     byte roughCheckOnColumn(InfoSegment segment) throws IOException;
 

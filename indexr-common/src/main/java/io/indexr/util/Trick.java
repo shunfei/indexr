@@ -18,6 +18,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 public class Trick {
+
+    public static int[] subArray(int[] arr, int from, int to) {
+        int[] sub = new int[to - from];
+        System.arraycopy(arr, from, sub, 0, to - from);
+        return sub;
+    }
+
     public static <T> T on(T t, Consumer<T> op) {
         op.accept(t);
         return t;

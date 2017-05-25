@@ -158,6 +158,23 @@ public class And implements LogicalOperator {
     }
 
     @Override
+    public BitMap exactCheckOnPack(Segment segment) throws IOException {
+        BitMap res = null;
+        for (RCOperator op : children) {
+            BitMap bitSet = op.exactCheckOnPack(segment);
+            if (res == null) {
+                res = bitSet;
+            } else {
+                res = BitMap.and_free(res, bitSet);
+            }
+            if (res == BitMap.NONE) {
+                return res;
+            }
+        }
+        return res;
+    }
+
+    @Override
     public byte roughCheckOnPack(Segment segment, int packId) throws IOException {
         boolean hasSome = false;
         for (RCOperator op : children) {
@@ -195,7 +212,7 @@ public class And implements LogicalOperator {
             } else {
                 res = BitMap.and_free(res, bitSet);
             }
-            if (res == BitMap.NONE || res == BitMap.SOME) {
+            if (res == BitMap.NONE) {
                 return res;
             }
         }

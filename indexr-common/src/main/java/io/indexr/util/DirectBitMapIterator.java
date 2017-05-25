@@ -6,7 +6,7 @@ package io.indexr.util;
  * iterating over the complete set of bits, especially when the density of the bits set is
  * high.
  */
-public final class OffheapBitMapIterator {
+public final class DirectBitMapIterator {
     // The General Idea: instead of having an array per byte that has
     // the offsets of the next set bit, that array could be
     // packed inside a 32 bit integer (8 4 bit numbers).  That
@@ -69,7 +69,7 @@ public final class OffheapBitMapIterator {
     private int wordShift;
     private int indexArray;
 
-    public OffheapBitMapIterator(long bitsAddr, int numWords) {
+    public DirectBitMapIterator(long bitsAddr, int numWords) {
         this.bitsAddr = bitsAddr;
         this.wlen = numWords;
     }
