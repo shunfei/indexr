@@ -85,7 +85,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
             default:
                 throw new IllegalStateException("Illegal dataType: " + dataType);
         }
-        return fixBitmap(res, rowCount);
+        return fixBitmapInPack(res, rowCount);
     }
 
     @Override
@@ -162,7 +162,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
             default:
                 throw new IllegalStateException("Illegal dataType: " + dataType);
         }
-        return fixBitmap(res, rowCount);
+        return fixBitmapInPack(res, rowCount);
     }
 
     @Override
@@ -230,7 +230,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
             default:
                 throw new IllegalStateException("Illegal dataType: " + dataType);
         }
-        return fixBitmap(res, rowCount);
+        return fixBitmapInPack(res, rowCount);
     }
 
     @Override
@@ -307,7 +307,7 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
             default:
                 throw new IllegalStateException("Illegal dataType: " + dataType);
         }
-        return fixBitmap(res, rowCount);
+        return fixBitmapInPack(res, rowCount);
     }
 
     @Override
@@ -327,6 +327,6 @@ public class ExtIndex_SimpleBits implements PackExtIndex {
             default:
                 throw new IllegalStateException("column type " + dataType + " is illegal in LIKE");
         }
-        return fixBitmap(res, rowCount);
+        return fixBitmapInPack(res, rowCount);
     }
 }

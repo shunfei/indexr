@@ -55,6 +55,12 @@ public class UnknownOperator implements CmpOperator {
     }
 
     @Override
+    public BitMap exactCheckOnPack(Segment segment) throws IOException {
+        //return BitMap.SOME;
+        return BitMap.ALL;
+    }
+
+    @Override
     public byte roughCheckOnPack(Segment segment, int packId) throws IOException {
         return RSValue.Some;
     }
@@ -66,6 +72,7 @@ public class UnknownOperator implements CmpOperator {
 
     @Override
     public BitMap exactCheckOnRow(Segment segment, int packId) throws IOException {
-        return BitMap.SOME;
+        //return BitMap.SOME;
+        return BitMap.ALL;
     }
 }

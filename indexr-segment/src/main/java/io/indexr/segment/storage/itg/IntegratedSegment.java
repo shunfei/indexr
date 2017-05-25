@@ -148,6 +148,8 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
                         info.dpnOffset(),
                         info.indexOffset(),
                         info.extIndexOffset(),
+                        info.outerIndexOffset(),
+                        info.outerIndexSize(),
                         info.packOffset(),
                         dpnCache,
                         indexMemCache,

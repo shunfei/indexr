@@ -29,7 +29,7 @@ public interface PackExtIndex extends Freeable {
 
     BitMap like(Column column, int packId, long numValue, UTF8String strValue) throws IOException;
 
-    default BitMap fixBitmap(BitMap bitMap, int rowCount) {
+    default BitMap fixBitmapInPack(BitMap bitMap, int rowCount) {
         int cardinality = bitMap.cardinality();
         if (cardinality == 0) {
             return BitMap.NONE;

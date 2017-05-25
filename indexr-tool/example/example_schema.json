@@ -4,7 +4,7 @@
         [
             {"name": "date", "dataType": "date"},
             {"name": "datetime", "dataType": "datetime"},
-            {"name": "d1", "dataType": "string"},
+            {"name": "d1", "dataType": "string", "index": true},
             {"name": "m1", "dataType": "int"},
             {"name": "m2", "dataType": "long"},
             {"name": "m3", "dataType": "float", "default": "-0.1"},

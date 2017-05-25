@@ -24,12 +24,12 @@ public interface InfoSegment {
     SegmentSchema schema();
 
     /**
-     * Row valueCount.
+     * Row count.
      */
     long rowCount();
 
     /**
-     * Get the pack valueCount of this segment, return 0 if {@link #isColumned()} is false.
+     * Get the pack count of this segment, return 0 if {@link #isColumned()} is false.
      */
     default int packCount() {
         return 0;

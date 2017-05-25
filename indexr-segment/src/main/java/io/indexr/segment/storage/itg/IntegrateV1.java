@@ -7,6 +7,7 @@ import java.util.List;
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteBufferWriter;
 import io.indexr.io.ByteSlice;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSIndex;
 import io.indexr.segment.SegmentMode;
@@ -15,6 +16,7 @@ import io.indexr.segment.storage.ColumnNode;
 import io.indexr.segment.storage.StorageColumn;
 import io.indexr.segment.storage.StorageSegment;
 import io.indexr.segment.storage.Version;
+import io.indexr.util.IOUtil;
 import io.indexr.util.ObjectSaver;
 import io.indexr.util.UTF8Util;
 
@@ -23,7 +25,8 @@ import io.indexr.util.UTF8Util;
  *
  * <pre>
  * Segment storage structure:
- * |  IXRSEGxx | sementMeta | column0 | column1 ... |
+ * |  IXRSEGxx | sementMeta | column0 | column1 ... | outerIndex0 | outerIndex0 ... |
+ *             | <---                      sectionSize                        ----> |
  *
  * Column structure:
  * |  dpn | rsIndex | extIndex | dataPack |
@@ -35,17 +38,19 @@ public class IntegrateV1 implements Integrate {
     @Override
     public SegmentMeta write(StorageSegment segment, ByteBufferWriter.PredictSizeOpener writerOpener) throws IOException {
         List<StorageColumn> columns = segment.columns();
+        int version = segment.version();
         SegmentMode mode = segment.mode();
-        SegmentMetaV1 sectionInfo = new SegmentMetaV1(segment.version(), segment.rowCount(), columns.size(), mode.id);
+        SegmentMetaV1 sectionInfo = new SegmentMetaV1(version, segment.rowCount(), columns.size(), mode.id);
         sectionInfo.sectionOffset = Version.INDEXR_SEG_FILE_FLAG_SIZE; // The first section, and the only one.
 
+        OuterIndex.Cache[] outerIndexCaches = new OuterIndex.Cache[columns.size()];
         for (int colId = 0; colId < columns.size(); colId++) {
             ColumnNode columnNode = segment.columnNode(colId);
             sectionInfo.columnNodeInfos[colId] = new ColumnNodeMeta(columnNode.getMinNumValue(), columnNode.getMaxNumValue());
 
             StorageColumn column = columns.get(colId);
             DataPackNode[] dpns = column.getDPNs();
-            int dpnSize = mode.versionAdapter.dpnSize(segment.version(), mode) * dpns.length;
+            int dpnSize = mode.versionAdapter.dpnSize(version, mode) * dpns.length;
             int indexSize = 0;
             int extIndexSize = 0;
             long packSize = 0;
@@ -55,9 +60,22 @@ public class IntegrateV1 implements Integrate {
                 packSize += dpn.packSize();
             }
 
+            // Generate outer index here.
+            OuterIndex.Cache outerIndexCache = mode.versionAdapter.createOuterIndex(version, mode, column);
+            long outerIndexSize = outerIndexCache.size();
+            outerIndexCaches[colId] = outerIndexCache;
+
             // Hack!
-            boolean isIndexed = (segment.version() >= Version.VERSION_7_ID && column.isIndexed());
-            ColumnMetaV1 info = new ColumnMetaV1(column.name(), column.sqlType().id, isIndexed, dpnSize, indexSize, extIndexSize, packSize);
+            boolean isIndexed = (version >= Version.VERSION_7_ID && column.isIndexed());
+            ColumnMetaV1 info = new ColumnMetaV1(
+                    column.name(),
+                    column.sqlType().id,
+                    isIndexed,
+                    dpnSize,
+                    indexSize,
+                    extIndexSize,
+                    outerIndexSize,
+                    packSize);
             sectionInfo.columnInfos[colId] = info;
         }
 
@@ -66,17 +84,27 @@ public class IntegrateV1 implements Integrate {
         for (ColumnMeta ci : sectionInfo.columnInfos) {
             dataSize += ((ColumnMetaV1) ci).dataSize();
         }
-        // First 4 bytes are the size of info. See ObjSaver#save() for detail.
-        sectionInfo.sectionSize = 4 + sectionInfo.metaSize() + dataSize;
 
         // Set the dataOffset.
         long offset = sectionInfo.sectionOffset + 4 + sectionInfo.metaSize();
         for (int colId = 0; colId < columns.size(); colId++) {
             ColumnMetaV1 columnInfo = (ColumnMetaV1) sectionInfo.columnInfos[colId];
-            columnInfo.setDataOffset(segment.version(), offset);
+            columnInfo.setDataOffset(version, offset);
             offset += columnInfo.dataSize();
         }
 
+        // Set outer index offset.
+        long totalOuterIndexSize = 0;
+        for (int colId = 0; colId < columns.size(); colId++) {
+            ColumnMetaV1 columnInfo = (ColumnMetaV1) sectionInfo.columnInfos[colId];
+            columnInfo.outerIndexOffset = offset;
+            totalOuterIndexSize += columnInfo.outerIndexSize;
+
+            offset += columnInfo.outerIndexSize;
+        }
+
+        // First 4 bytes are the size of info. See ObjSaver#save() for detail.
+        sectionInfo.sectionSize = 4 + sectionInfo.metaSize() + dataSize + totalOuterIndexSize;
         assert offset - sectionInfo.sectionOffset == sectionInfo.sectionSize;
 
         long totalSize = offset;
@@ -84,7 +112,7 @@ public class IntegrateV1 implements Integrate {
         // Now everything is ready, let's move data into new segment.
         try (ByteBufferWriter writer = writerOpener.open(totalSize)) {
             // First write version message.
-            writer.write(Version.fromId(segment.version()).flag);
+            writer.write(Version.fromId(version).flag);
 
             // Write info.
             ObjectSaver.save(writer, sectionInfo, sectionInfo.metaSize(), SegmentMetaV1::write);
@@ -113,6 +141,11 @@ public class IntegrateV1 implements Integrate {
                     writer.write(pack.byteBuffer());
                     pack.free();
                 }
+            }
+
+            for (OuterIndex.Cache oc : outerIndexCaches) {
+                oc.write(writer);
+                IOUtil.closeQuietly(oc);
             }
 
             writer.flush();
@@ -215,7 +248,7 @@ public class IntegrateV1 implements Integrate {
                 info.mode = buffer.getInt();
             } else {
                 // We don't have segment mode before v6.
-                info.mode = SegmentMode.DEFAULT.id;
+                info.mode = SegmentMode.BASIC.id;
             }
 
             info.columnNodeInfos = new ColumnNodeMeta[info.columnCount];
@@ -236,6 +269,8 @@ public class IntegrateV1 implements Integrate {
         public long dpnOffset;
         public long indexOffset;
         public long extIndexOffset;
+        public long outerIndexOffset;
+        public long outerIndexSize;
         public long packOffset;
 
         // Those will not store.
@@ -244,7 +279,14 @@ public class IntegrateV1 implements Integrate {
         private int extIndexSize;
         private long packSize;
 
-        ColumnMetaV1(String name, int sqlType, boolean isIndexed, int dpnSize, int indexSize, int extIndexSize, long packSize) {
+        ColumnMetaV1(String name,
+                     int sqlType,
+                     boolean isIndexed,
+                     int dpnSize,
+                     int indexSize,
+                     int extIndexSize,
+                     long outerIndexSize,
+                     long packSize) {
             this.nameSize = UTF8Util.toUtf8(name).length;
             this.name = name.intern();
             this.sqlType = sqlType;
@@ -252,6 +294,7 @@ public class IntegrateV1 implements Integrate {
             this.dpnSize = dpnSize;
             this.indexSize = indexSize;
             this.extIndexSize = extIndexSize;
+            this.outerIndexSize = outerIndexSize;
             this.packSize = packSize;
         }
 
@@ -261,8 +304,32 @@ public class IntegrateV1 implements Integrate {
         public long dpnOffset() {return dpnOffset;}
         public long indexOffset() {return indexOffset;}
         public long extIndexOffset() {return extIndexOffset;}
+        public long outerIndexOffset() {return outerIndexOffset;}
+        public long outerIndexSize() {return outerIndexSize;}
         public long packOffset() {return packOffset;}
-        // @formatter:off
+        // @formatter:on
+
+        @Override
+        public boolean equals(int version, ColumnMeta info) {
+            boolean ok = nameSize == info.nameSize
+                    && sqlType == info.sqlType
+                    && dpnOffset() == info.dpnOffset()
+                    && indexOffset() == info.indexOffset()
+                    && packOffset() == info.packOffset()
+                    && (name != null ? name.equals(info.name) : info.name == null);
+
+            if (version >= Version.VERSION_6_ID) {
+                ok &= extIndexOffset() == info.extIndexOffset();
+            }
+            if (version >= Version.VERSION_7_ID) {
+                ok &= isIndexed == info.isIndexed;
+            }
+            if (version >= Version.VERSION_8_ID) {
+                ok &= outerIndexOffset() == info.outerIndexOffset();
+                ok &= outerIndexSize() == info.outerIndexSize();
+            }
+            return ok;
+        }
 
         void setDataOffset(int version, long dataOffset) {
             dpnOffset = dataOffset;
@@ -276,14 +343,21 @@ public class IntegrateV1 implements Integrate {
         }
 
         int metaSize(int version) {
-            if (version < Version.VERSION_5_ID) {
-                return 4 + nameSize + 1 + 8 + 8 + 8;
-            } else if (version == Version.VERSION_5_ID) {
-                return 4 + nameSize + 4 + 8 + 8 + 8;
-            } else if (version == Version.VERSION_6_ID) {
-                return 4 + nameSize + 4 + 8 + 8 + 8 + 8;
-            } else {
-                return 4 + nameSize + 4 + 1 + 8 + 8 + 8 + 8;
+            switch (version) {
+                case Version.VERSION_0_ID:
+                case Version.VERSION_1_ID:
+                case Version.VERSION_2_ID:
+                case Version.VERSION_4_ID:
+                    return 4 + nameSize + 1 + 8 + 8 + 8;
+                case Version.VERSION_5_ID:
+                    return 4 + nameSize + 4 + 8 + 8 + 8;
+                case Version.VERSION_6_ID:
+                    return 4 + nameSize + 4 + 8 + 8 + 8 + 8;
+                case Version.VERSION_7_ID:
+                    return 4 + nameSize + 4 + 1 + 8 + 8 + 8 + 8;
+                default:
+                    assert version >= Version.VERSION_8_ID;
+                    return 4 + nameSize + 4 + 1 + 8 + 8 + 8 + 8 + 8 + 8;
             }
         }
 
@@ -308,6 +382,10 @@ public class IntegrateV1 implements Integrate {
             buffer.putLong(ci.indexOffset);
             if (version >= Version.VERSION_6_ID) {
                 buffer.putLong(ci.extIndexOffset);
+            }
+            if (version >= Version.VERSION_8_ID) {
+                buffer.putLong(ci.outerIndexOffset);
+                buffer.putLong(ci.outerIndexSize);
             }
             buffer.putLong(ci.packOffset);
 
@@ -334,6 +412,10 @@ public class IntegrateV1 implements Integrate {
             info.indexOffset = buffer.getLong();
             if (version >= Version.VERSION_6_ID) {
                 info.extIndexOffset = buffer.getLong();
+            }
+            if (version >= Version.VERSION_8_ID) {
+                info.outerIndexOffset = buffer.getLong();
+                info.outerIndexSize = buffer.getLong();
             }
             info.packOffset = buffer.getLong();
 

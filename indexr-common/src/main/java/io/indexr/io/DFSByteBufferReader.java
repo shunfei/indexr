@@ -57,22 +57,22 @@ public class DFSByteBufferReader implements ByteBufferReader {
     }
 
     @Override
-    public void read(long offset, ByteBuffer dst) throws IOException {
+    public void read(long position, ByteBuffer dst) throws IOException {
         try {
             if (isSingleBlock && HDFS_READ_HACK_ENABLE) {
-                readSingleBlock(offset, dst);
+                readSingleBlock(position, dst);
             } else {
-                normalRead(offset, dst);
+                normalRead(position, dst);
             }
         } catch (Exception e) {
             throw new IOException(String.format("name: %s", name), e);
         }
     }
 
-    private void readSingleBlock(long offset, ByteBuffer dst) throws IOException {
+    private void readSingleBlock(long position, ByteBuffer dst) throws IOException {
         // Fast read if local file already exists.
         if (localFile != null) {
-            fastRead(offset, dst);
+            fastRead(position, dst);
             return;
         }
 
@@ -85,46 +85,44 @@ public class DFSByteBufferReader implements ByteBufferReader {
         }
 
         if (localFile != null) {
-            fastRead(offset, dst);
+            fastRead(position, dst);
         } else {
-            normalRead(offset, dst);
+            normalRead(position, dst);
         }
     }
 
-    private void fastRead(long offset, ByteBuffer dst) throws IOException {
+    private void fastRead(long position, ByteBuffer dst) throws IOException {
         logger.trace("fast read");
         long time = System.nanoTime();
 
-        IOUtil.readFully(localFile, readBase + offset, dst);
+        IOUtil.readFully(localFile, readBase + position, dst);
 
         fastReadDuration += System.nanoTime() - time;
         fastReadCount++;
     }
 
-    private void normalRead(long offset, ByteBuffer dst) throws IOException {
+    private void normalRead(long position, ByteBuffer dst) throws IOException {
         logger.trace("normal read");
         long time = System.nanoTime();
 
-        IOUtil.readFully(input, readBase + offset, dst);
+        IOUtil.readFully(input, readBase + position, dst);
 
         normalReadDuration += System.nanoTime() - time;
         normalReadCount++;
     }
 
     @Override
-    public byte[] read(long offset, int size) throws IOException {
+    public void read(long position, byte[] buffer, int offset, int length) throws IOException {
         try {
-            byte[] bytes = new byte[size];
-            input.readFully(offset, bytes);
-            return bytes;
+            input.readFully(readBase + position, buffer, offset, length);
         } catch (Exception e) {
             throw new IOException(String.format("name: %s", name), e);
         }
     }
 
     @Override
-    public boolean exists(long offset) throws IOException {
-        return offset >= 0 && readBase + offset < fileSize;
+    public boolean exists(long position) throws IOException {
+        return position >= 0 && readBase + position < fileSize;
     }
 
     @Override

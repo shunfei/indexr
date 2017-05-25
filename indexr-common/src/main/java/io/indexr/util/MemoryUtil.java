@@ -114,6 +114,10 @@ public class MemoryUtil {
         unsafe.setMemory(addr, size, v);
     }
 
+    public static void setMemory(Object base, long offset, long size, byte v) {
+        unsafe.setMemory(base, offset, size, v);
+    }
+
     public static long getAddress(ByteBuffer buffer) {
         assert buffer.getClass() == DIRECT_BYTE_BUFFER_CLASS;
         return unsafe.getLong(buffer, DIRECT_BYTE_BUFFER_ADDRESS_OFFSET);

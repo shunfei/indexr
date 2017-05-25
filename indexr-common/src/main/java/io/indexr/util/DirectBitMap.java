@@ -1,14 +1,16 @@
 package io.indexr.util;
 
 
+import org.apache.spark.unsafe.Platform;
+
 import java.nio.ByteBuffer;
 
 import io.indexr.data.Freeable;
 
 /**
- * A fixed len BitMap stores words in off-heap memory.
+ * A fixed len BitMap stores words in direct memory.
  */
-public class OffheapBitMap implements Freeable {
+public class DirectBitMap implements Freeable {
     /**
      * The initial default number of bits ({@value #DEFAULT_NUM_BITS}).
      */
@@ -18,7 +20,7 @@ public class OffheapBitMap implements Freeable {
      * Internal representation of bits in this bit set.
      */
     //public long[] bits;
-
+    public Object bitsBase;
     public long bitsAddr;
 
     /**
@@ -30,16 +32,21 @@ public class OffheapBitMap implements Freeable {
     /**
      * The number of words (longs).
      */
-    public int wlen;
+    public final int wlen;
 
-    public OffheapBitMap(long bitsAddr, int wlen, Object attach) {
-        this.bitsAddr = bitsAddr;
+    public DirectBitMap(Object bitsBase, long offset, int wlen, Object attach) {
+        this.bitsBase = bitsBase;
+        this.bitsAddr = offset;
         this.wlen = wlen;
         this.attach = attach;
     }
 
-    public OffheapBitMap(long cap) {
-        this.wlen = bits2words(cap);
+    public DirectBitMap(long bitsAddr, int wlen, Object attach) {
+        this(null, bitsAddr, wlen, attach);
+    }
+
+    public DirectBitMap(long bitsCap) {
+        this.wlen = bits2words(bitsCap);
         ByteBuffer buffer = ByteBufferUtil.allocateDirect(wlen << 3);
         this.bitsAddr = MemoryUtil.getAddress(buffer);
         this.attach = buffer;
@@ -52,28 +59,28 @@ public class OffheapBitMap implements Freeable {
         }
 
         bitsAddr = 0;
-        wlen = -1;
+        //wlen = -1;
         attach = null;
     }
 
     public long word(int wordIndex) {
         assert wordIndex >= 0 && wordIndex < wlen;
 
-        return MemoryUtil.getLong(bitsAddr + (wordIndex << 3));
+        return Platform.getLong(bitsBase, bitsAddr + (wordIndex << 3));
     }
 
     public void setWord(int wordIndex, long word) {
         assert wordIndex >= 0 && wordIndex < wlen;
 
-        MemoryUtil.setLong(bitsAddr + (wordIndex << 3), word);
+        Platform.putLong(bitsBase, bitsAddr + (wordIndex << 3), word);
     }
 
     /**
      * @return Returns an iterator over all set bits of this bitset. The iterator should
      * be faster than using a loop around {@link #nextSetBit(int)}.
      */
-    public OffheapBitMapIterator iterator() {
-        return new OffheapBitMapIterator(bitsAddr, wlen);
+    public DirectBitMapIterator iterator() {
+        return new DirectBitMapIterator(bitsAddr, wlen);
     }
 
     /**
@@ -99,7 +106,7 @@ public class OffheapBitMap implements Freeable {
      * @see java.util.BitSet#length()
      */
     public long length() {
-        trimTrailingZeros();
+        //trimTrailingZeros();
         if (wlen == 0) return 0;
         return (((long) wlen - 1) << 6)
                 + (64 - Long.numberOfLeadingZeros(word(wlen - 1)));
@@ -185,7 +192,7 @@ public class OffheapBitMap implements Freeable {
         }
 
         setWord(startWord, word(startWord) | startmask);
-        BitUtil.fillOne(bitsAddr, startWord + 1, endWord);
+        BitUtil.fillOne(bitsBase, bitsAddr, startWord + 1, endWord);
         setWord(endWord, word(endWord) | endmask);
     }
 
@@ -197,8 +204,8 @@ public class OffheapBitMap implements Freeable {
 
     /** Clears all bits. */
     public void clear() {
-        BitUtil.fillZero(bitsAddr, 0, wlen);
-        this.wlen = 0;
+        BitUtil.fillZero(bitsBase, bitsAddr, 0, wlen);
+        //this.wlen = 0;
     }
 
     /**
@@ -251,7 +258,7 @@ public class OffheapBitMap implements Freeable {
         setWord(startWord, word(startWord) & startmask);
 
         int middle = Math.min(wlen, endWord);
-        BitUtil.fillZero(bitsAddr, startWord + 1, middle);
+        BitUtil.fillZero(bitsBase, bitsAddr, startWord + 1, middle);
         if (endWord < wlen) {
             setWord(endWord, word(endIndex) & endmask);
         }
@@ -292,7 +299,7 @@ public class OffheapBitMap implements Freeable {
         setWord(startWord, word(startWord) & startmask);
 
         int middle = Math.min(wlen, endWord);
-        BitUtil.fillZero(bitsAddr, startWord + 1, middle);
+        BitUtil.fillZero(bitsBase, bitsAddr, startWord + 1, middle);
         if (endWord < wlen) {
             setWord(endWord, word(endWord) & endmask);
         }
@@ -382,6 +389,10 @@ public class OffheapBitMap implements Freeable {
         return (word(wordNum) & bitmask) != 0;
     }
 
+    public void flip() {
+        flip(0, wlen << 6);
+    }
+
     /**
      * Flips a range of bits. [startIndex, endIndex)
      *
@@ -419,7 +430,7 @@ public class OffheapBitMap implements Freeable {
 
     /** @return the number of set bits */
     public long cardinality() {
-        return BitUtil.pop_array(bitsAddr, 0, wlen);
+        return BitUtil.pop_array(bitsBase, bitsAddr, 0, wlen);
     }
 
     /**
@@ -428,8 +439,8 @@ public class OffheapBitMap implements Freeable {
      * @return Returns the popcount or cardinality of the intersection of the two sets. Neither
      * set is modified.
      */
-    public static long intersectionCount(OffheapBitMap a, OffheapBitMap b) {
-        return BitUtil.pop_intersect(a.bitsAddr, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
+    public static long intersectionCount(DirectBitMap a, DirectBitMap b) {
+        return BitUtil.pop_intersect(a.bitsBase, a.bitsAddr, b.bitsBase, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
     }
 
     /**
@@ -438,12 +449,12 @@ public class OffheapBitMap implements Freeable {
      * @return Returns the popcount or cardinality of the union of the two sets. Neither set is
      * modified.
      */
-    public static long unionCount(OffheapBitMap a, OffheapBitMap b) {
-        long tot = BitUtil.pop_union(a.bitsAddr, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
+    public static long unionCount(DirectBitMap a, DirectBitMap b) {
+        long tot = BitUtil.pop_union(a.bitsBase, a.bitsAddr, b.bitsBase, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
         if (a.wlen < b.wlen) {
-            tot += BitUtil.pop_array(b.bitsAddr, a.wlen, b.wlen - a.wlen);
+            tot += BitUtil.pop_array(b.bitsBase, b.bitsAddr, a.wlen, b.wlen - a.wlen);
         } else if (a.wlen > b.wlen) {
-            tot += BitUtil.pop_array(a.bitsAddr, b.wlen, a.wlen - b.wlen);
+            tot += BitUtil.pop_array(a.bitsBase, a.bitsAddr, b.wlen, a.wlen - b.wlen);
         }
         return tot;
     }
@@ -454,10 +465,10 @@ public class OffheapBitMap implements Freeable {
      * @return Returns the popcount or cardinality of "a and not b" or "intersection(a, not(b))".
      * Neither set is modified.
      */
-    public static long andNotCount(OffheapBitMap a, OffheapBitMap b) {
-        long tot = BitUtil.pop_andnot(a.bitsAddr, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
+    public static long andNotCount(DirectBitMap a, DirectBitMap b) {
+        long tot = BitUtil.pop_andnot(a.bitsBase, a.bitsAddr, b.bitsBase, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
         if (a.wlen > b.wlen) {
-            tot += BitUtil.pop_array(a.bitsAddr, b.wlen, a.wlen - b.wlen);
+            tot += BitUtil.pop_array(a.bitsBase, a.bitsAddr, b.wlen, a.wlen - b.wlen);
         }
         return tot;
     }
@@ -468,12 +479,12 @@ public class OffheapBitMap implements Freeable {
      * @return Returns the popcount or cardinality of the exclusive-or of the two sets. Neither
      * set is modified.
      */
-    public static long xorCount(OffheapBitMap a, OffheapBitMap b) {
-        long tot = BitUtil.pop_xor(a.bitsAddr, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
+    public static long xorCount(DirectBitMap a, DirectBitMap b) {
+        long tot = BitUtil.pop_xor(a.bitsBase, a.bitsAddr, b.bitsBase, b.bitsAddr, 0, Math.min(a.wlen, b.wlen));
         if (a.wlen < b.wlen) {
-            tot += BitUtil.pop_array(b.bitsAddr, a.wlen, b.wlen - a.wlen);
+            tot += BitUtil.pop_array(b.bitsBase, b.bitsAddr, a.wlen, b.wlen - a.wlen);
         } else if (a.wlen > b.wlen) {
-            tot += BitUtil.pop_array(a.bitsAddr, b.wlen, a.wlen - b.wlen);
+            tot += BitUtil.pop_array(a.bitsBase, a.bitsAddr, b.wlen, a.wlen - b.wlen);
         }
         return tot;
     }
@@ -529,7 +540,7 @@ public class OffheapBitMap implements Freeable {
      *
      * @param other The bitset to intersect with.
      */
-    public void intersect(OffheapBitMap other) {
+    public void intersect(DirectBitMap other) {
         assert wlen == other.wlen;
         // testing against zero can be more efficient
         int pos = wlen;
@@ -543,7 +554,7 @@ public class OffheapBitMap implements Freeable {
      *
      * @param other The bitset to union with.
      */
-    public void union(OffheapBitMap other) {
+    public void union(DirectBitMap other) {
         assert wlen == other.wlen;
 
         int pos = wlen;
@@ -557,7 +568,7 @@ public class OffheapBitMap implements Freeable {
      *
      * @param other The other bitset.
      */
-    public void remove(OffheapBitMap other) {
+    public void remove(DirectBitMap other) {
         assert wlen == other.wlen;
 
         int idx = wlen;
@@ -571,7 +582,7 @@ public class OffheapBitMap implements Freeable {
      *
      * @param other The other bitset.
      */
-    public void xor(OffheapBitMap other) {
+    public void xor(DirectBitMap other) {
         assert wlen == other.wlen;
 
         int pos = wlen;
@@ -583,17 +594,17 @@ public class OffheapBitMap implements Freeable {
     // some BitSet compatibility methods
 
     // ** see {@link intersect} */
-    public void and(OffheapBitMap other) {
+    public void and(DirectBitMap other) {
         intersect(other);
     }
 
     // ** see {@link union} */
-    public void or(OffheapBitMap other) {
+    public void or(DirectBitMap other) {
         union(other);
     }
 
     // ** see {@link andNot} */
-    public void andNot(OffheapBitMap other) {
+    public void andNot(DirectBitMap other) {
         remove(other);
     }
 
@@ -601,7 +612,7 @@ public class OffheapBitMap implements Freeable {
      * @param other The other bitset.
      * @return true if the sets have any elements in common
      */
-    public boolean intersects(OffheapBitMap other) {
+    public boolean intersects(DirectBitMap other) {
         assert wlen == other.wlen;
         int pos = wlen;
         while (--pos >= 0) {
@@ -626,12 +637,12 @@ public class OffheapBitMap implements Freeable {
      * Lowers {@link #wlen}, the number of words in use, by checking for trailing zero
      * words.
      */
-    public void trimTrailingZeros() {
-        int idx = wlen - 1;
-        while (idx >= 0 && word(idx) == 0)
-            idx--;
-        wlen = idx + 1;
-    }
+    //public void trimTrailingZeros() {
+    //    int idx = wlen - 1;
+    //    while (idx >= 0 && word(idx) == 0)
+    //        idx--;
+    //    wlen = idx + 1;
+    //}
 
     /*
      * returns the number of 64 bit words it would take to hold numBits
@@ -644,10 +655,10 @@ public class OffheapBitMap implements Freeable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof OffheapBitMap)) return false;
+        if (!(o instanceof DirectBitMap)) return false;
 
-        OffheapBitMap a;
-        OffheapBitMap b = (OffheapBitMap) o;
+        DirectBitMap a;
+        DirectBitMap b = (DirectBitMap) o;
 
         // make a the larger set.
         if (b.wlen > this.wlen) {

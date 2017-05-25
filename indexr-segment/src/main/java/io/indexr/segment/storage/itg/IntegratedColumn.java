@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import io.indexr.io.ByteBufferReader;
 import io.indexr.io.ByteSlice;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSIndex;
 import io.indexr.segment.SQLType;
@@ -22,6 +23,8 @@ public class IntegratedColumn extends StorageColumn {
     private final long dpnBase;
     private final long indexBase;
     private final long extIndexBase;
+    private final long outerIndexBase;
+    private final long outerIndexSize;
     private final long packBase;
 
     private final long segmentId;
@@ -42,6 +45,8 @@ public class IntegratedColumn extends StorageColumn {
                      long dpnBase,
                      long indexBase,
                      long extIndexBase,
+                     long outerIndexBase,
+                     long outerIndexSize,
                      long packBase,
                      DpnCache dpnCache,
                      IndexMemCache indexMemCache,
@@ -52,6 +57,8 @@ public class IntegratedColumn extends StorageColumn {
         this.dpnBase = dpnBase;
         this.indexBase = indexBase;
         this.extIndexBase = extIndexBase;
+        this.outerIndexBase = outerIndexBase;
+        this.outerIndexSize = outerIndexSize;
         this.packBase = packBase;
         this.segmentId = segmentId;
         this.dpnCache = dpnCache;
@@ -75,6 +82,8 @@ public class IntegratedColumn extends StorageColumn {
                 this.dpnBase,
                 this.indexBase,
                 this.extIndexBase,
+                this.outerIndexBase,
+                this.outerIndexSize,
                 this.packBase,
                 null, // dpnCache is passed by old segment instance, we should not use it.
                 this.indexMemCache,
@@ -84,6 +93,10 @@ public class IntegratedColumn extends StorageColumn {
         column._dpns = this._dpns;
 
         return column;
+    }
+
+    public long outerIndexSize() {
+        return outerIndexSize;
     }
 
     @Override
@@ -141,6 +154,11 @@ public class IntegratedColumn extends StorageColumn {
             };
             return mode.versionAdapter.createExtIndex(version, mode, dataType(), isIndexed, dpn, data);
         }
+    }
+
+    @Override
+    public OuterIndex outerIndex() throws IOException {
+        return mode.versionAdapter.loadOuterIndex(version, mode, dataType(), dataSource.open(outerIndexBase), outerIndexSize);
     }
 
     @Override

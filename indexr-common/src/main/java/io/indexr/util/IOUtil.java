@@ -117,12 +117,12 @@ public class IOUtil {
         }
     }
 
-    public static void readFully(FileChannel file, long offset, ByteBuffer buffer) throws IOException {
-        Preconditions.checkState(file.size() - offset >= buffer.remaining());
+    public static void readFully(FileChannel file, long posistion, ByteBuffer buffer) throws IOException {
+        Preconditions.checkState(file.size() - posistion >= buffer.remaining());
 
         int read = 0;
         while (buffer.hasRemaining()) {
-            int rt = file.read(buffer, offset + read);
+            int rt = file.read(buffer, posistion + read);
             if (rt < 0) {
                 throw new IOException("End of file");
             }

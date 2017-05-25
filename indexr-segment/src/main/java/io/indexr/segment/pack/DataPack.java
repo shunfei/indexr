@@ -26,8 +26,8 @@ import io.indexr.segment.SegmentMode;
 import io.indexr.segment.storage.PackBundle;
 import io.indexr.segment.storage.Version;
 import io.indexr.util.BitMap;
+import io.indexr.util.DirectBitMapIterator;
 import io.indexr.util.MemoryUtil;
-import io.indexr.util.OffheapBitMapIterator;
 import io.indexr.util.Wrapper;
 
 public final class DataPack implements DPValues, Freeable {
@@ -269,11 +269,11 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public int foreach(BitMap position, IntSetter setter) {
-        if (position == BitMap.ALL || position == BitMap.SOME) {
+        if (position == BitMap.ALL) {
             foreach(0, objCount, setter);
             return objCount;
         }
-        OffheapBitMapIterator posIterator = position.iterator();
+        DirectBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -320,11 +320,11 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public int foreach(BitMap position, LongSetter setter) {
-        if (position == BitMap.ALL || position == BitMap.SOME) {
+        if (position == BitMap.ALL) {
             foreach(0, objCount, setter);
             return objCount;
         }
-        OffheapBitMapIterator posIterator = position.iterator();
+        DirectBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -371,11 +371,11 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public int foreach(BitMap position, FloatSetter setter) {
-        if (position == BitMap.ALL || position == BitMap.SOME) {
+        if (position == BitMap.ALL) {
             foreach(0, objCount, setter);
             return objCount;
         }
-        OffheapBitMapIterator posIterator = position.iterator();
+        DirectBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -422,11 +422,11 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public int foreach(BitMap position, DoubleSetter setter) {
-        if (position == BitMap.ALL || position == BitMap.SOME) {
+        if (position == BitMap.ALL) {
             foreach(0, objCount, setter);
             return objCount;
         }
-        OffheapBitMapIterator posIterator = position.iterator();
+        DirectBitMapIterator posIterator = position.iterator();
         int count = 0;
         switch (version) {
             case Version.VERSION_0_ID: {
@@ -661,11 +661,11 @@ public final class DataPack implements DPValues, Freeable {
     }
 
     public int foreach(BitMap position, BytePieceSetter setter) {
-        if (position == BitMap.ALL || position == BitMap.SOME) {
+        if (position == BitMap.ALL) {
             foreach(0, objCount, setter);
             return objCount;
         }
-        OffheapBitMapIterator posIterator = position.iterator();
+        DirectBitMapIterator posIterator = position.iterator();
         int count = 0;
         BytePiece bytes = new BytePiece();
         int index;

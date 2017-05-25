@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 import io.indexr.segment.Column;
 import io.indexr.segment.ColumnType;
 import io.indexr.segment.InfoSegment;
+import io.indexr.segment.OuterIndex;
 import io.indexr.segment.PackExtIndex;
 import io.indexr.segment.RSValue;
 import io.indexr.segment.Segment;
@@ -106,6 +107,16 @@ public class In implements CmpOperator {
         } else {
             numMin = Double.doubleToRawLongBits(doubleMin);
             numMax = Double.doubleToRawLongBits(doubleMax);
+        }
+    }
+
+    @Override
+    public BitMap exactCheckOnPack(Segment segment) throws IOException {
+        assert attr.checkCurrent(segment.schema().columns);
+
+        Column column = segment.column(attr.columnId());
+        try (OuterIndex outerIndex = column.outerIndex()) {
+            return outerIndex.in(column, numValues, strValues, false);
         }
     }
 

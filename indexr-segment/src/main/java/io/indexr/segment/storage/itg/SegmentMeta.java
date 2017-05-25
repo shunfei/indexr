@@ -33,6 +33,7 @@ public abstract class SegmentMeta {
 
     public ColumnNodeMeta[] columnNodeInfos;
     public ColumnMeta[] columnInfos;
+    public OuterIndexMeta[] outerIndexMetas;
 
     SegmentMeta(int version, long rowCount, int columnCount, int mode) {
         this.version = version;
@@ -67,7 +68,18 @@ public abstract class SegmentMeta {
             if (mode != info.mode) return false;
         }
         if (!Arrays.equals(columnNodeInfos, info.columnNodeInfos)) return false;
-        return Arrays.equals(columnInfos, info.columnInfos);
+
+        if (columnInfos.length != info.columnInfos.length) {
+            return false;
+        }
+        for (int i = 0; i < columnInfos.length; i++) {
+            ColumnMeta c = columnInfos[i];
+            ColumnMeta oc = info.columnInfos[i];
+            if (!c.equals(version(), oc)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     static SegmentMeta readSegmentMeta(ByteBuffer buffer) {

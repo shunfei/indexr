@@ -25,7 +25,8 @@ public class ByteBufferUtil {
     }
 
     /**
-     * Allocate memory with cap len.
+     * Allocate direct memory with cap len.
+     * All DirectByteBuffer in this project should be allocated from this method.
      */
     public static ByteBuffer allocateDirect(int cap) {
         ByteBuffer bb = ByteBuffer.allocateDirect(cap);

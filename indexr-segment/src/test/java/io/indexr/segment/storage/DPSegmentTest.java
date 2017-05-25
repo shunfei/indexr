@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -26,7 +24,6 @@ import io.indexr.segment.ColumnSchema;
 import io.indexr.segment.Row;
 import io.indexr.segment.SegmentMode;
 import io.indexr.segment.SegmentSchema;
-import io.indexr.segment.helper.SimpleRow;
 import io.indexr.segment.index.RSIndexTest;
 import io.indexr.segment.pack.DataPack;
 import io.indexr.util.DateTimeUtil;
@@ -36,6 +33,7 @@ public class DPSegmentTest {
     private static Path workDir;
     private static SegmentSchema segmentSchema = TestRows.segmentSchema;
     private static List<ColumnSchema> columnSchemas = TestRows.columnSchemas;
+    private static int rowCount = DataPack.MAX_COUNT * 3 + 99;
 
     @BeforeClass
     public static void init() throws IOException {
@@ -48,45 +46,8 @@ public class DPSegmentTest {
         FileUtils.deleteDirectory(workDir.toFile());
     }
 
-    //private static String[][] rawRows = new String[][]{
-    //        {"89", "222222", "4.5", "9.1", "windows", "2014-12-09", "00:00:00", "2014-12-09T00:00:00"},
-    //        {"3", String.valueOf(Long.MAX_VALUE), "4.5", "9.199", "mac", "1901-03-24", "11:43:56", "1901-03-24T11:43:56"},
-    //        {"14121", "99", "2.5", "11.1", "linux", "9999-01-01", "12:59:59", "9999-01-01T12:59:59"},
-    //        {String.valueOf(Integer.MAX_VALUE), "11", String.valueOf(Float.MIN_VALUE), "1.51", "android", "2741-1-3", "1:1:1", "2741-1-3T1:1:1"},
-    //};
-
-    private static String[][] rawRows = new String[][]{
-            {"89", "89", "222222", "222222", "4.5", "4.5", "9.1", "9.1", "windows", "windows", "2014-12-09", "2014-12-09", "00:00:00", "00:00:00", "2014-12-09T00:00:00", "2014-12-09T00:00:00"},
-            {"3", "3", String.valueOf(Long.MAX_VALUE), String.valueOf(Long.MAX_VALUE), "4.5", "4.5", "9.199", "9.199", "mac", "mac", "1901-03-24", "1901-03-24", "11:43:56", "11:43:56", "1901-03-24T11:43:56", "1901-03-24T11:43:56"},
-            {"14121", "14121", "99", "99", "2.5", "2.5", "11.1", "11.1", "linux", "linux", "9999-01-01", "9999-01-01", "12:59:59", "12:59:59", "9999-01-01T12:59:59", "9999-01-01T12:59:59"},
-            {String.valueOf(Integer.MAX_VALUE), String.valueOf(Integer.MAX_VALUE), "11", "11", String.valueOf(Float.MIN_VALUE), String.valueOf(Float.MIN_VALUE), "1.51", "1.51", "android", "android", "2741-01-03", "2741-01-03", "01:01:01", "01:01:01", "2741-01-03T01:01:01", "2741-01-03T01:01:01"},
-    };
-
-    static List<Row> sample_rows = new ArrayList<>(rawRows.length);
-    static final int rowCount = DataPack.MAX_COUNT * 3 + 99;
-
-    static {
-        SimpleRow.Builder builder = SimpleRow.Builder.createByColumnSchemas(columnSchemas);
-        for (int rowId = 0; rowId < rawRows.length; rowId++) {
-            builder.appendStringFormVals(Arrays.asList(rawRows[rowId]));
-            sample_rows.add(builder.buildAndReset());
-        }
-    }
-
     public static Iterator<Row> genRows(final int theRowCount) {
-        return new Iterator<Row>() {
-            int curIndex;
-
-            @Override
-            public boolean hasNext() {
-                return curIndex < theRowCount;
-            }
-
-            @Override
-            public Row next() {
-                return sample_rows.get((curIndex++) % sample_rows.size());
-            }
-        };
+        return TestRows.genRows(theRowCount);
     }
 
     public static void rowsCmp(Iterator<? extends Row> expected, Iterator<? extends Row> actual) {
@@ -166,7 +127,7 @@ public class DPSegmentTest {
                 name,
                 segmentSchema,
                 OpenOption.Overwrite).update();
-        addRows(segment, TestRows.sampleRows.iterator());
+        addRows(segment, genRows(rowCount));
         segment.seal();
 
         RSIndexTest.checkIndex(segment);

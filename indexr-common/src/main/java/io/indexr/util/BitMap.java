@@ -3,36 +3,36 @@ package io.indexr.util;
 import io.indexr.data.Freeable;
 
 /**
- * A wrapper of the underlying bitmap, only support [0, 65536).
+ * A wrapper of the underlying bitmap.
  *
- * We guarantee that the content of {@link #SOME}, {@link #ALL} or {@link #NONE} will never be changed.
+ * We guarantee that the content of {@link #ALL} or {@link #NONE} will never be changed.
  * As those static instances are shared around.
  */
 public class BitMap implements Freeable {
-    public static final int CAPACITY = 65536;
-    public static final BitMap SOME = new BitMap(CAPACITY);
-    public static final BitMap ALL = new BitMap(CAPACITY);
-    public static final BitMap NONE = new BitMap(CAPACITY);
+    public static final int DATAPACK_MAX_COUNT = 65536;
 
-    static {
-        SOME.agent.flip(0, CAPACITY);
-        ALL.agent.flip(0, CAPACITY);
-    }
+    //public static final BitMap SOME = new BitMap(null);
+    public static final BitMap ALL = new BitMap(null);
+    public static final BitMap NONE = new BitMap(null);
 
-    private OffheapBitMap agent;
+    public DirectBitMap agent;
 
     public BitMap() {
-        this(CAPACITY);
+        this(DATAPACK_MAX_COUNT);
     }
 
     public BitMap(int bits) {
-        assert bits <= CAPACITY;
-        agent = new OffheapBitMap(bits);
+        agent = new DirectBitMap(bits);
+    }
+
+    public BitMap(DirectBitMap agent) {
+        this.agent = agent;
     }
 
     @Override
     public void free() {
-        if (this == SOME || this == ALL || this == NONE) {
+        //if (this == SOME || this == ALL || this == NONE) {
+        if (this == ALL || this == NONE) {
             // Those can not change.
             return;
         }
@@ -42,8 +42,23 @@ public class BitMap implements Freeable {
         }
     }
 
+    @Override
+    public String toString() {
+        //if (this == SOME) {
+        //    return "SOME";
+        //} else
+        if (this == ALL) {
+            return "ALL";
+        } else if (this == NONE) {
+            return "NONE";
+        } else {
+            String s = agent.toString();
+            return s.substring(0, Math.min(s.length(), 8));
+        }
+    }
+
     public void set(int id) {
-        assert this != SOME;
+        //assert this != SOME;
         assert this != ALL;
         assert this != NONE;
 
@@ -51,7 +66,7 @@ public class BitMap implements Freeable {
     }
 
     public void unset(int start, int end) {
-        assert this != SOME;
+        //assert this != SOME;
         assert this != ALL;
         assert this != NONE;
 
@@ -59,6 +74,11 @@ public class BitMap implements Freeable {
     }
 
     public boolean get(int id) {
+        if (this == ALL) {
+            return true;
+        } else if (this == NONE) {
+            return false;
+        }
         return agent.get(id);
     }
 
@@ -66,7 +86,7 @@ public class BitMap implements Freeable {
         return (int) agent.cardinality();
     }
 
-    public OffheapBitMapIterator iterator() {
+    public DirectBitMapIterator iterator() {
         return agent.iterator();
     }
 
@@ -80,8 +100,8 @@ public class BitMap implements Freeable {
             return b;
         } else if (b == ALL) {
             return a;
-        } else if (a == SOME || b == SOME) {
-            return SOME;
+            //} else if (a == SOME || b == SOME) {
+            //    return SOME;
         }
         a.agent.and(b.agent);
         return a;
@@ -102,12 +122,12 @@ public class BitMap implements Freeable {
             return b;
         } else if (b == ALL) {
             return a;
-        } else if (a == SOME) {
-            b.free();
-            return SOME;
-        } else if (b == SOME) {
-            a.free();
-            return SOME;
+            //} else if (a == SOME) {
+            //    b.free();
+            //    return SOME;
+            //} else if (b == SOME) {
+            //    a.free();
+            //    return SOME;
         }
         a.agent.and(b.agent);
         return a;
@@ -123,8 +143,8 @@ public class BitMap implements Freeable {
             return b;
         } else if (b == NONE) {
             return a;
-        } else if (a == SOME || b == SOME) {
-            return SOME;
+            //} else if (a == SOME || b == SOME) {
+            //    return SOME;
         }
         a.agent.or(b.agent);
         return a;
@@ -145,12 +165,12 @@ public class BitMap implements Freeable {
             return b;
         } else if (b == NONE) {
             return a;
-        } else if (a == SOME) {
-            b.free();
-            return SOME;
-        } else if (b == SOME) {
-            a.free();
-            return SOME;
+            //} else if (a == SOME) {
+            //    b.free();
+            //    return SOME;
+            //} else if (b == SOME) {
+            //    a.free();
+            //    return SOME;
         }
         a.agent.or(b.agent);
         return a;
@@ -164,10 +184,10 @@ public class BitMap implements Freeable {
             return NONE;
         } else if (a == NONE) {
             return ALL;
-        } else if (a == SOME) {
-            return SOME;
+            //} else if (a == SOME) {
+            //    return SOME;
         }
-        a.agent.flip(0, 65536);
+        a.agent.flip(0, a.agent.size());
         return a;
     }
 }
