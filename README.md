@@ -17,7 +17,9 @@ Please feel free to file any issues.
 
 ## Contact
 
-* Email: <519178957@qq.com>
+* Email: 
+	* <indexree@vectorlinetech.com>
+	* <519178957@qq.com>
 * QQ Group: 606666586 (IndexR讨论组)
 
 ## Commercial Services
