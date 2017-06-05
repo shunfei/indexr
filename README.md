@@ -22,10 +22,6 @@ Please feel free to file any issues.
 	* <519178957@qq.com>
 * QQ Group: 606666586 (IndexR讨论组)
 
-## Commercial Services
-
-[IndexREE](https://github.com/shunfei/indexr/wiki/IndexREE) - IndexR Enterprise Edition.
-
 ## License
 
     Copyright 2016 Sunteng Tech.
