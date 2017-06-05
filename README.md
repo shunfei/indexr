@@ -8,7 +8,7 @@
 * 3 levels indices supported. Say goodbye to full scan.
 * Support realtime ingestion. No more wait, analyse anything right after they happen.
 * Hardware efficiency, anyone can use.
-* Realtime and off-line pre-aggregation, online schema update, 100% accurate.
+* Features like realtime and offline pre-aggregation, online schema update, 100% accurate, etc.
 * Deep integration with Hadoop ecosystem. Adapted with popular query engines like Apache Drill, Apache Hive, etc.
 
 #### Document
