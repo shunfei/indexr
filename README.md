@@ -2,13 +2,13 @@
 
 ![IndexR Logo](images/indexr-logo-150x150.png)
 
-IndexR is a super fast columnar data formate on HDFS, which focus on fast analyse, both for massive static(historical) data and rapidly ingesting realtime data. IndexR is designed for OLAP. IndexR is greatly suitable for building data warehouse based on Hadoop ecosystem.
+**IndexR** is a super fast columnar data formate on HDFS, which focus on fast analytic, both for massive static(historical) data and rapidly ingesting realtime data. IndexR is designed for OLAP. IndexR is greatly suitable for building data warehouse based on Hadoop ecosystem.
 
 * Super fast, 2~4x read speed of Parquet.
 * 3 levels indices supported. Say goodbye to full scan.
-* Suport realtime ingestion. No more wait, analyse anything right after they happen.
+* Support realtime ingestion. No more wait, analyse anything right after they happen.
 * Hardware efficiency, anyone can use.
-* Realtime and offline pre-aggregation, online schema update, 100% accurate.
+* Realtime and off-line pre-aggregation, online schema update, 100% accurate.
 * Deep integration with Hadoop ecosystem. Adapted with popular query engines like Apache Drill, Apache Hive, etc.
 
 #### Document
