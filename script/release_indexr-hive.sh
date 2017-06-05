@@ -24,6 +24,7 @@ function cp_jar {
 
 cp_jar ${MAVEN_PATH}/io/indexr/indexr-common/${VERSION}/indexr-common-${VERSION}.jar
 cp_jar ${MAVEN_PATH}/io/indexr/indexr-segment/${VERSION}/indexr-segment-${VERSION}.jar
+cp_jar ${MAVEN_PATH}/io/indexr/indexr-vlt-segment/${VERSION}/indexr-vlt-segment-${VERSION}.jar
 cp_jar ${MAVEN_PATH}/io/indexr/indexr-hive/${VERSION}/indexr-hive-${VERSION}.jar
 
 # copy depenencies
@@ -36,7 +37,3 @@ cp_jar ${MAVEN_PATH}/com/fasterxml/jackson/core/jackson-databind/2.6.2/jackson-d
 cp_jar ${MAVEN_PATH}/com/fasterxml/jackson/core/jackson-annotations/2.6.0/jackson-annotations-2.6.0.jar
 cp_jar ${MAVEN_PATH}/net/java/dev/jna/jna/4.2.1/jna-4.2.1.jar
 cp_jar ${MAVEN_PATH}/org/jodd/jodd-core/3.6.7/jodd-core-3.6.7.jar
-
-
-# copy vlt jars
-cp -f ${ROOT_DIR}/indexr-vlt/vltlib/indexr-vlt-segment-${VERSION}.jar ${RELEASE_PATH}/indexr-hive/aux/

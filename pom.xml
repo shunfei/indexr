@@ -10,6 +10,8 @@
 
     <modules>
         <module>indexr-segment</module>
+        <module>indexr-vlt-segment</module>
+        <module>indexr-codegen</module>
         <module>indexr-server</module>
         <module>indexr-common</module>
         <module>indexr-query-opt</module>
