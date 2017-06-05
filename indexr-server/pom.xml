@@ -47,11 +47,11 @@
             <artifactId>indexr-segment</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!--<dependency>-->
-        <!--<groupId>org.eclipse.jetty</groupId>-->
-        <!--<artifactId>jetty-server</artifactId>-->
-        <!--<version>9.3.11.v20160721</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>io.indexr</groupId>
+            <artifactId>indexr-vlt-segment</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
