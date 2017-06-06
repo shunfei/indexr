@@ -56,3 +56,4 @@ cp_jar ${MAVEN_PATH}/org/antlr/antlr4-annotations/4.3/antlr4-annotations-4.3.jar
 cp_jar ${MAVEN_PATH}/org/abego/treelayout/org.abego.treelayout.core/1.0.1/org.abego.treelayout.core-1.0.1.jar
 
 cp_jar ${MAVEN_PATH}/com/google/guava/guava/16.0.1/guava-16.0.1.jar
+cp_jar ${MAVEN_PATH}/it/unimi/dsi/fastutil/6.5.9/fastutil-6.5.9.jar
