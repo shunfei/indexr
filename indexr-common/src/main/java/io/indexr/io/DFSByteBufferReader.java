@@ -20,6 +20,7 @@ import io.indexr.util.MemoryUtil;
 public class DFSByteBufferReader implements ByteBufferReader {
     private static boolean HDFS_READ_HACK_ENABLE = MemoryUtil.HDFS_READ_HACK_ENABLE;
     private static Boolean IS_SHORT_CIRCUIT_LOCAL_READ_ENABLE = null;
+    private static int TRY_GET_LOCAL_FILE_LIMIT = 2;
     private static final Logger logger = LoggerFactory.getLogger(DFSByteBufferReader.class);
 
     private String name;
@@ -31,6 +32,7 @@ public class DFSByteBufferReader implements ByteBufferReader {
 
     // Only used in short circuit local read.
     private FileChannel localFile;
+    private int tryGetLocalFileTimes = 0;
 
     private long fastReadDuration = 0;
     private int fastReadCount = 0;
@@ -56,39 +58,24 @@ public class DFSByteBufferReader implements ByteBufferReader {
         logger.debug("{}, size: {}, base: {}, block: {}", name, fileSize, readBase, blockCount);
     }
 
-    @Override
-    public void read(long position, ByteBuffer dst) throws IOException {
-        try {
-            if (isSingleBlock && HDFS_READ_HACK_ENABLE) {
-                readSingleBlock(position, dst);
-            } else {
-                normalRead(position, dst);
-            }
-        } catch (Exception e) {
-            throw new IOException(String.format("name: %s", name), e);
-        }
-    }
-
-    private void readSingleBlock(long position, ByteBuffer dst) throws IOException {
-        // Fast read if local file already exists.
-        if (localFile != null) {
-            fastRead(position, dst);
+    private void tryGetLocalFile() {
+        if (tryGetLocalFileTimes >= TRY_GET_LOCAL_FILE_LIMIT) {
             return;
         }
-
-        InputStream is = input.getWrappedStream();
-        if (is instanceof DFSInputStream) {
-            BlockReader blockReader = MemoryUtil.getDFSInputStream_blockReader(is);
-            if (blockReader != null && blockReader.isShortCircuit()) {
-                localFile = MemoryUtil.getBlockReaderLocal_dataIn(blockReader);
+        if (isSingleBlock && HDFS_READ_HACK_ENABLE) {
+            try {
+                InputStream is = input.getWrappedStream();
+                if (is instanceof DFSInputStream) {
+                    BlockReader blockReader = MemoryUtil.getDFSInputStream_blockReader(is);
+                    if (blockReader != null && blockReader.isShortCircuit()) {
+                        localFile = MemoryUtil.getBlockReaderLocal_dataIn(blockReader);
+                    }
+                }
+            } catch (Throwable e) {
+                logger.debug("HDFS READ HACK failed.", e);
             }
         }
-
-        if (localFile != null) {
-            fastRead(position, dst);
-        } else {
-            normalRead(position, dst);
-        }
+        tryGetLocalFileTimes++;
     }
 
     private void fastRead(long position, ByteBuffer dst) throws IOException {
@@ -96,6 +83,17 @@ public class DFSByteBufferReader implements ByteBufferReader {
         long time = System.nanoTime();
 
         IOUtil.readFully(localFile, readBase + position, dst);
+
+        fastReadDuration += System.nanoTime() - time;
+        fastReadCount++;
+    }
+
+    private void fastRead(long position, byte[] buffer, int offset, int length) throws IOException {
+        logger.trace("fast read");
+        long time = System.nanoTime();
+
+        ByteBuffer bb = ByteBuffer.wrap(buffer, offset, length);
+        localFile.read(bb, readBase + position);
 
         fastReadDuration += System.nanoTime() - time;
         fastReadCount++;
@@ -111,10 +109,40 @@ public class DFSByteBufferReader implements ByteBufferReader {
         normalReadCount++;
     }
 
+    private void normalRead(long position, byte[] buffer, int offset, int length) throws IOException {
+        logger.trace("normal read");
+        long time = System.nanoTime();
+
+        input.seek(readBase + position);
+        input.readFully(buffer, offset, length);
+
+        normalReadDuration += System.nanoTime() - time;
+        normalReadCount++;
+    }
+
+    @Override
+    public void read(long position, ByteBuffer dst) throws IOException {
+        try {
+            tryGetLocalFile();
+            if (localFile != null) {
+                fastRead(position, dst);
+            } else {
+                normalRead(position, dst);
+            }
+        } catch (Exception e) {
+            throw new IOException(String.format("name: %s", name), e);
+        }
+    }
+
     @Override
     public void read(long position, byte[] buffer, int offset, int length) throws IOException {
         try {
-            input.readFully(readBase + position, buffer, offset, length);
+            tryGetLocalFile();
+            if (localFile != null) {
+                fastRead(position, buffer, offset, length);
+            } else {
+                normalRead(position, buffer, offset, length);
+            }
         } catch (Exception e) {
             throw new IOException(String.format("name: %s", name), e);
         }
