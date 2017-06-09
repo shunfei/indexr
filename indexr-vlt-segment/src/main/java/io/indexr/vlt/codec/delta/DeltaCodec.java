@@ -370,7 +370,7 @@ public class DeltaCodec implements Codec {
         long deltaContentInputAddr = deltaLenInputAddr + deltaLenEncodedSize;
         int deltaTotalLen = 0;
         for (int i = 0; i < valCount; i++) {
-            int prefixLen = prefixLenBuffer.get(i << 2);
+            int prefixLen = prefixLenBuffer.getInt(i << 2);
             int deltaLen = deltaLenBuffer.getInt(i << 2);
 
             stringsBuilder.addString(
