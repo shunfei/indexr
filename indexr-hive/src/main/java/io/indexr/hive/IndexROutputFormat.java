@@ -43,6 +43,7 @@ public class IndexROutputFormat implements HiveOutputFormat<Void, ArrayWritable>
             Properties tableProperties,
             Progressable progress
     ) throws IOException {
+
         String columnNameProperty = tableProperties.getProperty(IOConstants.COLUMNS);
         String columnTypeProperty = tableProperties.getProperty(IOConstants.COLUMNS_TYPES);
         Path tableLocation = new Path(tableProperties.getProperty(Config.KEY_LOCATION));

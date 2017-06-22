@@ -147,6 +147,17 @@ public class SimpleRow implements Row {
             curColIndex++;
         }
 
+        public void appendUTF8String(UTF8String val) {
+            assert columnTypes[curColIndex] == SQLType.VARCHAR && val.numBytes() <= buffer.remaining();
+
+            Platform.copyMemory(
+                    val.getBaseObject(), val.getBaseOffset(),
+                    buffer.array(), Platform.BYTE_ARRAY_OFFSET + buffer.arrayOffset() + buffer.position(), val.numBytes());
+            buffer.position(buffer.position() + val.numBytes());
+            curSums[curColIndex] = buffer.position();
+            curColIndex++;
+        }
+
         public void appendStringFormVal(String val) {
             SQLType type = columnTypes[curColIndex];
             switch (type) {

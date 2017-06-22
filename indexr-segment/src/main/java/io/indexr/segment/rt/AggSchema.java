@@ -2,11 +2,14 @@ package io.indexr.segment.rt;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.List;
 
 import io.indexr.util.JsonUtil;
 
-public class AggSchema {
+public class AggSchema implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @JsonProperty("grouping")
     public final boolean grouping;
     @JsonProperty("dims")

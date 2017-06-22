@@ -1,5 +1,6 @@
 package io.indexr.segment;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +9,9 @@ import io.indexr.segment.storage.VersionAdapter;
 import io.indexr.segment.storage.VersionAdapter_Basic;
 import io.indexr.util.Strings;
 
-public class SegmentMode {
+public class SegmentMode implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public static final SegmentMode BASIC = new SegmentMode(new int[]{0, 1, 2}, new String[]{"basic", "balance", "storage", "performance"}, new VersionAdapter_Basic());
     // Inner used.
     public static final SegmentMode FAST = new SegmentMode(new int[]{3}, new String[]{"fast"}, new VersionAdapter_Basic(true));

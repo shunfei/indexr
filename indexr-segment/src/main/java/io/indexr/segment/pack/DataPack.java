@@ -4,11 +4,13 @@ import com.google.common.base.Preconditions;
 
 import com.carrotsearch.hppc.BitSetIterator;
 
+import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.UTF8String;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import io.indexr.data.ByteArraySetter;
 import io.indexr.data.BytePiece;
 import io.indexr.data.BytePieceSetter;
 import io.indexr.data.DictStruct;
@@ -471,29 +473,29 @@ public final class DataPack implements DPValues, Freeable {
     private static final long[] EMPTY_START_END = new long[]{0, 0};
 
     // Get the start and end pos of the raw type values.
-    private long[] getRawValueStartEnd(int index) {
-        long startAddr, endAddr;
-        switch (version) {
-            case Version.VERSION_0_ID: {
-                if (maxObjLen == 0) {
-                    return EMPTY_START_END;
-                }
-                long indexAddr = dataAddr + (index << 3) + 4;
-                int str_offset = (objCount << 3) + 4;
-                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
-                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
-                break;
-            }
-            default: {
-                long indexAddr = dataAddr + (index << 2);
-                int str_offset = (objCount + 1) << 2;
-                startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
-                endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
-                break;
-            }
-        }
-        return new long[]{startAddr, endAddr};
-    }
+    //private long[] getRawValueStartEnd(int index) {
+    //    long startAddr, endAddr;
+    //    switch (version) {
+    //        case Version.VERSION_0_ID: {
+    //            if (maxObjLen == 0) {
+    //                return EMPTY_START_END;
+    //            }
+    //            long indexAddr = dataAddr + (index << 3) + 4;
+    //            int str_offset = (objCount << 3) + 4;
+    //            startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+    //            endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+    //            break;
+    //        }
+    //        default: {
+    //            long indexAddr = dataAddr + (index << 2);
+    //            int str_offset = (objCount + 1) << 2;
+    //            startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+    //            endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+    //            break;
+    //        }
+    //    }
+    //    return new long[]{startAddr, endAddr};
+    //}
 
     public final UTF8String stringValueAt(int index) {
         long startAddr, endAddr;
@@ -555,6 +557,8 @@ public final class DataPack implements DPValues, Freeable {
         bytes.len = (int) (endAddr - startAddr);
     }
 
+    private static final byte[] EMPTY_BYTES = new byte[0];
+
     public final byte[] rawValueAt(int index) {
         long startAddr, endAddr;
         switch (version) {
@@ -580,11 +584,11 @@ public final class DataPack implements DPValues, Freeable {
         }
 
         if (startAddr == endAddr) {
-            return new byte[0];
+            return EMPTY_BYTES;
         } else {
             int len = (int) (endAddr - startAddr);
             byte[] bytes = new byte[len];
-            MemoryUtil.getBytes(startAddr, bytes, 0, len);
+            MemoryUtil.copyMemory(null, startAddr, bytes, Platform.BYTE_ARRAY_OFFSET, len);
             return bytes;
         }
     }
@@ -657,7 +661,48 @@ public final class DataPack implements DPValues, Freeable {
                     setter.set(index, bytes);
                 }
         }
+    }
 
+    @Override
+    public final void foreach(int start, int count, ByteArraySetter setter) {
+        switch (version) {
+            case Version.VERSION_0_ID:
+                for (int index = start; index < start + count; index++) {
+                    long startAddr, endAddr;
+
+                    if (maxObjLen == 0) {
+                        startAddr = 0;
+                        endAddr = 0;
+                    } else {
+                        long indexAddr = dataAddr + (index << 3) + 4;
+                        int str_offset = (objCount << 3) + 4;
+                        startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                        endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+                    }
+
+                    int len = (int) (endAddr - startAddr);
+                    byte[] bytes = new byte[len];
+                    MemoryUtil.copyMemory(null, startAddr, bytes, Platform.BYTE_ARRAY_OFFSET, len);
+
+                    setter.set(index, bytes, 0, len);
+                }
+                break;
+            default:
+                for (int index = start; index < start + count; index++) {
+                    long startAddr, endAddr;
+
+                    long indexAddr = dataAddr + (index << 2);
+                    int str_offset = (objCount + 1) << 2;
+                    startAddr = MemoryUtil.getInt(indexAddr) + dataAddr + str_offset;
+                    endAddr = MemoryUtil.getInt(indexAddr + 4) + dataAddr + str_offset;
+
+                    int len = (int) (endAddr - startAddr);
+                    byte[] bytes = new byte[len];
+                    MemoryUtil.copyMemory(null, startAddr, bytes, Platform.BYTE_ARRAY_OFFSET, len);
+
+                    setter.set(index, bytes, 0, len);
+                }
+        }
     }
 
     public int foreach(BitMap position, BytePieceSetter setter) {

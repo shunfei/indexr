@@ -1,5 +1,7 @@
 package io.indexr.segment.rc;
 
+import com.google.common.base.Preconditions;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -22,6 +24,7 @@ public class And implements LogicalOperator {
     @JsonCreator
     public And(@JsonProperty("children") List<RCOperator> children) {
         this.children = children;
+        Preconditions.checkState(children.size() > 0);
     }
 
     @Override
@@ -57,13 +60,22 @@ public class And implements LogicalOperator {
         And newAnd = hasUpdate ? new And(newOps) : this;
 
         RCOperator res = null;
-        if ((res = newAnd.tryToNotIn()) != null) {
+        if ((res = newAnd.trySingleChild()) != null) {
+            return res;
+        } else if ((res = newAnd.tryToNotIn()) != null) {
             return res;
         } else if ((res = newAnd.tryToBetween()) != null) {
             return res;
         } else {
             return newAnd;
         }
+    }
+
+    private RCOperator trySingleChild() {
+        if (children.size() == 1) {
+            return children.get(0);
+        }
+        return null;
     }
 
     private RCOperator tryToNotIn() {
