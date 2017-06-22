@@ -1,5 +1,7 @@
 package io.indexr.segment.rc;
 
+import com.google.common.base.Preconditions;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -24,6 +26,7 @@ public class Or implements LogicalOperator {
     @JsonCreator
     public Or(@JsonProperty("children") List<RCOperator> children) {
         this.children = children;
+        Preconditions.checkState(children.size() > 0);
     }
 
     @Override
@@ -59,7 +62,9 @@ public class Or implements LogicalOperator {
         Or newOr = hasUpdate ? new Or(newOps) : this;
 
         RCOperator res = null;
-        if ((res = newOr.tryToIn()) != null) {
+        if ((res = newOr.trySingleChild()) != null) {
+            return res;
+        } else if ((res = newOr.tryToIn()) != null) {
             return res;
         } else if ((res = newOr.tryToNotBetween()) != null) {
             return res;
@@ -70,6 +75,13 @@ public class Or implements LogicalOperator {
         } else {
             return newOr;
         }
+    }
+
+    private RCOperator trySingleChild() {
+        if (children.size() == 1) {
+            return children.get(0);
+        }
+        return null;
     }
 
     private RCOperator tryToIn() {

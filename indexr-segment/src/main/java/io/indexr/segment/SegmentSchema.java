@@ -4,12 +4,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.List;
 
 import io.indexr.util.JsonUtil;
 import io.indexr.util.Trick;
 
-public class SegmentSchema {
+public class SegmentSchema implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @JsonIgnore
     public List<ColumnSchema> columns;
 

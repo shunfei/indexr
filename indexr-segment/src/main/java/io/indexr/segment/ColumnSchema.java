@@ -6,9 +6,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.commons.lang.StringUtils;
 
+import java.io.Serializable;
+
 import io.indexr.util.JsonUtil;
 
-public class ColumnSchema {
+public class ColumnSchema implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @JsonIgnore
     public final String name;
     @JsonIgnore

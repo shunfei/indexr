@@ -288,4 +288,11 @@ public class Trick {
     public static boolean equals(Object a, Object b) {
         return a == null ? b == null : (b != null) && a.equals(b);
     }
+
+    public static boolean hasOne(boolean[] arr) {
+        for (boolean v : arr) {
+            if (v) return true;
+        }
+        return false;
+    }
 }

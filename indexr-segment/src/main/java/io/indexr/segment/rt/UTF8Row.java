@@ -785,7 +785,7 @@ public class UTF8Row implements Row, Serializable {
 
     @Override
     public boolean serialize(ByteBuffer byteBuffer) {
-        if (byteBuffer.capacity() < rowDataSize + 4 + (creator.columnCount << 1)) {
+        if (byteBuffer.remaining() < rowDataSize + 4 + (creator.columnCount << 1)) {
             // Fast way to detect whether the remaining cap can hold the serialize data or not.
             // We don't need to be exactualy acurrate.
             return false;
