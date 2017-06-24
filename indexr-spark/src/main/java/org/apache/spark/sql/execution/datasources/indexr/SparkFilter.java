@@ -41,19 +41,7 @@ public class SparkFilter {
             return null;
         }
         RCOperator op = new io.indexr.segment.rc.And(Trick.mapToList(validFilters, f -> transform(schemas, f)));
-        //op = op.optimize();
-        int[] totalCount = new int[1];
-        int[] unknownCount = new int[1];
-        op.foreach(o -> {
-            if (o instanceof UnknownOperator) {
-                unknownCount[0]++;
-            }
-            totalCount[0]++;
-        });
-        if (unknownCount[0] == totalCount[0]) {
-            // This filter is useless.
-            return null;
-        }
+        op = op.optimize();
         return op;
     }
 

@@ -97,7 +97,7 @@ public class OuterIndex_Inverted implements OuterIndex {
                     bitmap,
                     startEntryId,
                     endEntryId);
-            return new BitMap(bitmap);
+            return new BitMap(bitmap, packCount);
         }
 
         int startSlot = idToMergeSlotId(startEntryId);
@@ -112,9 +112,9 @@ public class OuterIndex_Inverted implements OuterIndex {
         } else {
             assert startSlot < endSlot;
 
-            //  | ......... | ......... | ~ | ........ | ........ |
-            //       ^      ^                          ^       ^
-            //     start1  end1                      start2   end2
+            //  | ........ | ........ | ~ | ........ | ........ |
+            //       ^     ^                         ^       ^
+            //     start1  end1                    start2   end2
 
             int start1 = startEntryId;
             int end1 = mergeSlotIdToId(startSlot + 1);
@@ -162,7 +162,7 @@ public class OuterIndex_Inverted implements OuterIndex {
                 }
             }
         }
-        return new BitMap(bitmap);
+        return new BitMap(bitmap, packCount);
     }
 
     private int searchEntry(long numValue, UTF8String strValue) throws IOException {
@@ -240,7 +240,7 @@ public class OuterIndex_Inverted implements OuterIndex {
 
         DirectBitMap bitmap = new DirectBitMap(packCount);
         MergeBitMapUtil.readAndMergeBitmaps(bitmapReader, bitmap, Trick.subArray(entryIds, 0, entryIdCount));
-        return new BitMap(bitmap);
+        return new BitMap(bitmap, packCount);
     }
 
     private BitMap greater(int entryId, boolean acceptEqual, boolean isNot) throws IOException {

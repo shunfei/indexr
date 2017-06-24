@@ -30,11 +30,9 @@ public interface PackExtIndex extends Freeable {
     BitMap like(Column column, int packId, long numValue, UTF8String strValue) throws IOException;
 
     default BitMap fixBitmapInPack(BitMap bitMap, int rowCount) {
-        int cardinality = bitMap.cardinality();
-        if (cardinality == 0) {
+        if (bitMap.isEmpty()) {
+            bitMap.free();
             return BitMap.NONE;
-        } else if (cardinality == rowCount) {
-            return BitMap.ALL;
         } else {
             return bitMap;
         }
