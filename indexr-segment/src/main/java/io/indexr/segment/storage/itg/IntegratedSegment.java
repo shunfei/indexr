@@ -129,7 +129,7 @@ public class IntegratedSegment extends StorageSegment<IntegratedColumn> {
                                       ExtIndexMemCache extIndexMemCache,
                                       PackMemCache packMemCache) throws IOException {
             // Open file here. The user will close it by Segment#close().
-            ByteBufferReader reader = dataSource.open(0);
+            ByteBufferReader reader = dataSource.openOnRead(0);
             // Create a wrapped reader, all open peration will directly return the opening file.
             ByteBufferReader.Opener wrappedDataSource = ByteBufferReader.Opener.create(reader);
 

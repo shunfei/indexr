@@ -57,6 +57,13 @@ public interface ByteBufferReader extends Closeable {
         ByteBufferReader open(long readBase) throws IOException;
 
         /**
+         * Only open when read methods are called.
+         */
+        default ByteBufferReader openOnRead(long readBase) throws IOException {
+            return new OpenOnReadBBR(this, readBase);
+        }
+
+        /**
          * Wrap a ByteBufferReader into an {@link Opener}.
          * Note that the close will <b>not</b> passed to the opener,
          */
