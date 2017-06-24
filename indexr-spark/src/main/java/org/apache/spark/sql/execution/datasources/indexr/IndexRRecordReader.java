@@ -209,7 +209,7 @@ public class IndexRRecordReader extends RecordReader<Void, Object> {
             CachedSegment cachedSegment = new CachedSegment(segment);
             if (rsFilter != null) {
                 BitMap bitMap = rsFilter.exactCheckOnRow(cachedSegment, myPackId);
-                if (bitMap == BitMap.NONE || bitMap.cardinality() == 0) {
+                if (bitMap.isEmpty()) {
                     cachedSegment.free();
                     bitMap.free();
                     continue;

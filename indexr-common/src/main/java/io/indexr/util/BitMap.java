@@ -12,10 +12,11 @@ public class BitMap implements Freeable {
     public static final int DATAPACK_MAX_COUNT = 65536;
 
     //public static final BitMap SOME = new BitMap(null);
-    public static final BitMap ALL = new BitMap(null);
-    public static final BitMap NONE = new BitMap(null);
+    public static final BitMap ALL = new BitMap(null, 0);
+    public static final BitMap NONE = new BitMap(null, 0);
 
     public DirectBitMap agent;
+    private int bits;
 
     public BitMap() {
         this(DATAPACK_MAX_COUNT);
@@ -23,10 +24,12 @@ public class BitMap implements Freeable {
 
     public BitMap(int bits) {
         agent = new DirectBitMap(bits);
+        this.bits = bits;
     }
 
-    public BitMap(DirectBitMap agent) {
+    public BitMap(DirectBitMap agent, int bits) {
         this.agent = agent;
+        this.bits = bits;
     }
 
     @Override
@@ -82,8 +85,18 @@ public class BitMap implements Freeable {
         return agent.get(id);
     }
 
-    public int cardinality() {
-        return (int) agent.cardinality();
+    //public int cardinality() {
+    //    return (int) agent.cardinality();
+    //}
+
+    public boolean isEmpty() {
+        if (this == ALL) {
+            return false;
+        } else if (this == NONE) {
+            return true;
+        }
+        int next = agent.nextSetBit(0);
+        return next == -1 || next >= bits;
     }
 
     public DirectBitMapIterator iterator() {

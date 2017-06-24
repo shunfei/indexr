@@ -24,7 +24,6 @@ import io.indexr.segment.rc.RCOperator;
 import io.indexr.segment.rt.RTSGroup;
 import io.indexr.segment.rt.RTSGroupInfo;
 import io.indexr.segment.rt.RealtimeSegment;
-import io.indexr.util.BitMap;
 import io.indexr.util.Strings;
 
 public class SegmentAssigner {
@@ -152,34 +151,17 @@ public class SegmentAssigner {
                         endPackId = segment.packCount();
                     }
 
-                    ArrayList<Integer> packIds = new ArrayList<>(endPackId - startPackId);
                     for (int packId = startPackId; packId < endPackId; packId++) {
+                        int packRowCount = DataPack.packRowCount(segmentRowCount, packId);
+                        totalRowCount += packRowCount;
+
                         if (rsFilter != null && rsFilter.roughCheckOnPack(segment, packId) == RSValue.None) {
                             log.debug("rs index ignore segment {} pack {}", segment.name(), packId);
                             continue;
                         }
                         // Hit!
-                        packIds.add(packId);
-                    }
-
-                    if (packIds.size() > 0) {
-                        BitMap packBitmap = rsFilter == null ? null : rsFilter.exactCheckOnPack(segment);
-                        for (int packId : packIds) {
-                            if (packBitmap != null) {
-                                if ((packBitmap != BitMap.ALL)
-                                        && (packBitmap == BitMap.NONE || !packBitmap.get(packId))) {
-                                    log.debug("outer index ignore segment {} pack {}. [{}]", segment.name(), packId, packBitmap);
-                                    continue;
-                                } else {
-                                    log.debug("outer index hit segment {} pack {}. [{}]", segment.name(), packId, packBitmap);
-                                }
-                            }
-                            int packRowCount = DataPack.packRowCount(segmentRowCount, packId);
-                            totalRowCount += packRowCount;
-
-                            validWorks.add(new SingleWork(segment.name(), packId));
-                            validRowCount += packRowCount;
-                        }
+                        validWorks.add(new SingleWork(segment.name(), packId));
+                        validRowCount += packRowCount;
                     }
                 }
             }
