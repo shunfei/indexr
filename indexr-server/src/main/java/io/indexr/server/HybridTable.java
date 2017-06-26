@@ -42,10 +42,12 @@ public class HybridTable implements SegmentPool, SegmentLocality {
 
         logger.info("Starting table. [table: {}]", name);
 
+        refreshSchema();
+
         this.historySegmentPool = new FileSegmentPool(
                 name,
                 indexRConfig.getFileSystem(),
-                indexRConfig.getDataRoot(),
+                IndexRConfig.segmentRootPath(indexRConfig.getDataRoot(), name, schema().location),
                 indexRConfig.getLocalDataRoot(),
                 notifyService);
 
@@ -57,8 +59,8 @@ public class HybridTable implements SegmentPool, SegmentLocality {
                 zkClient,
                 notifyService,
                 rtHandleService);
+        this.realtimeSegmentPool.updateSchema(schema());
 
-        refreshSchema();
         schemaWatcher = ZkWatcher.onData(zkClient, zkTablePath, null,
                 () -> Try.on(this::refreshSchema, 3, logger, "Refresh table [" + name + "] schema failed"));
     }
@@ -72,7 +74,9 @@ public class HybridTable implements SegmentPool, SegmentLocality {
         TableSchema newSchema = JsonUtil.fromJson(bytes, TableSchema.class);
         if (schema == null || !schema.equals(newSchema)) {
             schema = newSchema;
-            realtimeSegmentPool.updateSchema(newSchema);
+            if (realtimeSegmentPool != null) {
+                realtimeSegmentPool.updateSchema(newSchema);
+            }
         }
     }
 

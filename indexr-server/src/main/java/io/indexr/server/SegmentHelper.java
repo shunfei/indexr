@@ -37,28 +37,21 @@ public class SegmentHelper {
         return blockSize;
     }
 
-    public static Path segmentPath(String dataRoot, String tableName, String segmentName) {
-        String segmentRootDir = IndexRConfig.segmentRootPath(dataRoot, tableName);
-        return new org.apache.hadoop.fs.Path(segmentRootDir, segmentName);
-    }
-
     public static void uploadSegment(StorageSegment segment,
                                      FileSystem fileSystem,
-                                     String dataRoot,
-                                     String tableName) throws IOException {
-        uploadSegment(segment, fileSystem, dataRoot, tableName, false, true);
+                                     Path segmentRootPath) throws IOException {
+        uploadSegment(segment, fileSystem, segmentRootPath, false, true);
     }
 
     public static SegmentFd uploadSegment(StorageSegment segment,
                                           FileSystem fileSystem,
-                                          String dataRoot,
-                                          String tableName,
+                                          Path segmentRootPath,
                                           boolean openSegment,
                                           boolean notifyUpdate) throws IOException {
-        Path path = segmentPath(dataRoot, tableName, segment.name());
+        Path path = new Path(segmentRootPath, segment.name());
         SegmentFd fd = uploadSegment(segment, fileSystem, path, openSegment);
         if (notifyUpdate) {
-            notifyUpdate(fileSystem, dataRoot, tableName);
+            notifyUpdate(fileSystem, segmentRootPath);
         }
         return fd;
     }
@@ -115,9 +108,9 @@ public class SegmentHelper {
         return fd;
     }
 
-    public static void notifyUpdate(FileSystem fileSystem, String dataRoot, String tableName) throws IOException {
+    public static void notifyUpdate(FileSystem fileSystem, Path segmentRootPath) throws IOException {
         // Touch the update file to notify segment change.
-        Path updateFilePath = new Path(IndexRConfig.segmentUpdateFilePath(dataRoot, tableName));
+        Path updateFilePath = IndexRConfig.segmentUpdateFilePath(segmentRootPath);
         try (FSDataOutputStream os = fileSystem.create(updateFilePath, true)) {
             os.hsync();
         }

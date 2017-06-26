@@ -33,6 +33,7 @@ import io.indexr.segment.cache.PackExpiredMemCache;
 import io.indexr.segment.cache.PackMemCache;
 import io.indexr.segment.rt.RTResources;
 import io.indexr.util.MemoryUtil;
+import io.indexr.util.Strings;
 
 public class IndexRConfig implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(IndexRConfig.class);
@@ -71,16 +72,16 @@ public class IndexRConfig implements Closeable {
         return localDataRoot.resolve(String.format("cache/%s.segfd.cache", tableName));
     }
 
-    public static String segmentRootPath(String dataRoot, String tableName) {
-        return String.format("%s/segment/%s", dataRoot, tableName);
+    public static org.apache.hadoop.fs.Path segmentRootPath(String dataRoot, String tableName, String location) {
+        if (Strings.isEmpty(location)) {
+            return new org.apache.hadoop.fs.Path(String.format("%s/segment/%s", dataRoot, tableName));
+        } else {
+            return new org.apache.hadoop.fs.Path(location);
+        }
     }
 
-    public static String segmentUpdateFilePath(String dataRoot, String tableName) {
-        return String.format("%s/segment/%s/__UPDATE__", dataRoot, tableName);
-    }
-
-    public static String tmpPath(String dataRoot) {
-        return dataRoot + "/tmp";
+    public static org.apache.hadoop.fs.Path segmentUpdateFilePath(org.apache.hadoop.fs.Path segmentRootPath) {
+        return new org.apache.hadoop.fs.Path(segmentRootPath, "__UPDATE__");
     }
 
     public static String zkSegmentDeclarePath(String tableName) {
@@ -269,10 +270,6 @@ public class IndexRConfig implements Closeable {
         zkRootClient.start();
         zkClient = zkRootClient.usingNamespace(getZkRoot());
         return zkClient;
-    }
-
-    public org.apache.hadoop.fs.Path segmentPath(String table, String segmentName) {
-        return new org.apache.hadoop.fs.Path(segmentRootPath(getDataRoot(), table), segmentName);
     }
 
     public FileSystem getFileSystem() {

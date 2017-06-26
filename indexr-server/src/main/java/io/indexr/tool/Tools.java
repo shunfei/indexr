@@ -245,7 +245,12 @@ public class Tools {
         Preconditions.checkState(!Strings.isEmpty(options.table), "Please specify table name! -t <name>");
         String[] tableNames = options.table.split(",");
         Preconditions.checkState(tableNames.length == 1, "Only one table name are supported!");
-        SegmentManager tm = new FileSegmentManager(options.table, config.getFileSystem(), config.getDataRoot());
+        ZkTableManager zkTableManager = new ZkTableManager(config.getZkClient());
+        TableSchema schema = zkTableManager.getTableSchema(options.table);
+        SegmentManager tm = new FileSegmentManager(
+                options.table,
+                config.getFileSystem(),
+                IndexRConfig.segmentRootPath(config.getDataRoot(), options.table, schema.location));
         List<String> names = tm.allSegmentNames();
         if (names == null) {
             return true;
@@ -294,10 +299,14 @@ public class Tools {
         Preconditions.checkState(!Strings.isEmpty(options.table), "Please specify table name! -t <name>");
         Preconditions.checkState(!Strings.isEmpty(options.segment), "Please specify segment name! -s <name>");
 
+        ZkTableManager zkTableManager = new ZkTableManager(config.getZkClient());
+        TableSchema tableSchema = zkTableManager.getTableSchema(options.table);
+        Path segmentRootPath = IndexRConfig.segmentRootPath(config.getDataRoot(), options.table, tableSchema.location);
+
         String[] segNames = options.segment.split(",");
         for (String segName : segNames) {
             segName = segName.trim();
-            Path path = config.segmentPath(options.table, segName);
+            Path path = new Path(segmentRootPath, segName);
             FileSystem fileSystem = config.getFileSystem();
             FileStatus fileStatus = fileSystem.getFileStatus(path);
 
@@ -358,7 +367,12 @@ public class Tools {
         Preconditions.checkState(tableNames.length == 1, "Only one table name are supported!");
         Preconditions.checkState(options.segment != null, "Please specify segment name! -s <name>");
 
-        SegmentManager tm = new FileSegmentManager(options.table, config.getFileSystem(), config.getDataRoot());
+        ZkTableManager zkTableManager = new ZkTableManager(config.getZkClient());
+        TableSchema schema = zkTableManager.getTableSchema(options.table);
+        SegmentManager tm = new FileSegmentManager(
+                options.table,
+                config.getFileSystem(),
+                IndexRConfig.segmentRootPath(config.getDataRoot(), options.table, schema.location));
         String[] names = options.segment.split(",");
         for (String name : names) {
             tm.remove(name.trim());
@@ -498,7 +512,10 @@ public class Tools {
 
         ZkTableManager tm = new ZkTableManager(config.getZkClient());
         Preconditions.checkState(tm.getTableSchema(options.table) != null, "Table [%s] not exists!", options.table);
-        SegmentHelper.notifyUpdate(config.getFileSystem(), config.getDataRoot(), options.table);
+        TableSchema schema = tm.getTableSchema(options.table);
+        SegmentHelper.notifyUpdate(
+                config.getFileSystem(),
+                IndexRConfig.segmentRootPath(config.getDataRoot(), options.table, schema.location));
         System.out.println("OK");
 
         return true;
@@ -525,7 +542,7 @@ public class Tools {
                 schema.schema,
                 schema.mode,
                 schema.aggSchema,
-                IndexRConfig.segmentRootPath(config.getDataRoot(), options.table),
+                IndexRConfig.segmentRootPath(config.getDataRoot(), options.table, schema.location).toString(),
                 options.columnName
         );
         if (!createSql.trim().endsWith(";")) {
