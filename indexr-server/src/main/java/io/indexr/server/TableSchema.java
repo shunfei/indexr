@@ -17,6 +17,8 @@ import io.indexr.util.Trick;
 public class TableSchema {
     @JsonProperty("schema")
     public final SegmentSchema schema;
+    @JsonProperty("location")
+    public final String location;
     @JsonProperty("mode")
     public String modeName;
     @JsonIgnore
@@ -27,6 +29,7 @@ public class TableSchema {
     public final RealtimeConfig realtimeConfig;
 
     public TableSchema(@JsonProperty("schema") SegmentSchema schema,
+                       @JsonProperty("location") String location,
                        @JsonProperty("mode") String modeName,
                        @JsonProperty("agg") AggSchema aggSchema,
                        @JsonProperty("sort.columns") List<String> sortColumns,
@@ -34,6 +37,7 @@ public class TableSchema {
         Preconditions.checkState(schema != null && !schema.getColumns().isEmpty(), "Segment schema should not be empty");
 
         this.schema = schema;
+        this.location = location;
         this.mode = SegmentMode.fromName(modeName);
         this.modeName = this.mode.name();
         this.realtimeConfig = realtimeConfig;

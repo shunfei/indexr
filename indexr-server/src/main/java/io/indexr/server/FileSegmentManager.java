@@ -21,15 +21,13 @@ public class FileSegmentManager implements SegmentManager, SegmentUploader {
 
     String tableName;
     FileSystem fileSystem;
-    String dataRoot;
     Path segmentRootPath;
 
-    public FileSegmentManager(String tableName, FileSystem fileSystem, String dataRoot) throws Exception {
+    public FileSegmentManager(String tableName, FileSystem fileSystem, Path segmentRootPath) throws Exception {
         this.tableName = tableName;
         this.fileSystem = fileSystem;
-        this.dataRoot = dataRoot;
 
-        this.segmentRootPath = new Path(IndexRConfig.segmentRootPath(dataRoot, tableName));
+        this.segmentRootPath = segmentRootPath;
         if (!fileSystem.exists(segmentRootPath)) {
             fileSystem.mkdirs(segmentRootPath);
         }
@@ -54,12 +52,12 @@ public class FileSegmentManager implements SegmentManager, SegmentUploader {
 
     @Override
     public SegmentFd upload(StorageSegment segment, boolean openFd) throws IOException {
-        return SegmentHelper.uploadSegment((StorageSegment) segment, fileSystem, dataRoot, tableName, false, true);
+        return SegmentHelper.uploadSegment((StorageSegment) segment, fileSystem, segmentRootPath, false, true);
     }
 
     @Override
     public void remove(String name) throws Exception {
-        fileSystem.delete(SegmentHelper.segmentPath(dataRoot, tableName, name));
-        SegmentHelper.notifyUpdate(fileSystem, dataRoot, tableName);
+        fileSystem.delete(new Path(segmentRootPath, name));
+        SegmentHelper.notifyUpdate(fileSystem, segmentRootPath);
     }
 }

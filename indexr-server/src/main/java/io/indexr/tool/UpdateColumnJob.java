@@ -57,6 +57,8 @@ import io.indexr.segment.storage.UpdateColSegment;
 import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
+import io.indexr.server.TableSchema;
+import io.indexr.server.ZkTableManager;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
 import io.indexr.util.Strings;
@@ -426,7 +428,13 @@ public class UpdateColumnJob extends Configured implements Tool {
         log.debug("table: {}, mode: {}, columns: {}", options.table, mode, JsonUtil.toJson(updateColSchemas));
 
         IndexRConfig indexrConf = new IndexRConfig();
-        String segmentRoot = IndexRConfig.segmentRootPath(indexrConf.getDataRoot(), options.table);
+        ZkTableManager zkTableManager = new ZkTableManager(indexrConf.getZkClient());
+        TableSchema schema = zkTableManager.getTableSchema(options.table);
+
+        String segmentRoot = IndexRConfig.segmentRootPath(
+                indexrConf.getDataRoot(),
+                options.table,
+                schema.location).toString();
         Config config = new Config(
                 options.table,
                 segmentRoot,

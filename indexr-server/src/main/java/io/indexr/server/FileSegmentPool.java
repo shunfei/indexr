@@ -73,19 +73,18 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
 
     public FileSegmentPool(String tableName,
                            FileSystem fileSystem,
-                           String dataRoot,
+                           Path segmentRootPath,
                            java.nio.file.Path localDataRoot,
                            ScheduledExecutorService notifyService) throws Exception {
-        super(tableName, fileSystem, dataRoot);
-        Path rootPath = new Path(IndexRConfig.segmentRootPath(dataRoot, tableName));
-        if (!fileSystem.exists(rootPath)) {
-            fileSystem.mkdirs(rootPath);
+        super(tableName, fileSystem, segmentRootPath);
+        if (!fileSystem.exists(segmentRootPath)) {
+            fileSystem.mkdirs(segmentRootPath);
         }
-        this.segmentRootPath = fileSystem.resolvePath(rootPath);
+        this.segmentRootPath = fileSystem.resolvePath(segmentRootPath);
         this.segmentRootPathStr = segmentRootPath.toString() + "/";
         this.fileSystem = fileSystem;
         this.localCachePath = IndexRConfig.localCacheSegmentFdPath(localDataRoot, tableName);
-        this.updateFilePath = new Path(IndexRConfig.segmentUpdateFilePath(dataRoot, tableName));
+        this.updateFilePath = IndexRConfig.segmentUpdateFilePath(segmentRootPath);
 
         if (!fileSystem.exists(updateFilePath)) {
             fileSystem.create(updateFilePath, true);
