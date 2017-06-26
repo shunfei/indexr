@@ -630,7 +630,7 @@ public class RTSGroup implements InfoSegment, SegmentFd {
             logger.debug("Delete rts group files. [table: {}, rtsg: {}]",
                     tn, rtsgName);
             FileUtils.deleteDirectory(deletePath);
-        }, 5 * 60 * 1000).submit();
+        }, 15 * 60 * 1000).submit();
 
         return true;
     }
