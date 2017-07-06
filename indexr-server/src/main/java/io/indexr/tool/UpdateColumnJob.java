@@ -59,6 +59,7 @@ import io.indexr.server.IndexRConfig;
 import io.indexr.server.SegmentHelper;
 import io.indexr.server.TableSchema;
 import io.indexr.server.ZkTableManager;
+import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.util.JsonUtil;
 import io.indexr.util.RuntimeUtil;
 import io.indexr.util.Strings;
@@ -444,6 +445,7 @@ public class UpdateColumnJob extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
+        RealtimeConfig.loadSubtypes();
         System.exit(ToolRunner.run(new Configuration(), new UpdateColumnJob(), args));
     }
 

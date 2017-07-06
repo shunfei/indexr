@@ -113,6 +113,8 @@ public class Tools {
     }
 
     public static void main(String[] args) throws Exception {
+        // Hack, make jvm init the static fields.
+        RealtimeConfig.loadSubtypes();
         MyOptions options = new MyOptions();
         CmdLineParser parser = RuntimeUtil.parseArgs(args, options);
         if (options.help) {
