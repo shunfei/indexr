@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 import io.indexr.plugin.Plugins;
+import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.server.rt2his.Rt2HisOnHive;
 import io.indexr.util.RuntimeUtil;
 import io.indexr.util.Strings;
@@ -95,6 +96,7 @@ public class Rt2His {
     }
 
     public static void main(String[] args) throws Exception {
+        RealtimeConfig.loadSubtypes();
         MyOptions options = new MyOptions();
         CmdLineParser parser = RuntimeUtil.parseArgs(args, options);
         if (options.help) {

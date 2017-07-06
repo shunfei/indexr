@@ -32,6 +32,7 @@ import io.indexr.segment.SegmentSchema;
 import io.indexr.segment.storage.itg.Integrate;
 import io.indexr.segment.storage.itg.IntegratedSegment;
 import io.indexr.segment.storage.itg.SegmentMeta;
+import io.indexr.server.rt.RealtimeConfig;
 import io.indexr.util.RuntimeUtil;
 
 public class CSVSegmentExporter {
@@ -142,6 +143,7 @@ public class CSVSegmentExporter {
     }
 
     public static void main(String[] args) throws Exception {
+        RealtimeConfig.loadSubtypes();
         MyOptions options = new MyOptions();
         CmdLineParser parser = RuntimeUtil.parseArgs(args, options);
         if (options.help) {
