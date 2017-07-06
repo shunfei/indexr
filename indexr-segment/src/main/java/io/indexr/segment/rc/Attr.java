@@ -62,7 +62,7 @@ public class Attr {
             ordinal++;
         }
         if (colId == -1) {
-            throw new RuntimeException(String.format("column [name: %s, type: %d] not found in columns [%s]", colName, type, schemas));
+            throw new RuntimeException(String.format("column [name: %s, type: %s] not found in columns [%s]", colName, type, schemas));
         }
         Preconditions.checkState(colType == type, "Column type not match");
         return colId;
