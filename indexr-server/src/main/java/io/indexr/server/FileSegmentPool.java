@@ -157,7 +157,7 @@ public class FileSegmentPool extends FileSegmentManager implements SegmentPool, 
                 }
             }
 
-        } catch (IOException e) {
+        } catch (Throwable e) {
             if (e instanceof ClosedByInterruptException) {
                 logger.warn("Load segments of table [{}] failed by ClosedByInterruptException.", tableName);
                 return;
