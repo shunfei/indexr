@@ -143,7 +143,7 @@ public class RealtimeSegmentPool implements SegmentPool, SegmentLocality {
                 indexRConfig.getTimeZone(),
                 rtConf.aggSchema.grouping,
                 rtConf.ingest,
-                rtConf.mode,
+                tableSchema.mode,
                 rtConf.fetcher);
     }
 

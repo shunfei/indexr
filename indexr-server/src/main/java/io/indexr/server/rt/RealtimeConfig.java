@@ -63,7 +63,7 @@ public class RealtimeConfig {
     public final long maxRowInRealtime;
     @JsonProperty("ingest")
     public final boolean ingest;
-    @JsonProperty("mode")
+    @JsonIgnore
     public String modeName;
     @JsonIgnore
     public SegmentMode mode;
