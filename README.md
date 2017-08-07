@@ -13,7 +13,9 @@
 
 #### Getting started
 
-* Installation - First [Compile from source](https://github.com/shunfei/indexr/wiki/Compilation), then [Set up a cluster](https://github.com/shunfei/indexr/wiki/Deployment).
+* Installation
+  * First [Compile from source](https://github.com/shunfei/indexr/wiki/Compilation) or download a pre-compiled package directly from [release page](https://github.com/shunfei/indexr/releases).
+  * Then [Set up a cluster](https://github.com/shunfei/indexr/wiki/Deployment).
 * User manual - Check [here](https://github.com/shunfei/indexr/wiki/User-Guide).
 * Any problems? - Found an [issue](https://github.com/shunfei/indexr/issues).
 
