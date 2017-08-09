@@ -104,13 +104,15 @@ public class IndexROutputWriter extends OutputWriter {
         }
     }
 
-    @Override
     public void write(Row row) {
         throw new UnsupportedOperationException("call writeInternal");
     }
 
-    @Override
     public void writeInternal(InternalRow row) {
+        write(row);
+    }
+
+    public void write(InternalRow row) {
         for (int colId = 0; colId < sqlTypes.length; colId++) {
             SQLType type = sqlTypes[colId];
             switch (type) {
