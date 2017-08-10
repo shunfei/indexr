@@ -1,18 +1,16 @@
 package io.indexr.plugin;
 
-import com.google.common.reflect.ClassPath;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Set;
 
 public class Plugins {
     private static final Logger logger = LoggerFactory.getLogger(Plugins.class);
     private static volatile boolean loaded = false;
+    private static String[] pluginClasses = {"io.indexr.plugin.VLTPlugin"};
 
     public static boolean loadPluginsNEX() {
         try {
@@ -30,10 +28,9 @@ public class Plugins {
             loaded = true;
 
             boolean sucOne = false;
-            ClassPath classPath = ClassPath.from(Plugins.class.getClassLoader());
-            Set<ClassPath.ClassInfo> classes = classPath.getTopLevelClasses(Plugins.class.getPackage().getName());
-            for (ClassPath.ClassInfo ci : classes) {
-                Method[] methods = ci.load().getDeclaredMethods();
+            for (String cn : pluginClasses) {
+                Class<?> clzz = Class.forName(cn);
+                Method[] methods = clzz.getDeclaredMethods();
                 for (Method m : methods) {
                     int mod = m.getModifiers();
                     if (!Modifier.isStatic(mod) && m.getParameterCount() > 0) {
@@ -48,12 +45,12 @@ public class Plugins {
                     }
                     if (ok) {
                         try {
-                            logger.info("Start run plugin method: {}#{}", ci.getSimpleName(), m.getName());
+                            logger.info("Start run plugin method: {}#{}", cn, m.getName());
                             m.invoke(null);
                             sucOne = true;
-                            logger.info("Finish run plugin method: {}#{}", ci.getSimpleName(), m.getName());
+                            logger.info("Finish run plugin method: {}#{}", cn, m.getName());
                         } catch (Exception e) {
-                            logger.error("Plugin method failed: {}#{} ", ci.getSimpleName(), m.getName(), e);
+                            logger.error("Plugin method failed: {}#{} ", cn, m.getName(), e);
                         }
                     }
                 }
