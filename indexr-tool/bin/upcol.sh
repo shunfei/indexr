@@ -8,6 +8,7 @@ for jar in ${ROOT_DIR}/jars/hadoop/*.jar
 do
     LIBJARS=${LIBJARS},${jar}
 done
+LIBJARS=${LIBJARS#,}
 
 export HADOOP_CLASSPATH=${ROOT_DIR}/conf:${ROOT_DIR}/jars/hadoop/*:${ROOT_DIR}/jars/*:${HADOOP_CLASSPATH}
 
