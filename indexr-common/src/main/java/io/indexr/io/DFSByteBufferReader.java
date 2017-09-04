@@ -125,7 +125,17 @@ public class DFSByteBufferReader implements ByteBufferReader {
         try {
             tryGetLocalFile();
             if (localFile != null) {
-                fastRead(position, dst);
+                final int dst_pos = dst.position();
+                final int dst_limit = dst.limit();
+                try {
+                    fastRead(position, dst);
+                } catch (Exception e) {
+                    localFile = null;
+                    logger.warn("fast read failed, roll back to normal read: {}", name);
+                    dst.position(dst_pos);
+                    dst.limit(dst_limit);
+                    normalRead(position, dst);
+                }
             } else {
                 normalRead(position, dst);
             }
@@ -139,7 +149,13 @@ public class DFSByteBufferReader implements ByteBufferReader {
         try {
             tryGetLocalFile();
             if (localFile != null) {
-                fastRead(position, buffer, offset, length);
+                try {
+                    fastRead(position, buffer, offset, length);
+                } catch (Exception e) {
+                    localFile = null;
+                    logger.warn("fast read failed, roll back to normal read: {}", name);
+                    normalRead(position, buffer, offset, length);
+                }
             } else {
                 normalRead(position, buffer, offset, length);
             }
