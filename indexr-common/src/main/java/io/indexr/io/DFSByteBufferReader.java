@@ -131,6 +131,7 @@ public class DFSByteBufferReader implements ByteBufferReader {
                     fastRead(position, dst);
                 } catch (Exception e) {
                     localFile = null;
+                    tryGetLocalFileTimes = TRY_GET_LOCAL_FILE_LIMIT;
                     logger.warn("fast read failed, roll back to normal read: {}", name);
                     dst.position(dst_pos);
                     dst.limit(dst_limit);
