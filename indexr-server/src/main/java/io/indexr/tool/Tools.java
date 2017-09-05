@@ -87,6 +87,7 @@ public class Tools {
                 "\nnotifysu  - notify segment update. [-t]" +
                 "\nhivesql   - get the hive table creation sql. Specify the partition column of hive table by -column <columnName>. [-t, -c, -column, -hivetb]" +
                 "\nupmode    - update table segment mode. [-t, -mode]" +
+                "\nmergefrag - merge fragments of table. [-t]" +
                 "\n=====================================")
         String cmd;
 
@@ -183,6 +184,8 @@ public class Tools {
                 return hiveCreateSql(options, config);
             case "upmode":
                 return updateMode(options, config);
+            case "mergefrag":
+                return mergeFragments(options, config);
             default:
                 System.out.println("Illegal cmd: " + options.cmd);
                 return false;
@@ -575,6 +578,13 @@ public class Tools {
             tm.set(table, schema);
         }
 
+        return true;
+    }
+
+    private static boolean mergeFragments(MyOptions options, IndexRConfig config) throws Exception {
+        Preconditions.checkState(!Strings.isEmpty(options.table), "Please specify table name! -t <name>");
+
+        FragmentMerger.mergeTable(options.table, config);
         return true;
     }
 }
