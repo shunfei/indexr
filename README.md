@@ -33,7 +33,6 @@ Please feel free to file any issues.
 ## Contact
 
 * Email: 
-	* <indexree@vectorlinex.com>
 	* <519178957@qq.com>
 * IRC: #indexr
 * QQ Group: 606666586 (IndexR讨论组)
