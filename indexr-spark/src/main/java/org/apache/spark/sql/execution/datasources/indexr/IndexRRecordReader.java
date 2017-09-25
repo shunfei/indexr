@@ -82,12 +82,14 @@ public class IndexRRecordReader extends RecordReader<Void, Object> {
 
         ByteBufferReader.Opener opener = ByteBufferReader.Opener.create(fileSystem, filePath);
         IntegratedSegment.Fd fd = IntegratedSegment.Fd.create(filePath.toString(), opener);
-        if (fd != null) {
-            segment = fd.open();
-            if (segment == null) {
-                logger.warn("illegal segment: " + filePath);
-                return;
-            }
+        if (fd == null) {
+            logger.warn("illegal segment: " + filePath);
+            return;
+        }
+        segment = fd.open();
+        if (segment == null) {
+            logger.warn("illegal segment: " + filePath);
+            return;
         }
         this.totalRowCount = segment.rowCount();
         this.packCount = segment.packCount();
