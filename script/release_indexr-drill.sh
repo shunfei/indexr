@@ -10,7 +10,7 @@ cd ${ROOT_DIR}
 
 rm -rf ${RELEASE_PATH}/indexr-drill
 mkdir -p ${RELEASE_PATH}/indexr-drill/jars/3rdparty
-sh ${ROOT_DIR}/script/compile_indexr-server.sh
+bash ${ROOT_DIR}/script/compile_indexr-server.sh
 
 function cp_jar {
     if [ ! -f $1 ]; then

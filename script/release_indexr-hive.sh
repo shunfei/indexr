@@ -8,7 +8,7 @@ RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 
 cd ${ROOT_DIR}
 
-sh ${ROOT_DIR}/script/compile_indexr-hive.sh
+bash ${ROOT_DIR}/script/compile_indexr-hive.sh
 
 # copy hive files
 rm -rf ${RELEASE_PATH}/indexr-hive/aux
