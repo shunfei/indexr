@@ -206,7 +206,7 @@ public class Tools {
 
     private static boolean setTable(MyOptions options, IndexRConfig config) throws Exception {
         Preconditions.checkState(!Strings.isEmpty(options.table), "Please specify table name! -t <name>");
-        Preconditions.checkState(!Strings.isEmpty(options.schemapath), "Please specify scheam path! -c <path>");
+        Preconditions.checkState(!Strings.isEmpty(options.schemapath), "Please specify schema path! -c <path>");
         String[] tableNames = options.table.split(",");
         Preconditions.checkState(tableNames.length == 1, "Can only add one table one time!");
         TableSchema schema = JsonUtil.loadConfig(Paths.get(options.schemapath), TableSchema.class);
