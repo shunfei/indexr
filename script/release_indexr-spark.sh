@@ -8,7 +8,7 @@ RELEASE_PATH=${ROOT_DIR}/distribution/indexr-${VERSION}
 
 cd ${ROOT_DIR}
 
-sh ${ROOT_DIR}/script/compile_indexr-spark.sh
+bash ${ROOT_DIR}/script/compile_indexr-spark.sh
 
 rm -rf ${RELEASE_PATH}/indexr-spark/jars
 mkdir -p ${RELEASE_PATH}/indexr-spark/jars
