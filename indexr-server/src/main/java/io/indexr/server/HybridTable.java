@@ -131,10 +131,10 @@ public class HybridTable implements SegmentPool, SegmentLocality {
 
     @Override
     public List<SegmentFd> all() {
-        List<SegmentFd> fds = new ArrayList<>(historySegmentPool.all());
-        List<SegmentFd> realtimeFds = realtimeSegmentPool.all();
-        for (SegmentFd fd : realtimeFds) {
-            if (!historySegmentPool.exists(fd.name())) {
+        List<SegmentFd> fds = new ArrayList<>(realtimeSegmentPool.all());
+        List<SegmentFd> hisFds = historySegmentPool.all();
+        for (SegmentFd fd : hisFds) {
+            if (realtimeSegmentPool.get(fd.name()) == null) {
                 fds.add(fd);
             }
         }
