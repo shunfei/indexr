@@ -81,7 +81,7 @@ public class UTF8JsonDeserializerTest {
 
     @Test
     public void test() throws Exception {
-        String s = "  {\"ibbeee\": \"222\", \"sfff\": \"3333\"},  {\"sa\\\"aa\\\\ee}\": \"\\\"c    \\\\\\\"c\", \"veeee\":222, \"f\\\\我是帅逼！！！！…………服务范围分为--2342342=4=242344￥￥1111\\\\^\\\\&_@@@@     \\\\\\\\\\\"43*\": -12.33, \"i33*^3\\\\&\\\\\": 33, \"\" : \"+9.9\", \"i''\": 55, \"v445^^#2\": 22}   ";
+        String s = "  {\"ibbeee\": \"222\", \"sfff\": \"3\\u00063\\3\\}3\"},  {\"sa\\\"aa\\\\ee}\": \"\\\"c    \\\\\\\"c\", \"veeee\":222, \"f\\\\我是帅逼！！！！…………服务范围分为--2342342=4=242344￥￥1111\\\\^\\\\&_@@@@     \\\\\\\\\\\"43*\": -12.33, \"i33*^3\\\\&\\\\\": 33, \"\" : \"+9.9\", \"i''\": 55, \"v445^^#2\": 22}   ";
         //String s = "{\"saa\": \"11cc\", \"ifff\": 3333,}";
         UTF8JsonDeserializer des = new UTF8JsonDeserializer();
         Assert.assertTrue(des.parse(s.getBytes(UTF8Util.UTF8_NAME), new MyListener()));

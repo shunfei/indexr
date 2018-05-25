@@ -110,6 +110,7 @@ public class UTF8JsonDeserializer {
                     switch (b) {
                         case BACKSLASH:
                             if (escape) {
+                                valueBuffer.put(BACKSLASH);
                                 valueBuffer.put(b);
                                 escape = false;
                             } else {
@@ -118,6 +119,7 @@ public class UTF8JsonDeserializer {
                             break;
                         case DOUBLE_QUOTE:
                             if (escape) {
+                                valueBuffer.put(BACKSLASH);
                                 valueBuffer.put(b);
                                 escape = false;
                             } else {
@@ -128,8 +130,10 @@ public class UTF8JsonDeserializer {
                             break;
                         default:
                             if (escape) {
-                                logErrorJson("illegal character after", data, offset, len, pos);
-                                return false;
+                                //logErrorJson("illegal character after", data, offset, len, pos);
+                                valueBuffer.put(BACKSLASH);
+                                valueBuffer.put(b);
+                                escape = false;
                             } else {
                                 valueBuffer.put(b);
                             }
@@ -177,6 +181,7 @@ public class UTF8JsonDeserializer {
                     switch (b) {
                         case BACKSLASH:
                             if (escape) {
+                                valueBuffer.put(BACKSLASH);
                                 valueBuffer.put(b);
                                 escape = false;
                             } else {
@@ -185,6 +190,7 @@ public class UTF8JsonDeserializer {
                             break;
                         case DOUBLE_QUOTE:
                             if (escape) {
+                                valueBuffer.put(BACKSLASH);
                                 valueBuffer.put(b);
                                 escape = false;
                             } else {
@@ -207,8 +213,10 @@ public class UTF8JsonDeserializer {
                             break;
                         case COMMA:
                             if (escape) {
-                                logErrorJson("illegal character", data, offset, len, pos);
-                                return false;
+                                //logErrorJson("illegal character", data, offset, len, pos);
+                                valueBuffer.put(BACKSLASH);
+                                valueBuffer.put(b);
+                                escape = false;
                             } else {
                                 if (valueType == INVALID) {
                                     if (couldBeString) {
@@ -230,8 +238,10 @@ public class UTF8JsonDeserializer {
                             break;
                         case CURLY_BRACE_RIGHT:
                             if (escape) {
-                                logErrorJson("illegal character", data, offset, len, pos);
-                                return false;
+                                //logErrorJson("illegal character", data, offset, len, pos);
+                                valueBuffer.put(BACKSLASH);
+                                valueBuffer.put(b);
+                                escape = false;
                             } else {
                                 if (valueType == INVALID) {
                                     if (couldBeString) {
@@ -255,8 +265,10 @@ public class UTF8JsonDeserializer {
                             break;
                         default:
                             if (escape) {
-                                logErrorJson("illegal character", data, offset, len, pos);
-                                return false;
+                                //logErrorJson("illegal character", data, offset, len, pos);
+                                valueBuffer.put(BACKSLASH);
+                                valueBuffer.put(b);
+                                escape = false;
                             } else {
                                 valueBuffer.put(b);
                             }
