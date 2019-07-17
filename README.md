@@ -32,9 +32,7 @@ Please feel free to file any issues.
 
 ## Contact
 
-* Email: 
-	* <519178957@qq.com>
-* IRC: #indexr
+* WeChat: xilyflow
 * QQ Group: 606666586 (IndexR讨论组)
 
 ## License
